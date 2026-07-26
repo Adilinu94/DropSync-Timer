@@ -1,0 +1,147 @@
+# SYSTEM ARCHITECTURE DOCUMENT: "DropSync Timer" (Android)
+
+## 1. PROJEKTVISION & KERNKONZEPT
+Ziel ist eine native Android-App (Kotlin, Jetpack Compose), die Workout-Timer über Sprachansagen (TTS) legt, ohne die Musik zu stoppen. Das Alleinstellungsmerkmal ist der **"Drop-Sync-Modus"**: Die App synchronisiert das Ende des Workout-Countdowns perfekt mit dem Drop eines lokal abgespielten Songs (via Poweramp).
+
+**Das "Audio-as-Clock"-Prinzip:**
+Da wir die Wiedergabegeschwindigkeit von Poweramp nicht anpassen können, nutzen wir Poweramp *selbst* als Uhr. Die App fragt nicht "Wie viel Zeit ist vergangen?", sondern "An welcher Position (in Millisekunden) ist der Song gerade?". Die Timer-Logik (und die TTS-Ansagen) triggern basierend auf der Differenz zwischen aktueller Song-Position und dem markierten Drop-Zeitpunkt. Dadurch gibt es null Drift.
+
+## 2. TECH STACK
+- **Sprache:** Kotlin
+- **UI:** Jetpack Compose (Material 3)
+- **Architektur:** MVVM + Clean Architecture
+- **State Management:** Kotlin Coroutines & StateFlow
+- **Persistenz:** Room Database (für Song-Drop-Mapping), DataStore (für Settings)
+- **Audio:** Android AudioFocus API, TextToSpeech (TTS), SoundPool (für Beeps)
+- **Music Integration:** Poweramp API (via Local Broadcast Intents)
+- **Pre-Processing:** Python (librosa) Backend-Skript zur Audioanalyse (offline)
+
+## 3. SYSTEM ARCHITEKTUR & FLOW
+
+```mermaid
+flowchart TD
+    A[User wählt Song & Timer-Dauer] --> B[SyncEngine]
+    B --> C{Drop-Zeitpunkt bekannt?}
+    C -->|Nein| D[Python Pre-Processing: librosa Drop Detection]
+    D --> E[Drop-Zeitpunkt in Room DB speichern]
+    C -->|Ja| F[Start-Position berechnen: DropTime - TimerDuration]
+    F --> G[Poweramp Intent: seekTo Start-Position]
+    G --> H[Poweramp Intent: Play]
+    H --> I[SyncEngine Polling Loop]
+    I -->|Jede 500ms| J[Poweramp API: GetCurrentPosition]
+    J --> K[Remaining = DropTime - CurrentPos]
+    K --> L{Remaining == Trigger-Punkt?}
+    L -->|180s, 120s, 60s, 30s| M[TTS Sprachansage + Vibration]
+    L -->|10s bis 1s| N[TTS Countdown 10..1]
+    L -->|0s| O[Finaler Beep + Vibration]
+    M --> I
+    N --> I
+```
+
+## 4. KOMPONENTEN-SPEZIFIKATION FÜR DIE IMPLEMENTIERUNG
+
+### 4.1 Pre-Processing: Drop-Detection (Python Backend)
+Da On-Device Machine Learning für Audio-Segmentierung zu fehleranfällig ist, erfolgt die Analyse offline.
+- **Input:** Lokale Audiodatei (.mp3, .flac).
+- **Library:** `librosa`
+- **Logik:**
+  1. Berechne die Onset-Stärke (`librosa.onset.onset_strength`).
+  2. Führe Struktur-Segmentierung durch (`librosa.segment.agglomerative`).
+  3. Identifiziere den Übergang mit dem höchsten Energie-Sprung (Build-up zu Drop).
+- **Output:** JSON-Datei (`{"file_hash": "abc123", "drop_time_ms": 134500}`)
+- **Aufgabe für KI:** Schreibe ein Python-Skript `drop_analyzer.py`, das einen Ordner mit Musik einliest und eine `drops.json` generiert. Die Android App importiert diese JSON später oder nutzt sie direkt, wenn der Song in der App ausgewählt wird.
+
+### 4.2 Poweramp API Integration (Android)
+Die App kommuniziert mit Poweramp über Intents. Die KI muss die Poweramp API Docs beachten.
+- **Package Name:** `com.maxmpz.audioplayer`
+- **Starten/Seeken:** Sende `com.maxmpz.audioplayer.API_COMMAND` mit `cmd=255` (SEEK_TO) und extra `pos` (Long in ms).
+- **Position abfragen:** Da Positionspolling über Intents langsam sein kann, registriert die App einen `BroadcastReceiver` für `com.maxmpz.audioplayer.TRACK_POS_CHANGED` (oder fragt periodisch `PowerampAPI` ab).
+- **WICHTIG:** Die App spielt *keine* Audiodaten selbst ab. Sie steuert nur Poweramp. Für die TTS-Ansagen fordert die App weiterhin `AUDIOFOCUS_GAIN_TRANSIENT_MAY_DUCK` an, womit Poweramp automatisch die Musik duckt.
+
+### 4.3 Core Module: SyncEngine (Kotlin)
+Dies ist das Herzstück. Die `SyncEngine` ist ein Foreground Service.
+- **Initialisierung:** Beim Start berechnet die Engine `startPos = dropTimeMs - timerDurationMs`. Wenn `startPos < 0`, wird der Song von 0 gestartet und der Timer verkürzt.
+- **Polling:** Ein Coroutine-Job (`delay(500ms)`) fragt die aktuelle Position von Poweramp ab.
+- **Trigger-Logik:** 
+  ```kotlin
+  val remainingMs = dropTimeMs - currentPosMs
+  when {
+      remainingMs in 179500..180500 -> triggerTTS("3 Minuten")
+      remainingMs in 119500..120500 -> triggerTTS("2 Minuten")
+      remainingMs in 59500..60500 -> triggerTTS("1 Minute")
+      remainingMs in 29500..30500 -> triggerTTS("30 Sekunden")
+      remainingMs <= 10000 && remainingMs > 0 -> triggerTTS(remainingMs/1000)
+      remainingMs <= 0 -> triggerFinalBeep()
+  }
+  ```
+
+### 4.4 Audio & TTS Management
+- **Ducking-Steuerung:** AudioAttributes müssen `USAGE_ASSISTANCE_SONIFICATION` und `CONTENT_TYPE_SONIFICATION` nutzen.
+- **Ducking-Grad:** Über die AudioManager API die Lautstärke der Musik während der TTS-Ansage regulieren (0% = nichts ändern, 50% = leiser, 100% = stumm für 2 Sekunden).
+- **Voice Personas:** Alle verfügbaren Android TTS-Engines abfragen (`TextToSpeech.Engine`) und dem User zur Auswahl stellen. Ausgewählte Voice-ID speichern und für TTS-Instanz nutzen.
+
+### 4.5 UI / Jetpack Compose Screens
+1. **SetupScreen:** 
+   - Timer-Dauer wählen (Slider).
+   - Modus wählen: "Standard Ducking" (nur Timer) oder "Drop Sync" (mit Poweramp).
+   - Wenn Drop Sync: Song auswählen, Drop-Zeit anzeigen (manuell änderbar oder aus DB).
+2. **RunningScreen:**
+   - Riesiger Countdown (berechnet aus Poweramp Position).
+   - Anzeige des Songtitels.
+   - Pause/Resume Buttons (sendet Intents an Poweramp UND pausiert SyncEngine).
+3. **SettingsScreen:** 
+   - TTS Voice Auswahl.
+   - Ducking-Slider.
+   - Import von `drops.json`.
+
+## 5. DATENMODELLE (Room Database)
+
+```kotlin
+@Entity(tableName = "songs")
+data class SongEntity(
+    @PrimaryKey val filePath: String,
+    val title: String,
+    val artist: String,
+    val dropTimeMs: Long = 0, // 0 bedeutet "nicht analysiert"
+    val bpm: Int = 0
+)
+
+@Entity(tableName = "presets")
+data class PresetEntity(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val name: String,
+    val durationMs: Long,
+    val duckingMode: Int, // 0, 50, 100
+    val useDropSync: Boolean
+)
+```
+
+## 6. EXPLICITE ANWEISUNGEN AN DIE IMPLEMENTIERENDE KI
+
+Bitte beginne mit der Umsetzung in folgenden, streng isolierten Schritten. Warte auf mein "Weiter" nach jedem Schritt.
+
+**SCHRITT 1: Projekt-Setup & Datenbank**
+Erstelle ein leeres Android Studio Projekt (Kotlin, Compose, Min SDK 26). Richte Hilt, Room und die grundlegenden Entitäten ein. Erstelle das `SongRepository`.
+
+**SCHRITT 2: Poweramp API Wrapper**
+Implementiere eine Klasse `PowerampController`. Sie muss folgende Funktionen über Broadcast Intents abdecken:
+- `playTrack(filePath: String)`
+- `seekTo(positionMs: Long)`
+- `pause()`
+- `resume()`
+- `getCurrentPosition(): StateFlow<Long>` (Hier muss ein BroadcastReceiver für Poweramp Updates implementiert werden).
+*Tipp für die KI: Nutze die Intent-Actions `com.maxmpz.audioplayer.API_COMMAND` und die Command-Codes aus der Poweramp API Dokumentation.*
+
+**SCHRITT 3: SyncEngine (Der Foreground Service)**
+Implementiere die `SyncEngine` als Foreground Service. Erstelle die Coroutine-Loop, die die Position von `PowerampController` abfragt. Implementiere die Logik, die bei bestimmten `remainingMs`-Schwellenwerten eine Event-Flow (`TimerEvent`) emittiert.
+
+**SCHRITT 4: Audio & TTS Manager**
+Implementiere `AudioFocusManager` (für Ducking) und `TtsManager` (für Sprachansagen). Der `TtsManager` muss die ausgewählte Voice-Persona berücksichtigen und über den `USAGE_VOICE_COMMUNICATION` Stream abspielen.
+
+**SCHRITT 5: Compose UI**
+Baue die drei Screens (Setup, Running, Settings) und verbinde sie mit den ViewModels.
+
+**SCHRITT 6: Python Pre-Processing**
+Schreibe das standalone Python-Skript `drop_analyzer.py` mit `librosa`, das einen Ordner scannt und die `drops.json` generiert.
+
+Starte JETZT mit SCHRITT 1 und gib mir die `build.gradle.kts` und die Room-Datenbank-Klassen aus.
