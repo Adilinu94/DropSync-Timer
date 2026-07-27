@@ -74,6 +74,7 @@ dependencies {
     implementation(project(":data:timer"))
     implementation(project(":data:workout"))
     implementation(project(":feature:library"))
+    implementation(project(":feature:audio"))
     implementation(project(":feature:player"))
     implementation(project(":feature:timer"))
     implementation(project(":feature:workout"))

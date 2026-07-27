@@ -49,6 +49,7 @@ include(":domain:workout")
 
 // :feature
 include(":feature:library")
+include(":feature:audio") // ADR-0005 (DSP-/Audio-UI)
 include(":feature:player")
 include(":feature:timer")
 include(":feature:workout")

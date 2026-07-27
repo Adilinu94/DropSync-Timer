@@ -2,6 +2,7 @@ package com.dropsync.feature.settings
 
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -40,6 +41,7 @@ import com.dropsync.core.model.SongMarker
 fun SettingsScreen(
     contentPadding: PaddingValues,
     modifier: Modifier = Modifier,
+    onOpenAudioSettings: () -> Unit = {},
     viewModel: SettingsViewModel = hiltViewModel(),
 ) {
     val unmatched by viewModel.unmatchedMarkers.collectAsStateWithLifecycle()
@@ -58,6 +60,25 @@ fun SettingsScreen(
         modifier = modifier.fillMaxSize(),
         contentPadding = contentPadding,
     ) {
+        item {
+            Text(
+                text = stringResource(R.string.settings_audio_section),
+                style = MaterialTheme.typography.titleMedium,
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+            )
+        }
+        item {
+            ListItem(
+                headlineContent = { Text(stringResource(R.string.settings_audio_entry)) },
+                supportingContent = { Text(stringResource(R.string.settings_audio_entry_desc)) },
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .heightIn(min = 48.dp)
+                        .clickable(onClick = onOpenAudioSettings),
+            )
+        }
+        item { HorizontalDivider(Modifier.padding(vertical = 12.dp)) }
         item {
             Text(
                 text = stringResource(R.string.settings_markers_section),

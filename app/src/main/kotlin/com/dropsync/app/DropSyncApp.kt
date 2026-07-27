@@ -30,6 +30,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.dropsync.feature.audio.AudioSettingsScreen
 import com.dropsync.feature.library.LibraryScreen
 import com.dropsync.feature.player.DropRestCard
 import com.dropsync.feature.player.MiniPlayer
@@ -51,6 +52,12 @@ enum class TopLevelDestination(
     TRAINING("training", Icons.Filled.FitnessCenter, R.string.nav_training),
     SETTINGS("settings", Icons.Filled.Settings, R.string.nav_settings),
 }
+
+/**
+ * Unterseite der Einstellungen (kein viertes Hauptziel): Audio/DSP-Regler.
+ * Erreichbar ueber den Audio-Einstieg in [SettingsScreen].
+ */
+private const val ROUTE_AUDIO_SETTINGS = "audio_settings"
 
 @Composable
 fun DropSyncApp(windowSizeClass: WindowSizeClass) {
@@ -121,7 +128,16 @@ private fun DropSyncNavHost(
             }
         }
         composable(TopLevelDestination.SETTINGS.route) {
-            SettingsScreen(contentPadding = contentPadding)
+            SettingsScreen(
+                contentPadding = contentPadding,
+                onOpenAudioSettings = { navController.navigate(ROUTE_AUDIO_SETTINGS) },
+            )
+        }
+        composable(ROUTE_AUDIO_SETTINGS) {
+            AudioSettingsScreen(
+                contentPadding = contentPadding,
+                onBack = { navController.popBackStack() },
+            )
         }
     }
 }
