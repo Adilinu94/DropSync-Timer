@@ -44,6 +44,19 @@ data class PrRecord(
 )
 
 /**
+ * Optionale Musikreferenz einer Session (Schritt 11.1): Song-ID, Marker-ID
+ * nullable, Playerposition, Zeitstempel. Append-only; keine Queuekopie.
+ */
+data class PlaybackSnapshotInfo(
+    val id: Long,
+    val sessionId: Long,
+    val songId: Long,
+    val markerId: Long?,
+    val positionMs: Long,
+    val capturedAtEpochMs: Long,
+)
+
+/**
  * Qualifikation fuer Volumen und PRs (Bauplan 5.4/1): setRole WORKING
  * oder FAILURE, Cluster abgeschlossen, Uebung STRENGTH, mindestens ein
  * Segment mit reps > 0 und externalLoadMilliKg >= 0. WARMUP nie.

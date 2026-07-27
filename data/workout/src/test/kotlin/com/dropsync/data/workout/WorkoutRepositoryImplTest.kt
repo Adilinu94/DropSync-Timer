@@ -8,6 +8,7 @@ import com.dropsync.core.database.DropSyncDatabase
 import com.dropsync.core.database.RoomTransactionRunner
 import com.dropsync.core.database.entity.ExerciseEntity
 import com.dropsync.core.database.entity.SetRoleEntity
+import com.dropsync.core.database.entity.SongEntity
 import com.dropsync.core.model.PrType
 import com.dropsync.core.model.SessionStatus
 import com.dropsync.core.model.SetRole
@@ -234,5 +235,83 @@ class WorkoutRepositoryImplTest {
                 )
             assertTrue(result is com.dropsync.core.common.AppResult.Failure)
             assertTrue(db.workoutDao().getClustersForSessionExercise(sessionExerciseId).isEmpty())
+        }
+
+    private suspend fun insertSong(mediaStoreId: Long) {
+        db.songDao().upsertAll(
+            listOf(
+                SongEntity(
+                    mediaStoreId = mediaStoreId,
+                    contentUri = "content://media/external/audio/media/$mediaStoreId",
+                    displayName = "track_$mediaStoreId.mp3",
+                    relativePath = "Music/",
+                    durationMs = 240_000,
+                    sizeBytes = 1_000_000,
+                    dateModifiedSeconds = 1_700_000_000,
+                    title = "Track $mediaStoreId",
+                    artist = null,
+                    album = null,
+                    isAvailable = true,
+                ),
+            ),
+        )
+    }
+
+    @Test
+    fun `session referenziert den damals laufenden song per snapshot`() =
+        runTest {
+            // Abnahme Schritt 11: abgeschlossener Satz kann optional den
+            // damals laufenden Song referenzieren (11.1, append-only).
+            val (sessionId, sessionExerciseId) = startSessionWithExercise()
+            insertSong(mediaStoreId = 42)
+            repository.completeCluster(
+                sessionExerciseId,
+                SetRole.WORKING,
+                listOf(SegmentInput(80_000, 1, 8)),
+                null,
+            )
+
+            val id =
+                (
+                    repository.recordPlaybackSnapshot(
+                        sessionId = sessionId,
+                        songId = 42,
+                        markerId = null,
+                        positionMs = 93_000,
+                    ) as com.dropsync.core.common.AppResult.Success
+                ).value
+            assertTrue(id > 0)
+
+            val snapshots =
+                (
+                    repository.getPlaybackSnapshots(sessionId)
+                        as com.dropsync.core.common.AppResult.Success
+                ).value
+            assertEquals(1, snapshots.size)
+            assertEquals(42L, snapshots.single().songId)
+            assertEquals(93_000L, snapshots.single().positionMs)
+            assertEquals(null, snapshots.single().markerId)
+        }
+
+    @Test
+    fun `snapshot ohne bekannte session oder song schlaegt fehl`() =
+        runTest {
+            val (sessionId, _) = startSessionWithExercise()
+            // Unbekannte Session.
+            assertTrue(
+                repository.recordPlaybackSnapshot(9_999, 42, null, 0)
+                    is com.dropsync.core.common.AppResult.Failure,
+            )
+            // Unbekannter Song verletzt den Fremdschluessel (11.1).
+            assertTrue(
+                repository.recordPlaybackSnapshot(sessionId, 4_242, null, 0)
+                    is com.dropsync.core.common.AppResult.Failure,
+            )
+            val snapshots =
+                (
+                    repository.getPlaybackSnapshots(sessionId)
+                        as com.dropsync.core.common.AppResult.Success
+                ).value
+            assertTrue(snapshots.isEmpty())
         }
 }

@@ -57,4 +57,19 @@ interface WorkoutRepository {
 
     /** Werte des letzten abgeschlossenen Clusters derselben Uebung (9.4). */
     suspend fun lastCompletedClusterPrefill(exerciseId: Long): AppResult<List<SegmentInput>>
+
+    /**
+     * Speichert ein optionales PlaybackSnapshot-Ereignis (Schritt 11.1):
+     * nur Song-ID, Marker-ID nullable, Playerposition und Zeitstempel;
+     * niemals eine dauerhafte Queuekopie.
+     */
+    suspend fun recordPlaybackSnapshot(
+        sessionId: Long,
+        songId: Long,
+        markerId: Long?,
+        positionMs: Long,
+    ): AppResult<Long>
+
+    /** Snapshots einer Session, aufsteigend nach Aufnahmezeit. */
+    suspend fun getPlaybackSnapshots(sessionId: Long): AppResult<List<PlaybackSnapshotInfo>>
 }

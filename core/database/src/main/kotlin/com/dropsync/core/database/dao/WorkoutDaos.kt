@@ -11,6 +11,7 @@ import com.dropsync.core.database.entity.ExerciseMuscleEntity
 import com.dropsync.core.database.entity.ExerciseNameEntity
 import com.dropsync.core.database.entity.MuscleGroupEntity
 import com.dropsync.core.database.entity.PersonalRecordEntity
+import com.dropsync.core.database.entity.PlaybackSnapshotEntity
 import com.dropsync.core.database.entity.RoutineEntity
 import com.dropsync.core.database.entity.RoutineExerciseEntity
 import com.dropsync.core.database.entity.SessionExerciseEntity
@@ -134,6 +135,19 @@ interface WorkoutDao {
 
     @Query("SELECT COUNT(*) FROM set_segments WHERE cluster_id = :clusterId")
     suspend fun countSegments(clusterId: Long): Int
+
+    /**
+     * Append-only-Musikreferenz einer Session (Schritt 11.1); es gibt
+     * bewusst kein Update und keine Queuekopie.
+     */
+    @Insert
+    suspend fun insertPlaybackSnapshot(snapshot: PlaybackSnapshotEntity): Long
+
+    @Query(
+        "SELECT * FROM playback_snapshots WHERE session_id = :sessionId " +
+            "ORDER BY captured_at_epoch_ms, id",
+    )
+    suspend fun getPlaybackSnapshotsForSession(sessionId: Long): List<PlaybackSnapshotEntity>
 
     /**
      * Qualifizierte Historie einer Uebung (Bauplan 5.4/1): WORKING oder

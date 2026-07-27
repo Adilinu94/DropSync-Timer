@@ -8,12 +8,14 @@ import com.dropsync.core.database.TransactionRunner
 import com.dropsync.core.database.dao.RoutineDao
 import com.dropsync.core.database.dao.WorkoutDao
 import com.dropsync.core.database.entity.PersonalRecordEntity
+import com.dropsync.core.database.entity.PlaybackSnapshotEntity
 import com.dropsync.core.database.entity.SessionExerciseEntity
 import com.dropsync.core.database.entity.SetClusterEntity
 import com.dropsync.core.database.entity.SetSegmentEntity
 import com.dropsync.core.database.entity.WorkoutSessionEntity
 import com.dropsync.core.model.SessionStatus
 import com.dropsync.core.model.SetRole
+import com.dropsync.domain.workout.PlaybackSnapshotInfo
 import com.dropsync.domain.workout.PrCalculator
 import com.dropsync.domain.workout.QualifiedSegment
 import com.dropsync.domain.workout.RoutineEntry
@@ -235,6 +237,56 @@ class WorkoutRepositoryImpl(
                 AppResult.success(segments)
             } catch (e: Exception) {
                 AppResult.failure(AppError.DatabaseFailure("lastCompletedClusterPrefill"))
+            }
+        }
+
+    override suspend fun recordPlaybackSnapshot(
+        sessionId: Long,
+        songId: Long,
+        markerId: Long?,
+        positionMs: Long,
+    ): AppResult<Long> =
+        withContext(dispatchers.io) {
+            try {
+                // 11.1: append-only; nur Referenzen und Position, nie eine
+                // Queuekopie. Fremdschluessel sichern Song/Session-Existenz.
+                workoutDao.getSession(sessionId)
+                    ?: return@withContext AppResult.failure(
+                        AppError.DatabaseFailure("Session $sessionId fehlt fuer Snapshot"),
+                    )
+                val id =
+                    workoutDao.insertPlaybackSnapshot(
+                        PlaybackSnapshotEntity(
+                            sessionId = sessionId,
+                            songId = songId,
+                            markerId = markerId,
+                            positionMs = positionMs,
+                            capturedAtEpochMs = clock.epochMillis(),
+                        ),
+                    )
+                AppResult.success(id)
+            } catch (e: Exception) {
+                AppResult.failure(AppError.DatabaseFailure("recordPlaybackSnapshot"))
+            }
+        }
+
+    override suspend fun getPlaybackSnapshots(sessionId: Long): AppResult<List<PlaybackSnapshotInfo>> =
+        withContext(dispatchers.io) {
+            try {
+                val snapshots =
+                    workoutDao.getPlaybackSnapshotsForSession(sessionId).map {
+                        PlaybackSnapshotInfo(
+                            id = it.id,
+                            sessionId = it.sessionId,
+                            songId = it.songId,
+                            markerId = it.markerId,
+                            positionMs = it.positionMs,
+                            capturedAtEpochMs = it.capturedAtEpochMs,
+                        )
+                    }
+                AppResult.success(snapshots)
+            } catch (e: Exception) {
+                AppResult.failure(AppError.DatabaseFailure("getPlaybackSnapshots"))
             }
         }
 
