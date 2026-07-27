@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.FitnessCenter
 import androidx.compose.material.icons.filled.LibraryMusic
@@ -31,6 +32,7 @@ import androidx.navigation.compose.rememberNavController
 import com.dropsync.feature.library.LibraryScreen
 import com.dropsync.feature.player.MiniPlayer
 import com.dropsync.feature.settings.SettingsScreen
+import com.dropsync.feature.timer.TimerSection
 import com.dropsync.feature.workout.WorkoutScreen
 
 /**
@@ -97,7 +99,21 @@ private fun DropSyncNavHost(
             LibraryScreen(contentPadding = contentPadding)
         }
         composable(TopLevelDestination.TRAINING.route) {
-            WorkoutScreen(contentPadding = contentPadding)
+            // Timer und Trainingslog teilen sich den Trainingskontext; nur
+            // :app kennt beide Features (Modulregel 3.2).
+            Column(
+                modifier =
+                    Modifier
+                        .fillMaxSize()
+                        .padding(top = contentPadding.calculateTopPadding()),
+            ) {
+                TimerSection()
+                WorkoutScreen(
+                    contentPadding =
+                        PaddingValues(bottom = contentPadding.calculateBottomPadding()),
+                    modifier = Modifier.weight(1f),
+                )
+            }
         }
         composable(TopLevelDestination.SETTINGS.route) {
             SettingsScreen(contentPadding = contentPadding)
