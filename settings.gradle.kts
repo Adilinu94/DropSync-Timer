@@ -40,6 +40,7 @@ include(":data:timer")
 include(":data:workout")
 
 // :domain
+include(":domain:library") // ADR-0003
 include(":domain:timer")
 include(":domain:workout")
 

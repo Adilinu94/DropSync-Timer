@@ -61,7 +61,10 @@ android {
 dependencies {
     implementation(project(":core:common"))
     implementation(project(":core:model"))
+    implementation(project(":core:database"))
     implementation(project(":core:designsystem"))
+    implementation(project(":domain:library"))
+    implementation(project(":data:library"))
     implementation(project(":feature:library"))
     implementation(project(":feature:player"))
     implementation(project(":feature:timer"))

@@ -20,6 +20,17 @@ interface SongDao {
     @Query("SELECT * FROM songs WHERE media_store_id = :mediaStoreId")
     suspend fun getById(mediaStoreId: Long): SongEntity?
 
+    /** Einmalige Momentaufnahme fuer Scan-Abgleich und Markerzuordnung. */
+    @Query("SELECT * FROM songs")
+    suspend fun getAllOnce(): List<SongEntity>
+
+    /** Speichert den extern gelieferten Analyzer-Hash (nie selbst berechnet). */
+    @Query("UPDATE songs SET known_sha256 = :sha256 WHERE media_store_id = :mediaStoreId")
+    suspend fun setKnownSha256(
+        mediaStoreId: Long,
+        sha256: String,
+    )
+
     @Query("SELECT * FROM songs WHERE is_available = 1 ORDER BY title COLLATE NOCASE")
     fun observeAvailable(): Flow<List<SongEntity>>
 
@@ -70,6 +81,10 @@ interface MarkerDao {
 
     @Insert(onConflict = OnConflictStrategy.ABORT)
     suspend fun insertLink(link: MarkerSongLinkEntity): Long
+
+    /** Entfernt eine bestehende Zuordnung (manuelles Umziehen in Settings). */
+    @Query("DELETE FROM marker_song_links WHERE marker_id = :markerId")
+    suspend fun deleteLinkForMarker(markerId: Long)
 
     @Query("SELECT * FROM marker_song_links WHERE marker_id = :markerId")
     suspend fun getLinkForMarker(markerId: Long): MarkerSongLinkEntity?

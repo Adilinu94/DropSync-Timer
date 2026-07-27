@@ -35,6 +35,12 @@ data class SongEntity(
     val album: String?,
     @ColumnInfo(name = "is_available")
     val isAvailable: Boolean,
+    /**
+     * SHA-256 ausschliesslich aus dem externen Analyzer-Import (Abschnitt 2);
+     * die App berechnet nie selbst einen Hash. Grundlage der Stufe-1-Zuordnung.
+     */
+    @ColumnInfo(name = "known_sha256")
+    val knownSha256: String? = null,
 )
 
 /**
@@ -46,7 +52,7 @@ data class SongMarkerEntity(
     @PrimaryKey(autoGenerate = true)
     @ColumnInfo(name = "id")
     val id: Long = 0,
-    /** Fachliche Identitaet des Import-Tracks inkl. optionalem SHA-256. */
+    /** Fachliche Identitaet des Import-Tracks (Pfad, Name, Groesse, Dauer). */
     @ColumnInfo(name = "source_fingerprint")
     val sourceFingerprint: String,
     @ColumnInfo(name = "label")

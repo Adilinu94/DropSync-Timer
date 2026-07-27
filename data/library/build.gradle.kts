@@ -2,6 +2,8 @@
 // AGP 9: Kotlin-Support ist im Android-Plugin eingebaut (kein kotlin.android).
 plugins {
     alias(libs.plugins.android.library)
+    alias(libs.plugins.ksp)
+    alias(libs.plugins.hilt)
 }
 
 android {
@@ -29,12 +31,19 @@ dependencies {
     implementation(project(":core:common"))
     implementation(project(":core:model"))
     implementation(project(":core:database"))
+    implementation(project(":domain:library"))
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.datastore.preferences)
     implementation(libs.kotlinx.coroutines.android)
 
+    implementation(libs.hilt.android)
+    ksp(libs.hilt.compiler)
+
     testImplementation(project(":core:testing"))
+    testImplementation(libs.junit4)
+    testImplementation(libs.kotlinx.coroutines.test)
+    testImplementation(libs.turbine)
     androidTestImplementation(libs.androidx.test.ext.junit)
     androidTestImplementation(libs.androidx.test.runner)
 }

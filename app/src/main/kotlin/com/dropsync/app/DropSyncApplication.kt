@@ -1,11 +1,40 @@
 package com.dropsync.app
 
 import android.app.Application
+import android.util.Log
+import com.dropsync.core.common.DispatcherProvider
+import com.dropsync.core.database.seed.ExerciseSeeder
 import dagger.hilt.android.HiltAndroidApp
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
+import javax.inject.Inject
 
 /**
  * App-Einstieg; enthaelt keine Fachlogik (Bauplan 3.2/5).
  * Hilt stellt die wenigen langlebigen Objekte bereit (Schritt 2.4).
  */
 @HiltAndroidApp
-class DropSyncApplication : Application()
+class DropSyncApplication : Application() {
+    @Inject lateinit var seeder: ExerciseSeeder
+
+    @Inject lateinit var dispatchers: DispatcherProvider
+
+    override fun onCreate() {
+        super.onCreate()
+        // Standarduebungen idempotent einspielen (Schritt 3.6); der Seed
+        // ueberschreibt nie Benutzerdaten und darf bei jedem Start laufen.
+        CoroutineScope(SupervisorJob() + dispatchers.io).launch {
+            try {
+                val json =
+                    assets.open(ExerciseSeeder.ASSET_PATH).use {
+                        it.readBytes().decodeToString()
+                    }
+                seeder.seed(json)
+            } catch (e: Exception) {
+                // Fehlerhafter Seed darf den App-Start nie verhindern.
+                Log.e("DropSyncApplication", "Seed fehlgeschlagen", e)
+            }
+        }
+    }
+}

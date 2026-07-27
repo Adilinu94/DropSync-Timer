@@ -14,9 +14,9 @@ Bauplan sind nur ueber ADRs in [`docs/adr/`](docs/adr/) erlaubt.
 | 1 | Projekt und Lieferkette | Abgeschlossen |
 | 2 | Modulgrenzen, DI, Fehlervertrag | Abgeschlossen |
 | 3 | Datenbank und Migrationen | Abgeschlossen |
-| 4 | Lokale Medienbibliothek | Offen |
+| 4 | Lokale Medienbibliothek | Abgeschlossen (Datenschicht; UI folgt in Schritt 12) |
 | 5 | Media3-Playback-Service | Offen |
-| 6 | Songmarker-Import | Offen |
+| 6 | Songmarker-Import | Abgeschlossen (Import/Zuordnung; Settings-UI folgt in Schritt 12) |
 | 7 | Timerkern | Offen |
 | 8 | Audio-Cues, Ducking, Haptik | Offen |
 | 9 | Uebungen, Routinen, Session-Log | Offen |
