@@ -7,4 +7,24 @@
     <string name="library_empty">No playable songs found on this device.</string>
     <string name="library_play_song">Play %1$s</string>
     <string name="library_unknown_artist">Unknown artist</string>
+    <string name="library_favorite">Add to favorites</string>
+    <string name="library_unfavorite">Remove from favorites</string>
+    <string name="library_track_count">%1$d tracks</string>
+    <string name="library_search_hint">Search title, artist or album</string>
+    <string name="library_search_clear">Clear search</string>
+    <string name="library_back">Back</string>
+    <string name="library_filter_hires">Hi-Res only</string>
+    <string name="library_view_songs">Songs</string>
+    <string name="library_view_artists">Artists</string>
+    <string name="library_view_albums">Albums</string>
+    <string name="library_view_genres">Genres</string>
+    <string name="library_view_folders">Folders</string>
+    <string name="library_view_favorites">Favorites</string>
+    <string name="library_view_recently_added">Recently added</string>
+    <string name="library_view_most_played">Most played</string>
+    <string name="library_sort_title">Sort: Title</string>
+    <string name="library_sort_artist">Sort: Artist</string>
+    <string name="library_sort_album">Sort: Album</string>
+    <string name="library_sort_duration">Sort: Duration</string>
+    <string name="library_sort_date_added">Sort: Date added</string>
 </resources>

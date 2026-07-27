@@ -7,4 +7,24 @@
     <string name="library_empty">Keine abspielbaren Songs auf diesem Geraet gefunden.</string>
     <string name="library_play_song">%1$s abspielen</string>
     <string name="library_unknown_artist">Unbekannter Interpret</string>
+    <string name="library_favorite">Zu Favoriten hinzufuegen</string>
+    <string name="library_unfavorite">Aus Favoriten entfernen</string>
+    <string name="library_track_count">%1$d Titel</string>
+    <string name="library_search_hint">Titel, Interpret oder Album suchen</string>
+    <string name="library_search_clear">Suche loeschen</string>
+    <string name="library_back">Zurueck</string>
+    <string name="library_filter_hires">Nur Hi-Res</string>
+    <string name="library_view_songs">Titel</string>
+    <string name="library_view_artists">Interpreten</string>
+    <string name="library_view_albums">Alben</string>
+    <string name="library_view_genres">Genres</string>
+    <string name="library_view_folders">Ordner</string>
+    <string name="library_view_favorites">Favoriten</string>
+    <string name="library_view_recently_added">Zuletzt hinzugefuegt</string>
+    <string name="library_view_most_played">Meistgespielt</string>
+    <string name="library_sort_title">Sortierung: Titel</string>
+    <string name="library_sort_artist">Sortierung: Interpret</string>
+    <string name="library_sort_album">Sortierung: Album</string>
+    <string name="library_sort_duration">Sortierung: Dauer</string>
+    <string name="library_sort_date_added">Sortierung: Hinzugefuegt</string>
 </resources>
