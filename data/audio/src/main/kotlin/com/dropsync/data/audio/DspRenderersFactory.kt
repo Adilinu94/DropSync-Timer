@@ -13,13 +13,23 @@ import androidx.media3.exoplayer.audio.DefaultAudioSink
  * - Float-Output aktiv, damit Hi-Res-Quellen (24/32 Bit) ohne
  *   16-Bit-Zwischenschritt zum System gelangen;
  * - die DSP-Kette laeuft laut DefaultAudioSink.configure vor der
- *   Float-/Int16-Konvertierung und damit in beiden Pfaden.
+ *   Float-/Int16-Konvertierung und damit in beiden Pfaden;
+ * - die selbstgebaute FFmpeg-Extension (ADR-0006) wird bevorzugt, sobald
+ *   sie im Build liegt (ALAC/AIFF/WMA/APE/TAK/TTA/DSD); fehlt sie, greift
+ *   automatisch der Plattformdecoder.
  */
 @OptIn(UnstableApi::class)
 class DspRenderersFactory(
     context: Context,
     private val audioProcessors: Array<AudioProcessor>,
 ) : DefaultRenderersFactory(context) {
+    init {
+        // Extension bevorzugen und bei Bedarf auf Plattformdecoder
+        // zurueckfallen (Plan Phase 3, Punkt 2).
+        setExtensionRendererMode(EXTENSION_RENDERER_MODE_PREFER)
+        setEnableDecoderFallback(true)
+    }
+
     override fun buildAudioSink(
         context: Context,
         enableFloatOutput: Boolean,

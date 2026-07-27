@@ -32,6 +32,19 @@ Status-Werte: `FREIGEGEBEN` (Lizenz geprueft, kompatibel), `OFFEN` (in Pruefung)
 | androidx.test (junit-ext, runner, espresso-core) | 1.3.0 / 1.7.0 / 3.7.0 | Apache-2.0 | Instrumentierte Tests (nur Testscope) | https://developer.android.com/testing | FREIGEGEBEN |
 | Spotless (Gradle-Plugin) | 8.8.0 | Apache-2.0 | Formatierung/statische Analyse (nur Build, keine Distribution) | https://github.com/diffplug/spotless | FREIGEGEBEN |
 | ktlint | 1.8.0 | MIT | Kotlin-Linting via Spotless (nur Build) | https://github.com/pinterest/ktlint | FREIGEGEBEN |
+| FFmpeg (libavcodec, libavformat, libavutil) | 6.1+ | LGPL-2.1-or-later | Audiodecoder-Extension (ALAC/AIFF/WMA/APE/TAK/TTA/DSD), dynamisch gelinkt, aus androidx/media gebaut (ADR-0006) | https://ffmpeg.org | OFFEN |
+
+## FFmpeg (LGPL 2.1+)
+
+Die optionale Decoder-Extension `:libs:media3-ffmpeg` linkt FFmpeg
+**dynamisch** als Shared Libraries (`libavcodec`, `libavformat`,
+`libavutil`). Damit bleibt die App LGPL-2.1-konform: Der FFmpeg-Quellcode
+sowie die verwendeten Build-Flags werden gemaess `docs/ffmpeg-build.md`
+bereitgestellt, und die `.so`-Dateien koennen durch eine eigene
+kompatible FFmpeg-Version ersetzt werden. Es werden **keine** GPL-Bauteile
+(z. B. `--enable-gpl`, `libx264`) einkompiliert. Bis das Artefakt gebaut
+und eingebunden ist, faellt die App auf die Plattformdecoder zurueck
+(Gradle-Flag `dropsync.enableFfmpeg`).
 
 Hinweis: Es wird kein Quellcode aus Symphony, Booming Music, Tracker, liftapp
 oder anderen Referenzprojekten verwendet (Bauplan Abschnitt 2.2).
