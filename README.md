@@ -26,6 +26,18 @@ Bauplan sind nur ueber ADRs in [`docs/adr/`](docs/adr/) erlaubt.
 | 13 | Tests, Performance, Release-Gates | Offen |
 | 14 | Datenschutz-, Lizenz-, Releasepruefung | Offen |
 
+### Audio-Engine-Ausbau (Plan "DropSync Audio-Engine-Ausbau", ADR-0005 bis ADR-0009)
+
+| Phase | Inhalt | Status |
+| ----- | ------ | ------ |
+| 1 (Schritt 15) | Audio-Engine-Fundament: Float-Output, DSP-Kette (64-Bit-Double), Preamp+Limiter, Audioinformationen | Abgeschlossen (`:domain:audio`, `:data:audio`, Service-Wiring) |
+| 2 (Schritt 16) | EQ (32 Baender), Bass/Hoehen, Stereo Expansion, Reverb, Dither, Resampler, DVC, Presets | Offen |
+| 3 (Schritt 17) | FFmpeg-Formate (ALAC/AIFF/WMA/APE/TAK/TTA/DSD), CUE, M3U, SAF-Ordnerscan | Offen |
+| 4 (Schritt 18) | Gapless-Absicherung, Crossfade (Dual-Player), Auto-Resume, MusicFX | Offen |
+| 5 (Schritt 19) | Pro-Ausgang-Profile, Bit-Perfect (USB, Android 14+), BT-Anzeige | Offen |
+| 6 (Schritt 20) | Bibliothek: Kuenstler/Alben/Genres/Ordner, Statistiken, Favoriten, Suche, Queue | Offen |
+| 7 (Schritt 21) | Feinschliff, Barrierefreiheit, Performance, Geraetetests | Offen |
+
 ## Build
 
 Voraussetzungen:

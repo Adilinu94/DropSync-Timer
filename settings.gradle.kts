@@ -34,12 +34,14 @@ include(":core:designsystem")
 include(":core:testing")
 
 // :data
+include(":data:audio") // ADR-0005
 include(":data:library")
 include(":data:playback")
 include(":data:timer")
 include(":data:workout")
 
 // :domain
+include(":domain:audio") // ADR-0005
 include(":domain:library") // ADR-0003
 include(":domain:playback") // ADR-0004
 include(":domain:timer")

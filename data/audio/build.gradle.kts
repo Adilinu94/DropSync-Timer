@@ -1,5 +1,5 @@
-// :data:playback — Media3-Service, Controller, PlaybackRepository (Bauplan 3.2).
-// Media3-/ExoPlayer-Abhaengigkeit nur hier und in :data:audio (ADR-0005).
+// :data:audio — DSP-Pipeline, Audio-Settings, RenderersFactory (ADR-0005).
+// Neben :data:playback das einzige Modul mit Media3-Abhaengigkeit.
 // AGP 9: Kotlin-Support ist im Android-Plugin eingebaut (kein kotlin.android).
 plugins {
     alias(libs.plugins.android.library)
@@ -8,7 +8,7 @@ plugins {
 }
 
 android {
-    namespace = "com.dropsync.data.playback"
+    namespace = "com.dropsync.data.audio"
     compileSdk =
         libs.versions.compileSdk
             .get()
@@ -29,7 +29,7 @@ android {
 
     testOptions {
         unitTests {
-            // Robolectric fuer MediaItem-/Uri-Tests auf der JVM.
+            // Robolectric fuer AudioProcessor-/DataStore-Tests auf der JVM.
             isIncludeAndroidResources = true
         }
     }
@@ -39,17 +39,12 @@ dependencies {
     implementation(project(":core:common"))
     implementation(project(":core:model"))
     implementation(project(":domain:audio"))
-    implementation(project(":domain:playback"))
-    implementation(project(":domain:timer"))
-    implementation(project(":data:audio"))
 
     implementation(libs.androidx.media3.exoplayer)
-    implementation(libs.androidx.media3.session)
     implementation(libs.androidx.media3.common)
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.datastore.preferences)
     implementation(libs.kotlinx.coroutines.android)
-    implementation(libs.kotlinx.coroutines.guava)
 
     implementation(libs.hilt.android)
     ksp(libs.hilt.compiler)
@@ -59,7 +54,4 @@ dependencies {
     testImplementation(libs.robolectric)
     testImplementation(libs.androidx.test.ext.junit)
     testImplementation(libs.kotlinx.coroutines.test)
-    androidTestImplementation(libs.androidx.media3.test.utils)
-    androidTestImplementation(libs.androidx.test.ext.junit)
-    androidTestImplementation(libs.androidx.test.runner)
 }

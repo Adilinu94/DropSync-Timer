@@ -1,0 +1,116 @@
+package com.dropsync.data.audio
+
+import androidx.media3.common.audio.AudioProcessor
+import com.dropsync.domain.audio.AudioInfo
+import com.dropsync.domain.audio.AudioMath
+import com.dropsync.domain.audio.DspConfig
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.launch
+import javax.inject.Inject
+import javax.inject.Singleton
+
+/** Eingangsformat der laufenden Wiedergabe (vom Decoder gemeldet). */
+data class SourceFormatInfo(
+    val codecMimeType: String?,
+    val bitrateBps: Int?,
+    val sampleRateHz: Int?,
+    val channelCount: Int?,
+    val bitDepth: Int?,
+)
+
+/** Konfiguration des tatsaechlich geoeffneten Audiotracks. */
+data class OutputFormatInfo(
+    val sampleRateHz: Int,
+    val encodingName: String,
+    val isFloat: Boolean,
+)
+
+/**
+ * Verbindet Settings, DSP-Prozessoren und Audioinformationen
+ * (ADR-0005). Der PlaybackService bezieht hier die Prozessorkette und
+ * meldet Format-/Trackereignisse zurueck; Konfigurationsaenderungen aus
+ * dem Store wirken sofort und ohne Pipeline-Flush.
+ */
+@Singleton
+class AudioPipeline
+    @Inject
+    constructor(
+        settingsStore: DspSettingsStore,
+        deviceMonitor: OutputDeviceMonitor,
+    ) {
+        private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+
+        private val preamp = PreampProcessor()
+
+        private val mutableDspActive = MutableStateFlow(false)
+        val dspActive: StateFlow<Boolean> = mutableDspActive.asStateFlow()
+
+        private val mutableSourceFormat = MutableStateFlow<SourceFormatInfo?>(null)
+        private val mutableOutputFormat = MutableStateFlow<OutputFormatInfo?>(null)
+
+        /** Live-Audioinformationen; null solange keine Quelle bekannt ist. */
+        val audioInfo: Flow<AudioInfo?> =
+            combine(
+                mutableSourceFormat,
+                mutableOutputFormat,
+                deviceMonitor.device,
+                mutableDspActive,
+            ) { source, output, device, dspActive ->
+                if (source == null) {
+                    null
+                } else {
+                    AudioInfo(
+                        codecMimeType = source.codecMimeType,
+                        bitrateBps = source.bitrateBps,
+                        sourceSampleRateHz = source.sampleRateHz,
+                        sourceChannelCount = source.channelCount,
+                        sourceBitDepth = source.bitDepth,
+                        outputSampleRateHz = output?.sampleRateHz,
+                        outputEncoding = output?.encodingName,
+                        floatOutput = output?.isFloat == true,
+                        dspActive = dspActive,
+                        outputDevice = device.kind,
+                        outputDeviceName = device.name,
+                    )
+                }
+            }
+
+        init {
+            scope.launch {
+                settingsStore.config.collect { apply(it) }
+            }
+        }
+
+        /** Prozessorkette fuer den DefaultAudioSink (Reihenfolge ADR-0005). */
+        fun audioProcessors(): Array<AudioProcessor> = arrayOf(preamp)
+
+        fun onSourceFormatChanged(info: SourceFormatInfo) {
+            mutableSourceFormat.value = info
+        }
+
+        fun onAudioTrackInitialized(info: OutputFormatInfo) {
+            mutableOutputFormat.value = info
+        }
+
+        /** Wiedergabe beendet oder Player freigegeben. */
+        fun onPlaybackReleased() {
+            mutableSourceFormat.value = null
+            mutableOutputFormat.value = null
+        }
+
+        private fun apply(config: DspConfig) {
+            val sanitized = DspConfig.sanitized(config)
+            preamp.gainLinear =
+                if (sanitized.enabled) AudioMath.dbToLinear(sanitized.preampDb) else 1.0
+            preamp.limiterEnabled = sanitized.enabled && sanitized.limiterEnabled
+            mutableDspActive.value =
+                sanitized.enabled && (sanitized.preampDb != 0.0 || sanitized.limiterEnabled)
+        }
+    }
