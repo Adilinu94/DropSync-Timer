@@ -30,4 +30,8 @@
     <string name="library_sort_album">Sortierung: Album</string>
     <string name="library_sort_duration">Sortierung: Dauer</string>
     <string name="library_sort_date_added">Sortierung: Hinzugefuegt</string>
+    <string name="library_views_configure">Ansichten konfigurieren</string>
+    <string name="library_views_move_up">Nach oben</string>
+    <string name="library_views_move_down">Nach unten</string>
+    <string name="library_views_done">Fertig</string>
 </resources>

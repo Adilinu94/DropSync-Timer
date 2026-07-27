@@ -1,0 +1,28 @@
+package com.dropsync.domain.library
+
+import kotlinx.coroutines.flow.Flow
+
+/**
+ * Persistente Konfiguration der Bibliotheksansichten (Plan Phase 6.4:
+ * "Bibliotheksansichten konfigurierbar — ein-/ausblendbar, Reihenfolge").
+ *
+ * Die konkreten Ansichten (Titel/Alben/…) sind ein Praesentationsdetail
+ * des Feature-Moduls; :domain:library speichert sie deshalb neutral als
+ * Schluessel-Strings (Modulregel 3.2). Das Feature bildet seine Ansichten
+ * auf stabile Schluessel ab und gleicht unbekannte Schluessel beim Lesen ab.
+ */
+data class LibraryViewConfig(
+    /** Alle Ansichts-Schluessel in Anzeigereihenfolge. */
+    val orderedKeys: List<String>,
+    /** Teilmenge von [orderedKeys], die ausgeblendet ist. */
+    val hiddenKeys: Set<String>,
+)
+
+/** Zugang zur Ansichts-Konfiguration; Implementierung in `:data:library`. */
+interface LibraryViewPreferencesRepository {
+    /** Aktuelle Konfiguration; null solange der Nutzer nichts angepasst hat. */
+    val config: Flow<LibraryViewConfig?>
+
+    /** Persistiert Reihenfolge und ausgeblendete Ansichten. */
+    suspend fun setConfig(config: LibraryViewConfig)
+}

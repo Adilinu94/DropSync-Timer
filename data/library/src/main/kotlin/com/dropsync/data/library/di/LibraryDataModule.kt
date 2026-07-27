@@ -17,6 +17,7 @@ import com.dropsync.core.database.dao.SongDao
 import com.dropsync.data.library.DataStoreScanStateStore
 import com.dropsync.data.library.LibraryBrowseRepositoryImpl
 import com.dropsync.data.library.LibraryRepositoryImpl
+import com.dropsync.data.library.LibraryViewPreferencesStore
 import com.dropsync.data.library.MarkerRepositoryImpl
 import com.dropsync.data.library.MediaStoreGateway
 import com.dropsync.data.library.MediaStoreGatewayImpl
@@ -26,6 +27,7 @@ import com.dropsync.data.library.ScanStateStore
 import com.dropsync.domain.library.ImportValidator
 import com.dropsync.domain.library.LibraryBrowseRepository
 import com.dropsync.domain.library.LibraryRepository
+import com.dropsync.domain.library.LibraryViewPreferencesRepository
 import com.dropsync.domain.library.MarkerMatcher
 import com.dropsync.domain.library.MarkerRepository
 import dagger.Module
@@ -64,6 +66,17 @@ object LibraryDataModule {
     fun provideSafFolderGateway(
         @ApplicationContext context: Context,
     ): SafFolderGateway = SafFolderGatewayImpl(context)
+
+    @Provides
+    @Singleton
+    fun provideLibraryViewPreferences(
+        @ApplicationContext context: Context,
+    ): LibraryViewPreferencesRepository =
+        LibraryViewPreferencesStore(
+            PreferenceDataStoreFactory.create {
+                context.preferencesDataStoreFile(LibraryViewPreferencesStore.DATA_STORE_NAME)
+            },
+        )
 
     @Provides
     @Singleton

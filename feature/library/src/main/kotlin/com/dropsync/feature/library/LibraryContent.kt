@@ -1,5 +1,6 @@
 package com.dropsync.feature.library
 
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -7,13 +8,22 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Clear
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Tune
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChip
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.FilterChip
@@ -23,11 +33,14 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
@@ -101,10 +114,11 @@ internal fun LibraryContent(
             }
 
             else -> {
-                ViewChips(selected = selectedView, onSelect = viewModel::selectView)
-                LibraryViewBody(
+                val visibleViews by viewModel.visibleViews.collectAsStateWithLifecycle()
+                LibraryViewsPager(
                     viewModel = viewModel,
-                    view = selectedView,
+                    visibleViews = visibleViews,
+                    selectedView = selectedView,
                     favoriteIds = favoriteIds,
                     contentPadding = contentPadding,
                 )
@@ -141,27 +155,152 @@ private fun SearchField(
     )
 }
 
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+private fun LibraryViewsPager(
+    viewModel: LibraryViewModel,
+    visibleViews: List<LibraryView>,
+    selectedView: LibraryView,
+    favoriteIds: Set<Long>,
+    contentPadding: PaddingValues,
+) {
+    if (visibleViews.isEmpty()) return
+    var showConfig by remember { mutableStateOf(false) }
+    val startIndex = visibleViews.indexOf(selectedView).coerceAtLeast(0)
+    val pagerState = rememberPagerState(initialPage = startIndex) { visibleViews.size }
+
+    // Chip-Tipp -> Seite animieren; Wischen -> ausgewaehlte Ansicht nachfuehren.
+    LaunchedEffect(selectedView, visibleViews) {
+        val target = visibleViews.indexOf(selectedView)
+        if (target >= 0 && target != pagerState.currentPage) {
+            pagerState.animateScrollToPage(target)
+        }
+    }
+    LaunchedEffect(pagerState.currentPage, visibleViews) {
+        visibleViews.getOrNull(pagerState.currentPage)?.let { view ->
+            if (view != selectedView) viewModel.selectView(view)
+        }
+    }
+
+    ViewChips(
+        views = visibleViews,
+        selected = selectedView,
+        onSelect = viewModel::selectView,
+        onOpenConfig = { showConfig = true },
+    )
+    HorizontalPager(state = pagerState, modifier = Modifier.fillMaxSize()) { page ->
+        LibraryViewBody(
+            viewModel = viewModel,
+            view = visibleViews[page],
+            favoriteIds = favoriteIds,
+            contentPadding = contentPadding,
+        )
+    }
+
+    if (showConfig) {
+        ViewConfigDialog(viewModel = viewModel, onDismiss = { showConfig = false })
+    }
+}
+
 @Composable
 private fun ViewChips(
+    views: List<LibraryView>,
     selected: LibraryView,
     onSelect: (LibraryView) -> Unit,
+    onOpenConfig: () -> Unit,
 ) {
     Row(
         modifier =
             Modifier
                 .fillMaxWidth()
-                .horizontalScroll(rememberScrollState())
                 .padding(horizontal = 12.dp, vertical = 4.dp),
+        verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        LibraryView.entries.forEach { view ->
-            FilterChip(
-                selected = view == selected,
-                onClick = { onSelect(view) },
-                label = { Text(stringResource(view.labelRes())) },
+        Row(
+            modifier =
+                Modifier
+                    .weight(1f)
+                    .horizontalScroll(rememberScrollState()),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            views.forEach { view ->
+                FilterChip(
+                    selected = view == selected,
+                    onClick = { onSelect(view) },
+                    label = { Text(stringResource(view.labelRes())) },
+                )
+            }
+        }
+        IconButton(onClick = onOpenConfig) {
+            Icon(
+                Icons.Filled.Tune,
+                contentDescription = stringResource(R.string.library_views_configure),
             )
         }
     }
+}
+
+@Composable
+private fun ViewConfigDialog(
+    viewModel: LibraryViewModel,
+    onDismiss: () -> Unit,
+) {
+    val ordered by viewModel.orderedViews.collectAsStateWithLifecycle()
+    val hidden by viewModel.hiddenViews.collectAsStateWithLifecycle()
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.library_views_configure)) },
+        text = {
+            Column(
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .heightIn(max = 420.dp)
+                        .verticalScroll(rememberScrollState()),
+            ) {
+                ordered.forEachIndexed { index, view ->
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Checkbox(
+                            checked = view !in hidden,
+                            onCheckedChange = { viewModel.toggleViewHidden(view) },
+                        )
+                        Text(
+                            text = stringResource(view.labelRes()),
+                            style = MaterialTheme.typography.bodyLarge,
+                            modifier = Modifier.weight(1f),
+                        )
+                        IconButton(
+                            onClick = { viewModel.moveView(view, up = true) },
+                            enabled = index > 0,
+                        ) {
+                            Icon(
+                                Icons.Filled.KeyboardArrowUp,
+                                contentDescription = stringResource(R.string.library_views_move_up),
+                            )
+                        }
+                        IconButton(
+                            onClick = { viewModel.moveView(view, up = false) },
+                            enabled = index < ordered.lastIndex,
+                        ) {
+                            Icon(
+                                Icons.Filled.KeyboardArrowDown,
+                                contentDescription = stringResource(R.string.library_views_move_down),
+                            )
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text(stringResource(R.string.library_views_done))
+            }
+        },
+    )
 }
 
 @Composable

@@ -12,6 +12,8 @@ import com.dropsync.domain.library.Genre
 import com.dropsync.domain.library.LibraryBrowseRepository
 import com.dropsync.domain.library.LibraryFolder
 import com.dropsync.domain.library.LibraryRepository
+import com.dropsync.domain.library.LibraryViewConfig
+import com.dropsync.domain.library.LibraryViewPreferencesRepository
 import com.dropsync.domain.library.SongSort
 import com.dropsync.domain.playback.PlaybackRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -61,6 +63,7 @@ class LibraryViewModel
         private val libraryRepository: LibraryRepository,
         private val browseRepository: LibraryBrowseRepository,
         private val playbackRepository: PlaybackRepository,
+        private val viewPreferences: LibraryViewPreferencesRepository,
     ) : ViewModel() {
         private val _error = MutableStateFlow(LibraryError.NONE)
         val error: StateFlow<LibraryError> = _error.asStateFlow()
@@ -70,6 +73,38 @@ class LibraryViewModel
 
         private val _selectedView = MutableStateFlow(LibraryView.SONGS)
         val selectedView: StateFlow<LibraryView> = _selectedView.asStateFlow()
+
+        // Konfigurierbare Ansichten (Plan Phase 6.4): Reihenfolge + Sichtbarkeit,
+        // persistiert ueber den Domain-Vertrag; null = Standard (alle, Enum-Reihenfolge).
+        private val viewConfig: StateFlow<LibraryViewConfig?> =
+            viewPreferences.config.stateIn(
+                viewModelScope,
+                SharingStarted.WhileSubscribed(5_000),
+                null,
+            )
+
+        /** Alle Ansichten in konfigurierter Reihenfolge (inkl. ausgeblendeter). */
+        val orderedViews: StateFlow<List<LibraryView>> =
+            viewConfig
+                .map { reconcileOrder(it?.orderedKeys) }
+                .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), DEFAULT_ORDER)
+
+        /** Ausgeblendete Ansichten (nur bekannte Schluessel). */
+        val hiddenViews: StateFlow<Set<LibraryView>> =
+            viewConfig
+                .map { cfg ->
+                    cfg
+                        ?.hiddenKeys
+                        .orEmpty()
+                        .mapNotNull(::keyToView)
+                        .toSet()
+                }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptySet())
+
+        /** Sichtbare Ansichten in Reihenfolge; nie leer (Fallback: alle). */
+        val visibleViews: StateFlow<List<LibraryView>> =
+            combine(orderedViews, hiddenViews) { order, hidden ->
+                order.filterNot { it in hidden }.ifEmpty { order }
+            }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), DEFAULT_ORDER)
 
         private val _detail = MutableStateFlow<BucketDetail?>(null)
         val detail: StateFlow<BucketDetail?> = _detail.asStateFlow()
@@ -152,6 +187,47 @@ class LibraryViewModel
             _detail.value = null
         }
 
+        /** Verschiebt [view] in der Anzeigereihenfolge um eine Position (Plan Phase 6.4). */
+        fun moveView(
+            view: LibraryView,
+            up: Boolean,
+        ) {
+            val order = orderedViews.value.toMutableList()
+            val from = order.indexOf(view)
+            val to = if (up) from - 1 else from + 1
+            if (from < 0 || to !in order.indices) return
+            order[from] = order[to].also { order[to] = order[from] }
+            persistConfig(order, hiddenViews.value)
+        }
+
+        /** Blendet [view] ein/aus; mindestens eine Ansicht bleibt sichtbar. */
+        fun toggleViewHidden(view: LibraryView) {
+            val hidden = hiddenViews.value.toMutableSet()
+            if (!hidden.remove(view)) {
+                if (visibleViews.value.size <= 1) return
+                hidden.add(view)
+            }
+            persistConfig(orderedViews.value, hidden)
+            if (_selectedView.value in hidden) {
+                _selectedView.value =
+                    orderedViews.value.firstOrNull { it !in hidden } ?: LibraryView.SONGS
+            }
+        }
+
+        private fun persistConfig(
+            order: List<LibraryView>,
+            hidden: Set<LibraryView>,
+        ) {
+            viewModelScope.launch {
+                viewPreferences.setConfig(
+                    LibraryViewConfig(
+                        orderedKeys = order.map { it.name },
+                        hiddenKeys = hidden.map { it.name }.toSet(),
+                    ),
+                )
+            }
+        }
+
         fun setSort(sort: SongSort) {
             _sort.value = sort
         }
@@ -228,4 +304,17 @@ class LibraryViewModel
             com.dropsync.domain.library.AudioFileFormat
                 .fromFileName(song.displayName)
                 ?.hiResCapable == true
+
+        private fun keyToView(key: String): LibraryView? = LibraryView.entries.firstOrNull { it.name == key }
+
+        private fun reconcileOrder(keys: List<String>?): List<LibraryView> {
+            if (keys == null) return DEFAULT_ORDER
+            val known = keys.mapNotNull(::keyToView)
+            val missing = DEFAULT_ORDER.filterNot { it in known }
+            return known + missing
+        }
+
+        private companion object {
+            val DEFAULT_ORDER: List<LibraryView> = LibraryView.entries.toList()
+        }
     }
