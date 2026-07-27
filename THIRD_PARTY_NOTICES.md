@@ -28,6 +28,7 @@ Status-Werte: `FREIGEGEBEN` (Lizenz geprueft, kompatibel), `OFFEN` (in Pruefung)
 | kotlinx-serialization-json | 1.11.0 | Apache-2.0 | Markerimport-JSON, Seed-Daten | https://github.com/Kotlin/kotlinx.serialization | FREIGEGEBEN |
 | JUnit 4 | 4.13.2 | EPL-1.0 | Unit-Tests (nur Testscope, keine Distribution in der App) | https://junit.org/junit4 | FREIGEGEBEN |
 | Turbine | 1.2.1 | Apache-2.0 | Flow-Tests (nur Testscope) | https://github.com/cashapp/turbine | FREIGEGEBEN |
+| Robolectric | 4.16.1 | MIT | JVM-Datenbank-/Android-Tests (nur Testscope) | https://github.com/robolectric/robolectric | FREIGEGEBEN |
 | androidx.test (junit-ext, runner, espresso-core) | 1.3.0 / 1.7.0 / 3.7.0 | Apache-2.0 | Instrumentierte Tests (nur Testscope) | https://developer.android.com/testing | FREIGEGEBEN |
 | Spotless (Gradle-Plugin) | 8.8.0 | Apache-2.0 | Formatierung/statische Analyse (nur Build, keine Distribution) | https://github.com/diffplug/spotless | FREIGEGEBEN |
 | ktlint | 1.8.0 | MIT | Kotlin-Linting via Spotless (nur Build) | https://github.com/pinterest/ktlint | FREIGEGEBEN |
