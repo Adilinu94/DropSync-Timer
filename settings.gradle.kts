@@ -55,4 +55,14 @@ include(":feature:timer")
 include(":feature:workout")
 include(":feature:settings")
 
+// :libs — optionale, extern gebaute Artefakte (Plan Phase 3, ADR-0006).
+// Die FFmpeg-Decoder-Extension wird nur eingebunden, wenn sie per Flag
+// aktiviert ist UND das Modul vorliegt (siehe docs/ffmpeg-build.md);
+// Default bleibt aus, damit der Standardbuild ohne NDK-Artefakt laeuft.
+val ffmpegEnabled = providers.gradleProperty("dropsync.enableFfmpeg").orNull.toBoolean()
+val ffmpegModule = rootProject.projectDir.resolve("libs/media3-ffmpeg/build.gradle.kts")
+if (ffmpegEnabled && ffmpegModule.exists()) {
+    include(":libs:media3-ffmpeg")
+}
+
 // :baselineprofile wird gemaess ADR-0001 erst in Schritt 13 angelegt.

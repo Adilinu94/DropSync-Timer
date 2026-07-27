@@ -47,6 +47,16 @@ dependencies {
     implementation(libs.androidx.datastore.preferences)
     implementation(libs.kotlinx.coroutines.android)
 
+    // Optionale FFmpeg-Decoder-Extension (Plan Phase 3, ADR-0006): nur wenn
+    // per Flag aktiviert UND das lokale Modul vorliegt. Die DspRenderersFactory
+    // bevorzugt sie dann via EXTENSION_RENDERER_MODE_PREFER; Default ist aus
+    // (Plattformdecoder). Aufbau/Skript: docs/ffmpeg-build.md.
+    if (providers.gradleProperty("dropsync.enableFfmpeg").orNull.toBoolean() &&
+        findProject(":libs:media3-ffmpeg") != null
+    ) {
+        implementation(project(":libs:media3-ffmpeg"))
+    }
+
     implementation(libs.hilt.android)
     ksp(libs.hilt.compiler)
 

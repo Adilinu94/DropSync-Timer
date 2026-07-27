@@ -30,6 +30,16 @@ DSD (DSF/DFF) wird zu PCM dekodiert; natives DoP ist Folgeausbau (ADR-0009).
 
 ## Schritte
 
+**Schnellweg:** Das Skript `scripts/build-ffmpeg.sh` automatisiert die
+Schritte 1-4 (Quellen holen, LGPL-konform bauen, Modul anlegen). Danach
+nur noch `dropsync.enableFfmpeg=true` setzen:
+
+```bash
+ANDROID_NDK_HOME=/pfad/zum/ndk scripts/build-ffmpeg.sh
+```
+
+Die manuellen Einzelschritte (falls das Skript angepasst werden soll):
+
 1. **Media3-Quellen holen** und in das Extension-Verzeichnis wechseln:
    ```bash
    git clone https://github.com/androidx/media.git
@@ -52,11 +62,13 @@ DSD (DSF/DFF) wird zu PCM dekodiert; natives DoP ist Folgeausbau (ADR-0009).
    ./gradlew :lib-decoder-ffmpeg:assembleRelease
    ```
 4. **Artefakt einbinden**: Die entstandene `.aar` (bzw. die `jni/`-`.so`-
-   Dateien) nach `libs/media3-ffmpeg/` im DropSync-Repo kopieren. Das Modul
-   `:libs:media3-ffmpeg` (Android-Library) exportiert sie und wird in
-   `settings.gradle.kts` registriert, sobald das Artefakt vorliegt.
+   Dateien) nach `libs/media3-ffmpeg/` im DropSync-Repo kopieren (das
+   Skript erledigt dies und legt auch `libs/media3-ffmpeg/build.gradle.kts`
+   an). `settings.gradle.kts` registriert `:libs:media3-ffmpeg`
+   **automatisch**, sobald das Modulverzeichnis vorliegt und das Flag
+   gesetzt ist.
 5. **Aktivieren**: In `gradle.properties` `dropsync.enableFfmpeg=true`
-   setzen. Dann nimmt `:data:audio` die Extension als
+   setzen. Dann nimmt `:data:audio` die Extension automatisch als
    `implementation(project(":libs:media3-ffmpeg"))` auf; die
    `DspRenderersFactory` bevorzugt sie bereits via
    `EXTENSION_RENDERER_MODE_PREFER`.
