@@ -80,6 +80,14 @@ internal fun ResamplerSection(
             optionLabel = { rate -> rate?.let { formatHz(it) } ?: stringResource(R.string.audio_auto) },
             onSelect = { rate -> viewModel.update { it.copy(resampler = it.resampler.copy(targetRateHz = rate)) } },
         )
+        // Akku-Hinweis (Plan Phase 7): Hi-Res-Resampling mit Sinc kostet CPU.
+        val targetRate = config.resampler.targetRateHz
+        if (config.resampler.quality == ResamplerQuality.SINC && targetRate != null && targetRate > 48_000) {
+            Text(
+                text = stringResource(R.string.audio_resampler_battery_hint),
+                modifier = Modifier.padding(top = 4.dp),
+            )
+        }
     }
 }
 

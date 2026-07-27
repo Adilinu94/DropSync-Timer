@@ -59,6 +59,7 @@
     <string name="audio_resampler_rate">Ziel-Abtastrate</string>
     <string name="audio_resampler_linear">Linear</string>
     <string name="audio_resampler_sinc">Hoch (Sinc)</string>
+    <string name="audio_resampler_battery_hint">Hohe Abtastraten mit dem Sinc-Resampler erhoehen CPU-Last und Akkuverbrauch spuerbar.</string>
 
     <!-- Dither -->
     <string name="audio_dither_title">Dithering</string>
