@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="settings_markers_section">Songmarker</string>
+    <plurals name="settings_unmatched_markers">
+        <item quantity="one">%1$d importierter Marker ist noch keinem Song zugeordnet.</item>
+        <item quantity="other">%1$d importierte Marker sind noch keinem Song zugeordnet.</item>
+    </plurals>
+    <string name="settings_marker_position">Position: %1$d s</string>
+    <string name="settings_privacy_section">Datenschutz</string>
+    <string name="settings_privacy_body">DropSync arbeitet vollstaendig offline. Es gibt keine Analytics, keine Werbung und keine Netzwerkuebertragung. Song-Hashes stammen nur aus Markerdateien, die du selbst importierst.</string>
+</resources>

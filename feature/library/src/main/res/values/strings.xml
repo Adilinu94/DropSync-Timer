@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="library_permission_title">Access to your music</string>
+    <string name="library_permission_rationale">DropSync plays music stored on this device. Grant audio access to see your library. Nothing leaves your device.</string>
+    <string name="library_permission_button">Grant access</string>
+    <string name="library_scan_failed">The library could not be refreshed. Pull down or reopen the tab to try again.</string>
+    <string name="library_empty">No playable songs found on this device.</string>
+    <string name="library_play_song">Play %1$s</string>
+    <string name="library_unknown_artist">Unknown artist</string>
+</resources>

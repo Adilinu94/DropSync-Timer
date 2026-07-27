@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="player_play">Wiedergeben</string>
+    <string name="player_pause">Pausieren</string>
+    <string name="player_next">Naechster Song</string>
+</resources>

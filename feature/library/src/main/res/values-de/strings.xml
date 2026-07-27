@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="library_permission_title">Zugriff auf deine Musik</string>
+    <string name="library_permission_rationale">DropSync spielt Musik von diesem Geraet. Erteile den Audio-Zugriff, um deine Bibliothek zu sehen. Nichts verlaesst dein Geraet.</string>
+    <string name="library_permission_button">Zugriff erlauben</string>
+    <string name="library_scan_failed">Die Bibliothek konnte nicht aktualisiert werden. Ziehe nach unten oder oeffne den Tab erneut.</string>
+    <string name="library_empty">Keine abspielbaren Songs auf diesem Geraet gefunden.</string>
+    <string name="library_play_song">%1$s abspielen</string>
+    <string name="library_unknown_artist">Unbekannter Interpret</string>
+</resources>
