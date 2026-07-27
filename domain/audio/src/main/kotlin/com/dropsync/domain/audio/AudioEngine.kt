@@ -51,6 +51,13 @@ data class DspConfig(
     val dvcEnabled: Boolean = false,
     /** DVC-Lautstaerke 0..1 (nur wirksam bei [dvcEnabled]). */
     val dvcVolume: Double = 1.0,
+    /** Crossfade-Dauer in Sekunden (Plan Phase 4); 0 = aus. */
+    val crossfadeSeconds: Int = 0,
+    /**
+     * Systemeffekte (MusicFX) verwenden: die interne DSP-Kette wird
+     * stummgeschaltet, um Doppel-EQ zu vermeiden (Plan Phase 4).
+     */
+    val useSystemEffects: Boolean = false,
 ) {
     companion object {
         const val PREAMP_MIN_DB: Double = -12.0
@@ -84,6 +91,7 @@ data class DspConfig(
                             },
                     ),
                 dvcVolume = config.dvcVolume.coerceIn(0.0, 1.0),
+                crossfadeSeconds = config.crossfadeSeconds.coerceIn(0, CrossfadeCurves.MAX_SECONDS),
             )
     }
 }

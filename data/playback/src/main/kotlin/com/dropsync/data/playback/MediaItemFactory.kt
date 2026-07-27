@@ -12,6 +12,9 @@ import com.dropsync.domain.library.CueVirtualTrack
  * vollstaendig lokal fuer korrekte Systembenachrichtigungen.
  */
 object MediaItemFactory {
+    /** Praefix der mediaId virtueller CUE-Tracks (Crossfade-Ausschluss). */
+    const val CUE_MEDIA_ID_PREFIX: String = "cue:"
+
     fun fromSong(song: Song): MediaItem =
         MediaItem
             .Builder()
@@ -50,7 +53,7 @@ object MediaItemFactory {
                 .build()
         return fromSong(song)
             .buildUpon()
-            .setMediaId("cue:${song.mediaStoreId}:${track.trackNumber}")
+            .setMediaId("$CUE_MEDIA_ID_PREFIX${song.mediaStoreId}:${track.trackNumber}")
             .setClippingConfiguration(clipping)
             .setMediaMetadata(
                 MediaMetadata

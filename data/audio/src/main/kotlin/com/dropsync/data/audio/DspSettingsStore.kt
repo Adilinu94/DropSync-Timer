@@ -54,6 +54,8 @@ class DspSettingsStore
         private val ditherKey = stringPreferencesKey("dither_mode")
         private val dvcEnabledKey = booleanPreferencesKey("dvc_enabled")
         private val dvcVolumeKey = doublePreferencesKey("dvc_volume")
+        private val crossfadeSecondsKey = intPreferencesKey("crossfade_seconds")
+        private val useSystemEffectsKey = booleanPreferencesKey("use_system_effects")
 
         val config: Flow<DspConfig> = context.dspDataStore.data.map(::readConfig)
 
@@ -78,6 +80,8 @@ class DspSettingsStore
                 prefs[ditherKey] = sanitized.ditherMode.name
                 prefs[dvcEnabledKey] = sanitized.dvcEnabled
                 prefs[dvcVolumeKey] = sanitized.dvcVolume
+                prefs[crossfadeSecondsKey] = sanitized.crossfadeSeconds
+                prefs[useSystemEffectsKey] = sanitized.useSystemEffects
             }
         }
 
@@ -113,6 +117,8 @@ class DspSettingsStore
                     ditherMode = enumOr(prefs[ditherKey], DitherMode.TPDF),
                     dvcEnabled = prefs[dvcEnabledKey] ?: false,
                     dvcVolume = prefs[dvcVolumeKey] ?: 1.0,
+                    crossfadeSeconds = prefs[crossfadeSecondsKey] ?: 0,
+                    useSystemEffects = prefs[useSystemEffectsKey] ?: false,
                 ),
             )
 

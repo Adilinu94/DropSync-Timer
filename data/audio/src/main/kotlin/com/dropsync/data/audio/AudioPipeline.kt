@@ -53,6 +53,11 @@ class AudioPipeline
         private val mutableDspActive = MutableStateFlow(false)
         val dspActive: StateFlow<Boolean> = mutableDspActive.asStateFlow()
 
+        private val mutableConfig = MutableStateFlow(DspConfig.sanitized(DspConfig()))
+
+        /** Zuletzt angewandte (bereinigte) Konfiguration, u. a. fuer Crossfade. */
+        val currentConfig: StateFlow<DspConfig> = mutableConfig.asStateFlow()
+
         private val mutableSourceFormat = MutableStateFlow<SourceFormatInfo?>(null)
         private val mutableOutputFormat = MutableStateFlow<OutputFormatInfo?>(null)
 
@@ -108,8 +113,12 @@ class AudioPipeline
 
         private fun apply(config: DspConfig) {
             val sanitized = DspConfig.sanitized(config)
-            masterProcessor.submitConfig(sanitized)
-            mutableDspActive.value = sanitized.enabled && !isNeutral(sanitized)
+            mutableConfig.value = sanitized
+            // MusicFX aktiv: interne Kette stumm, sonst Doppel-EQ (Phase 4).
+            val effective =
+                if (sanitized.useSystemEffects) sanitized.copy(enabled = false) else sanitized
+            masterProcessor.submitConfig(effective)
+            mutableDspActive.value = effective.enabled && !isNeutral(effective)
         }
 
         /** true, wenn keine klangliche Stufe eingreift. */
