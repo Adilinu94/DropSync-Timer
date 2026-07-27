@@ -22,6 +22,9 @@ class LibraryRepositoryImplTest {
             scanStateStore = scanState,
             transactionRunner = FakeTransactionRunner(),
             dispatchers = TestDispatcherProvider(),
+            cueTrackDao = FakeCueTrackDao(),
+            safFileDao = FakeSafFileDao(),
+            safGateway = FakeSafFolderGateway(),
         )
 
     private fun song(

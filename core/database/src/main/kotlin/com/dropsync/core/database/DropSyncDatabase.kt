@@ -2,13 +2,16 @@ package com.dropsync.core.database
 
 import androidx.room.Database
 import androidx.room.RoomDatabase
+import com.dropsync.core.database.dao.CueTrackDao
 import com.dropsync.core.database.dao.EqPresetDao
 import com.dropsync.core.database.dao.ExerciseDao
 import com.dropsync.core.database.dao.MarkerDao
 import com.dropsync.core.database.dao.RoutineDao
+import com.dropsync.core.database.dao.SafFileDao
 import com.dropsync.core.database.dao.SongDao
 import com.dropsync.core.database.dao.TimerPresetDao
 import com.dropsync.core.database.dao.WorkoutDao
+import com.dropsync.core.database.entity.CueTrackEntity
 import com.dropsync.core.database.entity.EqPresetBandEntity
 import com.dropsync.core.database.entity.EqPresetEntity
 import com.dropsync.core.database.entity.ExerciseEntity
@@ -20,6 +23,7 @@ import com.dropsync.core.database.entity.PersonalRecordEntity
 import com.dropsync.core.database.entity.PlaybackSnapshotEntity
 import com.dropsync.core.database.entity.RoutineEntity
 import com.dropsync.core.database.entity.RoutineExerciseEntity
+import com.dropsync.core.database.entity.SafFileEntity
 import com.dropsync.core.database.entity.SessionExerciseEntity
 import com.dropsync.core.database.entity.SetClusterEntity
 import com.dropsync.core.database.entity.SetRoleEntity
@@ -61,6 +65,8 @@ import com.dropsync.core.database.entity.WorkoutSessionEntity
         PlaybackSnapshotEntity::class,
         EqPresetEntity::class,
         EqPresetBandEntity::class,
+        CueTrackEntity::class,
+        SafFileEntity::class,
     ],
     version = 1,
     exportSchema = true,
@@ -79,6 +85,10 @@ abstract class DropSyncDatabase : RoomDatabase() {
     abstract fun workoutDao(): WorkoutDao
 
     abstract fun eqPresetDao(): EqPresetDao
+
+    abstract fun cueTrackDao(): CueTrackDao
+
+    abstract fun safFileDao(): SafFileDao
 
     companion object {
         const val NAME = "dropsync.db"

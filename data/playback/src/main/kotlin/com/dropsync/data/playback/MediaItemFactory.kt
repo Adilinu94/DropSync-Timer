@@ -4,6 +4,7 @@ import android.net.Uri
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
 import com.dropsync.core.model.Song
+import com.dropsync.domain.library.CueVirtualTrack
 
 /**
  * Abbildung Song -> MediaItem (Bauplan Schritt 5.4): mediaId ist die
@@ -31,6 +32,36 @@ object MediaItemFactory {
                     .setAlbumTitle(song.album)
                     .build(),
             ).build()
+
+    /**
+     * Virtueller CUE-Track (Plan Phase 3): dieselbe Audiodatei wie der
+     * Song, aber per ClippingConfiguration auf [CueVirtualTrack.startMs]
+     * bis [CueVirtualTrack.endMs] beschnitten. endMs null = Dateiende.
+     */
+    fun fromCueTrack(
+        song: Song,
+        track: CueVirtualTrack,
+    ): MediaItem {
+        val clipping =
+            MediaItem.ClippingConfiguration
+                .Builder()
+                .setStartPositionMs(track.startMs)
+                .apply { track.endMs?.let { setEndPositionMs(it) } }
+                .build()
+        return fromSong(song)
+            .buildUpon()
+            .setMediaId("cue:${song.mediaStoreId}:${track.trackNumber}")
+            .setClippingConfiguration(clipping)
+            .setMediaMetadata(
+                MediaMetadata
+                    .Builder()
+                    .setTitle(track.title ?: song.title ?: song.displayName)
+                    .setArtist(track.performer ?: song.artist)
+                    .setAlbumTitle(song.album)
+                    .setTrackNumber(track.trackNumber)
+                    .build(),
+            ).build()
+    }
 
     /**
      * Stellt im Service die abspielbare URI wieder her, wenn ein Item vom

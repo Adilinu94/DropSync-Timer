@@ -6,13 +6,17 @@ import androidx.datastore.preferences.preferencesDataStoreFile
 import com.dropsync.core.common.Clock
 import com.dropsync.core.common.DispatcherProvider
 import com.dropsync.core.database.TransactionRunner
+import com.dropsync.core.database.dao.CueTrackDao
 import com.dropsync.core.database.dao.MarkerDao
+import com.dropsync.core.database.dao.SafFileDao
 import com.dropsync.core.database.dao.SongDao
 import com.dropsync.data.library.DataStoreScanStateStore
 import com.dropsync.data.library.LibraryRepositoryImpl
 import com.dropsync.data.library.MarkerRepositoryImpl
 import com.dropsync.data.library.MediaStoreGateway
 import com.dropsync.data.library.MediaStoreGatewayImpl
+import com.dropsync.data.library.SafFolderGateway
+import com.dropsync.data.library.SafFolderGatewayImpl
 import com.dropsync.data.library.ScanStateStore
 import com.dropsync.domain.library.ImportValidator
 import com.dropsync.domain.library.LibraryRepository
@@ -51,13 +55,32 @@ object LibraryDataModule {
 
     @Provides
     @Singleton
+    fun provideSafFolderGateway(
+        @ApplicationContext context: Context,
+    ): SafFolderGateway = SafFolderGatewayImpl(context)
+
+    @Provides
+    @Singleton
     fun provideLibraryRepository(
         gateway: MediaStoreGateway,
         songDao: SongDao,
         scanStateStore: ScanStateStore,
         transactionRunner: TransactionRunner,
         dispatchers: DispatcherProvider,
-    ): LibraryRepository = LibraryRepositoryImpl(gateway, songDao, scanStateStore, transactionRunner, dispatchers)
+        cueTrackDao: CueTrackDao,
+        safFileDao: SafFileDao,
+        safGateway: SafFolderGateway,
+    ): LibraryRepository =
+        LibraryRepositoryImpl(
+            gateway = gateway,
+            songDao = songDao,
+            scanStateStore = scanStateStore,
+            transactionRunner = transactionRunner,
+            dispatchers = dispatchers,
+            cueTrackDao = cueTrackDao,
+            safFileDao = safFileDao,
+            safGateway = safGateway,
+        )
 
     @Provides
     @Singleton

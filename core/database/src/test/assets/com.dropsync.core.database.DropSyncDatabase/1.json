@@ -2,7 +2,7 @@
   "formatVersion": 1,
   "database": {
     "version": 1,
-    "identityHash": "13b324f84f469d9778afa055d60e9339",
+    "identityHash": "87d664b8478a183c778bf029b50f597f",
     "entities": [
       {
         "tableName": "songs",
@@ -1335,11 +1335,172 @@
             ]
           }
         ]
+      },
+      {
+        "tableName": "cue_tracks",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `song_id` INTEGER NOT NULL, `track_number` INTEGER NOT NULL, `title` TEXT, `performer` TEXT, `start_ms` INTEGER NOT NULL, `end_ms` INTEGER, FOREIGN KEY(`song_id`) REFERENCES `songs`(`media_store_id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "songId",
+            "columnName": "song_id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "trackNumber",
+            "columnName": "track_number",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "title",
+            "columnName": "title",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "performer",
+            "columnName": "performer",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "startMs",
+            "columnName": "start_ms",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "endMs",
+            "columnName": "end_ms",
+            "affinity": "INTEGER"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_cue_tracks_song_id_track_number",
+            "unique": true,
+            "columnNames": [
+              "song_id",
+              "track_number"
+            ],
+            "orders": [],
+            "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_cue_tracks_song_id_track_number` ON `${TABLE_NAME}` (`song_id`, `track_number`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "songs",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "song_id"
+            ],
+            "referencedColumns": [
+              "media_store_id"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "saf_files",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `tree_uri` TEXT NOT NULL, `document_uri` TEXT NOT NULL, `display_name` TEXT NOT NULL, `relative_path` TEXT NOT NULL, `size_bytes` INTEGER NOT NULL, `last_modified_ms` INTEGER NOT NULL, `kind` TEXT NOT NULL, `format` TEXT)",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "treeUri",
+            "columnName": "tree_uri",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "documentUri",
+            "columnName": "document_uri",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "displayName",
+            "columnName": "display_name",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "relativePath",
+            "columnName": "relative_path",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sizeBytes",
+            "columnName": "size_bytes",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "lastModifiedMs",
+            "columnName": "last_modified_ms",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "kind",
+            "columnName": "kind",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "format",
+            "columnName": "format",
+            "affinity": "TEXT"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_saf_files_document_uri",
+            "unique": true,
+            "columnNames": [
+              "document_uri"
+            ],
+            "orders": [],
+            "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_saf_files_document_uri` ON `${TABLE_NAME}` (`document_uri`)"
+          },
+          {
+            "name": "index_saf_files_tree_uri",
+            "unique": false,
+            "columnNames": [
+              "tree_uri"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_saf_files_tree_uri` ON `${TABLE_NAME}` (`tree_uri`)"
+          }
+        ]
       }
     ],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '13b324f84f469d9778afa055d60e9339')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '87d664b8478a183c778bf029b50f597f')"
     ]
   }
 }

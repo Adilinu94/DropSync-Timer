@@ -5,10 +5,12 @@ import androidx.room.Room
 import com.dropsync.core.database.DropSyncDatabase
 import com.dropsync.core.database.RoomTransactionRunner
 import com.dropsync.core.database.TransactionRunner
+import com.dropsync.core.database.dao.CueTrackDao
 import com.dropsync.core.database.dao.EqPresetDao
 import com.dropsync.core.database.dao.ExerciseDao
 import com.dropsync.core.database.dao.MarkerDao
 import com.dropsync.core.database.dao.RoutineDao
+import com.dropsync.core.database.dao.SafFileDao
 import com.dropsync.core.database.dao.SongDao
 import com.dropsync.core.database.dao.TimerPresetDao
 import com.dropsync.core.database.dao.WorkoutDao
@@ -65,4 +67,10 @@ object DatabaseModule {
 
     @Provides
     fun provideEqPresetDao(database: DropSyncDatabase): EqPresetDao = database.eqPresetDao()
+
+    @Provides
+    fun provideCueTrackDao(database: DropSyncDatabase): CueTrackDao = database.cueTrackDao()
+
+    @Provides
+    fun provideSafFileDao(database: DropSyncDatabase): SafFileDao = database.safFileDao()
 }

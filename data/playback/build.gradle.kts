@@ -39,6 +39,7 @@ dependencies {
     implementation(project(":core:common"))
     implementation(project(":core:model"))
     implementation(project(":domain:audio"))
+    implementation(project(":domain:library"))
     implementation(project(":domain:playback"))
     implementation(project(":domain:timer"))
     implementation(project(":data:audio"))

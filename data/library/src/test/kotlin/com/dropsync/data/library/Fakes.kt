@@ -1,9 +1,13 @@
 package com.dropsync.data.library
 
 import com.dropsync.core.database.TransactionRunner
+import com.dropsync.core.database.dao.CueTrackDao
 import com.dropsync.core.database.dao.MarkerDao
+import com.dropsync.core.database.dao.SafFileDao
 import com.dropsync.core.database.dao.SongDao
+import com.dropsync.core.database.entity.CueTrackEntity
 import com.dropsync.core.database.entity.MarkerSongLinkEntity
+import com.dropsync.core.database.entity.SafFileEntity
 import com.dropsync.core.database.entity.SongEntity
 import com.dropsync.core.database.entity.SongMarkerEntity
 import com.dropsync.core.model.Song
@@ -159,4 +163,66 @@ class FakeScanStateStore : ScanStateStore {
 
 class FakeTransactionRunner : TransactionRunner {
     override suspend fun <T> invoke(block: suspend () -> T): T = block()
+}
+
+class FakeCueTrackDao : CueTrackDao {
+    val rows = mutableListOf<CueTrackEntity>()
+    private var nextId = 1L
+    private val state = MutableStateFlow<List<CueTrackEntity>>(emptyList())
+
+    private fun emit() {
+        state.value = rows.toList()
+    }
+
+    override suspend fun insertAll(tracks: List<CueTrackEntity>) {
+        for (track in tracks) rows += track.copy(id = nextId++)
+        emit()
+    }
+
+    override suspend fun deleteForSong(songId: Long) {
+        rows.removeAll { it.songId == songId }
+        emit()
+    }
+
+    override fun observeForSong(songId: Long): Flow<List<CueTrackEntity>> =
+        state.map { list -> list.filter { it.songId == songId }.sortedBy { it.trackNumber } }
+
+    override suspend fun getForSong(songId: Long): List<CueTrackEntity> =
+        rows
+            .filter {
+                it.songId == songId
+            }.sortedBy { it.trackNumber }
+}
+
+class FakeSafFileDao : SafFileDao {
+    val rows = mutableListOf<SafFileEntity>()
+    private var nextId = 1L
+    private val state = MutableStateFlow<List<SafFileEntity>>(emptyList())
+
+    private fun emit() {
+        state.value = rows.toList()
+    }
+
+    override suspend fun insertAll(files: List<SafFileEntity>) {
+        for (file in files) rows += file.copy(id = nextId++)
+        emit()
+    }
+
+    override suspend fun deleteForTree(treeUri: String) {
+        rows.removeAll { it.treeUri == treeUri }
+        emit()
+    }
+
+    override fun observeAll(): Flow<List<SafFileEntity>> = state
+
+    override suspend fun getForTree(treeUri: String): List<SafFileEntity> = rows.filter { it.treeUri == treeUri }
+}
+
+class FakeSafFolderGateway(
+    var files: List<SafDocument> = emptyList(),
+    var documents: Map<String, String> = emptyMap(),
+) : SafFolderGateway {
+    override fun listFiles(treeUri: String): List<SafDocument> = files
+
+    override fun readDocument(documentUri: String): String? = documents[documentUri]
 }
