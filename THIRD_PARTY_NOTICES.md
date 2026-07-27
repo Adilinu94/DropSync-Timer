@@ -24,7 +24,7 @@ Status-Werte: `FREIGEGEBEN` (Lizenz geprueft, kompatibel), `OFFEN` (in Pruefung)
 | androidx.datastore:datastore-preferences | 1.2.1 | Apache-2.0 | Kleine Zustandswerte (Scan-Generation u. a.) | https://developer.android.com/jetpack/androidx/releases/datastore | FREIGEGEBEN |
 | androidx.hilt:hilt-navigation-compose | 1.4.0 | Apache-2.0 | Hilt-Integration fuer Navigation | https://developer.android.com/jetpack/androidx/releases/hilt | FREIGEGEBEN |
 | Dagger Hilt (hilt-android, compiler, testing) | 2.60.1 | Apache-2.0 | Dependency Injection | https://github.com/google/dagger | FREIGEGEBEN |
-| kotlinx-coroutines (core, android, test) | 1.11.0 | Apache-2.0 | Nebenlaeufigkeit | https://github.com/Kotlin/kotlinx.coroutines | FREIGEGEBEN |
+| kotlinx-coroutines (core, android, guava, test) | 1.11.0 | Apache-2.0 | Nebenlaeufigkeit | https://github.com/Kotlin/kotlinx.coroutines | FREIGEGEBEN |
 | kotlinx-serialization-json | 1.11.0 | Apache-2.0 | Markerimport-JSON, Seed-Daten | https://github.com/Kotlin/kotlinx.serialization | FREIGEGEBEN |
 | JUnit 4 | 4.13.2 | EPL-1.0 | Unit-Tests (nur Testscope, keine Distribution in der App) | https://junit.org/junit4 | FREIGEGEBEN |
 | Turbine | 1.2.1 | Apache-2.0 | Flow-Tests (nur Testscope) | https://github.com/cashapp/turbine | FREIGEGEBEN |

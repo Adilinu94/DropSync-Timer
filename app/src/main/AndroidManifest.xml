@@ -1,9 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
   Manifest gemaess Berechtigungstabelle in Bauplan Abschnitt 4:
-  In Schritt 1/2 sind noch KEINE Berechtigungen noetig. READ_MEDIA_AUDIO,
-  POST_NOTIFICATIONS und der Media-Playback-Foreground-Service kommen erst
-  mit den Schritten 4 und 5 und werden dann hier ergaenzt.
+  READ_MEDIA_AUDIO/READ_EXTERNAL_STORAGE liegen im Manifest von
+  :data:library, die Media-Playback-FGS-Deklarationen samt Service in
+  :data:playback; der Merger fuehrt sie hier zusammen. POST_NOTIFICATIONS
+  folgt mit Schritt 8/12.
 
   Auto Backup ist deaktiviert (Bauplan 2.3), damit Trainings- und
   Bibliotheksmetadaten nicht unbemerkt in einen Cloud-Backupdienst gelangen.
