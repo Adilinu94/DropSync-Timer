@@ -3,6 +3,7 @@ package com.dropsync.data.workout.di
 import com.dropsync.core.common.Clock
 import com.dropsync.core.common.DispatcherProvider
 import com.dropsync.core.database.TransactionRunner
+import com.dropsync.core.database.dao.ExerciseDao
 import com.dropsync.core.database.dao.RoutineDao
 import com.dropsync.core.database.dao.WorkoutDao
 import com.dropsync.data.workout.WorkoutRepositoryImpl
@@ -22,8 +23,10 @@ object WorkoutDataModule {
     fun provideWorkoutRepository(
         workoutDao: WorkoutDao,
         routineDao: RoutineDao,
+        exerciseDao: ExerciseDao,
         transactionRunner: TransactionRunner,
         clock: Clock,
         dispatchers: DispatcherProvider,
-    ): WorkoutRepository = WorkoutRepositoryImpl(workoutDao, routineDao, transactionRunner, clock, dispatchers)
+    ): WorkoutRepository =
+        WorkoutRepositoryImpl(workoutDao, routineDao, exerciseDao, transactionRunner, clock, dispatchers)
 }

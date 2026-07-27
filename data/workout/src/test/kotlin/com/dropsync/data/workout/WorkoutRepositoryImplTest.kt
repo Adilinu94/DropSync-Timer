@@ -47,6 +47,7 @@ class WorkoutRepositoryImplTest {
                 WorkoutRepositoryImpl(
                     workoutDao = db.workoutDao(),
                     routineDao = db.routineDao(),
+                    exerciseDao = db.exerciseDao(),
                     transactionRunner = RoomTransactionRunner(db),
                     clock = clock,
                     dispatchers = TestDispatcherProvider(),
@@ -235,6 +236,41 @@ class WorkoutRepositoryImplTest {
                 )
             assertTrue(result is com.dropsync.core.common.AppResult.Failure)
             assertTrue(db.workoutDao().getClustersForSessionExercise(sessionExerciseId).isEmpty())
+        }
+
+    @Test
+    fun `undo loescht cluster und berechnet prs vollstaendig neu`() =
+        runTest {
+            // 12.5: Satzabschluss hat eine klar sichtbare Rueckgaengig-Aktion.
+            val (_, sessionExerciseId) = startSessionWithExercise()
+            repository.completeCluster(
+                sessionExerciseId,
+                SetRole.WORKING,
+                listOf(SegmentInput(80_000, 1, 8)),
+                null,
+            )
+            clock.advanceBy(60_000)
+            val secondClusterId =
+                (
+                    repository.completeCluster(
+                        sessionExerciseId,
+                        SetRole.WORKING,
+                        listOf(SegmentInput(120_000, 1, 3)),
+                        null,
+                    ) as com.dropsync.core.common.AppResult.Success
+                ).value
+
+            val undo = repository.undoCompleteCluster(secondClusterId)
+            assertTrue(undo is com.dropsync.core.common.AppResult.Success)
+
+            // Der 120-kg-Rekord ist weg; 80 kg aus Cluster 1 haelt wieder.
+            val highestLoad =
+                db
+                    .workoutDao()
+                    .getPersonalRecordsForExercise(exerciseId)
+                    .single { it.type == PrType.HIGHEST_LOAD.name }
+            assertEquals(80_000L, highestLoad.valueLong)
+            assertEquals(1, db.workoutDao().getClustersForSessionExercise(sessionExerciseId).size)
         }
 
     private suspend fun insertSong(mediaStoreId: Long) {

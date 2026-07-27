@@ -55,7 +55,30 @@ interface ExerciseDao {
         exerciseId: Long,
         locale: String,
     ): String?
+
+    /**
+     * Aktive Uebungen mit lokalisiertem Namen (Schritt 9.1); ohne
+     * Uebersetzung faellt die UI auf den sprachneutralen Slug zurueck.
+     */
+    @Query(
+        "SELECT e.id AS id, e.canonical_name AS slug, n.display_name AS display_name " +
+            "FROM exercises e " +
+            "LEFT JOIN exercise_names n ON n.exercise_id = e.id AND n.locale = :locale " +
+            "WHERE e.is_archived = 0 " +
+            "ORDER BY COALESCE(n.display_name, e.canonical_name) COLLATE NOCASE",
+    )
+    fun observeActiveWithNames(locale: String): Flow<List<ExerciseNameRow>>
 }
+
+/** Zeile der Uebungsauswahl (Query in [ExerciseDao]). */
+data class ExerciseNameRow(
+    @ColumnInfo(name = "id")
+    val id: Long,
+    @ColumnInfo(name = "slug")
+    val slug: String,
+    @ColumnInfo(name = "display_name")
+    val displayName: String?,
+)
 
 @Dao
 interface RoutineDao {
@@ -82,6 +105,20 @@ interface WorkoutDao {
 
     @Query("SELECT * FROM session_exercises WHERE id = :id")
     suspend fun getSessionExercise(id: Long): SessionExerciseEntity?
+
+    /** Uebungen der Session in stabiler Reihenfolge (9.3), mit Namen. */
+    @Query(
+        "SELECT se.id AS id, se.exercise_id AS exercise_id, se.order_index AS order_index, " +
+            "e.canonical_name AS slug, n.display_name AS display_name " +
+            "FROM session_exercises se " +
+            "INNER JOIN exercises e ON e.id = se.exercise_id " +
+            "LEFT JOIN exercise_names n ON n.exercise_id = e.id AND n.locale = :locale " +
+            "WHERE se.session_id = :sessionId ORDER BY se.order_index",
+    )
+    fun observeSessionExercises(
+        sessionId: Long,
+        locale: String,
+    ): Flow<List<SessionExerciseRow>>
 
     @Query("SELECT COALESCE(MAX(order_index) + 1, 0) FROM session_exercises WHERE session_id = :sessionId")
     suspend fun nextExerciseOrderIndex(sessionId: Long): Int
@@ -132,6 +169,16 @@ interface WorkoutDao {
 
     @Query("SELECT * FROM personal_records WHERE exercise_id = :exerciseId")
     suspend fun getPersonalRecordsForExercise(exerciseId: Long): List<PersonalRecordEntity>
+
+    @Query("SELECT * FROM set_clusters WHERE id = :clusterId")
+    suspend fun getCluster(clusterId: Long): SetClusterEntity?
+
+    /** Segmente haengen per CASCADE am Cluster; explizit fuer Klarheit. */
+    @Query("DELETE FROM set_segments WHERE cluster_id = :clusterId")
+    suspend fun deleteSegmentsForCluster(clusterId: Long)
+
+    @Query("DELETE FROM set_clusters WHERE id = :clusterId")
+    suspend fun deleteCluster(clusterId: Long)
 
     @Query("SELECT COUNT(*) FROM set_segments WHERE cluster_id = :clusterId")
     suspend fun countSegments(clusterId: Long): Int
@@ -202,6 +249,20 @@ interface WorkoutDao {
         }
     }
 }
+
+/** Zeile der Uebungen einer Session (Query in [WorkoutDao]). */
+data class SessionExerciseRow(
+    @ColumnInfo(name = "id")
+    val id: Long,
+    @ColumnInfo(name = "exercise_id")
+    val exerciseId: Long,
+    @ColumnInfo(name = "order_index")
+    val orderIndex: Int,
+    @ColumnInfo(name = "slug")
+    val slug: String,
+    @ColumnInfo(name = "display_name")
+    val displayName: String?,
+)
 
 /** Zeile der qualifizierten Historie (Query in [WorkoutDao]). */
 data class QualifiedSegmentRow(

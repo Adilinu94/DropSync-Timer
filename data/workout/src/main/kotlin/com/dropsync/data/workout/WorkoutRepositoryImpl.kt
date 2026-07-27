@@ -5,6 +5,7 @@ import com.dropsync.core.common.AppResult
 import com.dropsync.core.common.Clock
 import com.dropsync.core.common.DispatcherProvider
 import com.dropsync.core.database.TransactionRunner
+import com.dropsync.core.database.dao.ExerciseDao
 import com.dropsync.core.database.dao.RoutineDao
 import com.dropsync.core.database.dao.WorkoutDao
 import com.dropsync.core.database.entity.PersonalRecordEntity
@@ -15,12 +16,14 @@ import com.dropsync.core.database.entity.SetSegmentEntity
 import com.dropsync.core.database.entity.WorkoutSessionEntity
 import com.dropsync.core.model.SessionStatus
 import com.dropsync.core.model.SetRole
+import com.dropsync.domain.workout.ExerciseInfo
 import com.dropsync.domain.workout.PlaybackSnapshotInfo
 import com.dropsync.domain.workout.PrCalculator
 import com.dropsync.domain.workout.QualifiedSegment
 import com.dropsync.domain.workout.RoutineEntry
 import com.dropsync.domain.workout.RoutineExpander
 import com.dropsync.domain.workout.SegmentInput
+import com.dropsync.domain.workout.SessionExerciseInfo
 import com.dropsync.domain.workout.WorkoutMath
 import com.dropsync.domain.workout.WorkoutRepository
 import com.dropsync.domain.workout.WorkoutSessionInfo
@@ -41,6 +44,7 @@ import java.time.ZoneId
 class WorkoutRepositoryImpl(
     private val workoutDao: WorkoutDao,
     private val routineDao: RoutineDao,
+    private val exerciseDao: ExerciseDao,
     private val transactionRunner: TransactionRunner,
     private val clock: Clock,
     private val dispatchers: DispatcherProvider,
@@ -53,6 +57,33 @@ class WorkoutRepositoryImpl(
                     startedAtEpochMs = it.startedAtEpochMs,
                     status = SessionStatus.valueOf(it.status),
                     title = it.title,
+                )
+            }
+        }
+
+    override fun observeExercises(locale: String): Flow<List<ExerciseInfo>> =
+        exerciseDao.observeActiveWithNames(locale).map { rows ->
+            rows.map { row ->
+                ExerciseInfo(
+                    id = row.id,
+                    slug = row.slug,
+                    // Fallback auf den sprachneutralen Slug (Abschnitt 2).
+                    displayName = row.displayName ?: row.slug,
+                )
+            }
+        }
+
+    override fun observeSessionExercises(
+        sessionId: Long,
+        locale: String,
+    ): Flow<List<SessionExerciseInfo>> =
+        workoutDao.observeSessionExercises(sessionId, locale).map { rows ->
+            rows.map { row ->
+                SessionExerciseInfo(
+                    id = row.id,
+                    exerciseId = row.exerciseId,
+                    orderIndex = row.orderIndex,
+                    displayName = row.displayName ?: row.slug,
                 )
             }
         }
@@ -208,6 +239,27 @@ class WorkoutRepositoryImpl(
                 }
             } catch (e: Exception) {
                 AppResult.failure(AppError.DatabaseFailure("completeCluster"))
+            }
+        }
+
+    override suspend fun undoCompleteCluster(clusterId: Long): AppResult<Unit> =
+        withContext(dispatchers.io) {
+            try {
+                transactionRunner {
+                    val cluster =
+                        workoutDao.getCluster(clusterId)
+                            ?: throw IllegalStateException("Cluster $clusterId fehlt")
+                    val sessionExercise =
+                        workoutDao.getSessionExercise(cluster.sessionExerciseId)
+                            ?: throw IllegalStateException("SessionExercise fehlt")
+                    workoutDao.deleteSegmentsForCluster(clusterId)
+                    workoutDao.deleteCluster(clusterId)
+                    // Loeschung erzwingt vollstaendige PR-Neuberechnung (10.4).
+                    recomputeInTransaction(sessionExercise.exerciseId)
+                }
+                AppResult.success(Unit)
+            } catch (e: Exception) {
+                AppResult.failure(AppError.DatabaseFailure("undoCompleteCluster"))
             }
         }
 

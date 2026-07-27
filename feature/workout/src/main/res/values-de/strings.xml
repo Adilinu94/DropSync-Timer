@@ -6,4 +6,12 @@
     <string name="workout_started_at">Gestartet um %1$s</string>
     <string name="workout_complete_session">Training beenden</string>
     <string name="workout_discard_session">Verwerfen</string>
+    <string name="workout_pick_exercise">Uebung</string>
+    <string name="workout_add_exercise">Hinzufuegen</string>
+    <string name="workout_weight_kg">Gewicht (kg)</string>
+    <string name="workout_reps">Wdh.</string>
+    <string name="workout_per_hand">Gewicht gilt pro Hand (zwei Hanteln)</string>
+    <string name="workout_complete_set">Satz abschliessen</string>
+    <string name="workout_set_saved">Satz gespeichert:</string>
+    <string name="workout_undo">Rueckgaengig</string>
 </resources>

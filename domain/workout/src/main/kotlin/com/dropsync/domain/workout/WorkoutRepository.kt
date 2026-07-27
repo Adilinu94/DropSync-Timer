@@ -14,6 +14,24 @@ data class WorkoutSessionInfo(
 )
 
 /**
+ * Uebung fuer Auswahl-Listen: sprachneutraler Slug plus lokalisierter
+ * Anzeigename (Abschnitt 2/Schritt 9.1); Fallback ist der Slug.
+ */
+data class ExerciseInfo(
+    val id: Long,
+    val slug: String,
+    val displayName: String,
+)
+
+/** Uebung innerhalb der aktiven Session. */
+data class SessionExerciseInfo(
+    val id: Long,
+    val exerciseId: Long,
+    val orderIndex: Int,
+    val displayName: String,
+)
+
+/**
  * Vertrag des Trainingslogs (Bauplan Schritt 9/10).
  * Implementierung in :data:workout; Satzabschluss und PR-Bestimmung
  * laufen in EINER Transaktion (10.3).
@@ -21,6 +39,15 @@ data class WorkoutSessionInfo(
 interface WorkoutRepository {
     /** Es gibt hoechstens eine aktive Session (9.8). */
     val activeSession: Flow<WorkoutSessionInfo?>
+
+    /** Aktive Uebungen mit lokalisiertem Namen fuer [locale] (z. B. "de"). */
+    fun observeExercises(locale: String): Flow<List<ExerciseInfo>>
+
+    /** Uebungen der Session in stabiler Reihenfolge (9.3). */
+    fun observeSessionExercises(
+        sessionId: Long,
+        locale: String,
+    ): Flow<List<SessionExerciseInfo>>
 
     suspend fun startSession(
         title: String?,
@@ -48,6 +75,13 @@ interface WorkoutRepository {
         segments: List<SegmentInput>,
         note: String?,
     ): AppResult<Long>
+
+    /**
+     * Macht einen Satzabschluss rueckgaengig (12.5, 10-Sekunden-Fenster
+     * der UI): loescht den Cluster samt Segmenten und berechnet die PRs
+     * der Uebung in derselben Transaktion vollstaendig neu (10.4).
+     */
+    suspend fun undoCompleteCluster(clusterId: Long): AppResult<Unit>
 
     /**
      * Vollstaendige Neuberechnung nach Korrektur/Loeschung (10.4);

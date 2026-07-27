@@ -6,4 +6,12 @@
     <string name="workout_started_at">Started at %1$s</string>
     <string name="workout_complete_session">Finish workout</string>
     <string name="workout_discard_session">Discard</string>
+    <string name="workout_pick_exercise">Exercise</string>
+    <string name="workout_add_exercise">Add</string>
+    <string name="workout_weight_kg">Weight (kg)</string>
+    <string name="workout_reps">Reps</string>
+    <string name="workout_per_hand">Weight is per hand (two implements)</string>
+    <string name="workout_complete_set">Complete set</string>
+    <string name="workout_set_saved">Set saved:</string>
+    <string name="workout_undo">Undo</string>
 </resources>
