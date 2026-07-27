@@ -70,6 +70,9 @@ class MediaStoreGatewayImpl(
                 add(MediaStore.Audio.Media.TITLE)
                 add(MediaStore.Audio.Media.ARTIST)
                 add(MediaStore.Audio.Media.ALBUM)
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                    add(MediaStore.Audio.Media.GENRE)
+                }
                 if (hasRelativePath) {
                     add(MediaStore.Audio.Media.RELATIVE_PATH)
                 } else {
@@ -89,6 +92,13 @@ class MediaStoreGatewayImpl(
             val titleCol = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.TITLE)
             val artistCol = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.ARTIST)
             val albumCol = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.ALBUM)
+            // GENRE erst ab Android 11 (API 30) im Audio-Media-Index.
+            val genreCol =
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                    cursor.getColumnIndex(MediaStore.Audio.Media.GENRE)
+                } else {
+                    -1
+                }
             val pathCol =
                 if (hasRelativePath) {
                     cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.RELATIVE_PATH)
@@ -122,6 +132,7 @@ class MediaStoreGatewayImpl(
                         title = cursor.getString(titleCol),
                         artist = cursor.getString(artistCol),
                         album = cursor.getString(albumCol),
+                        genre = if (genreCol >= 0) cursor.getString(genreCol) else null,
                         isAvailable = true,
                     )
             }

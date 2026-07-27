@@ -7,10 +7,15 @@ import com.dropsync.core.common.Clock
 import com.dropsync.core.common.DispatcherProvider
 import com.dropsync.core.database.TransactionRunner
 import com.dropsync.core.database.dao.CueTrackDao
+import com.dropsync.core.database.dao.FavoriteDao
+import com.dropsync.core.database.dao.LibraryBrowseDao
 import com.dropsync.core.database.dao.MarkerDao
+import com.dropsync.core.database.dao.PlayStatDao
+import com.dropsync.core.database.dao.PlaylistDao
 import com.dropsync.core.database.dao.SafFileDao
 import com.dropsync.core.database.dao.SongDao
 import com.dropsync.data.library.DataStoreScanStateStore
+import com.dropsync.data.library.LibraryBrowseRepositoryImpl
 import com.dropsync.data.library.LibraryRepositoryImpl
 import com.dropsync.data.library.MarkerRepositoryImpl
 import com.dropsync.data.library.MediaStoreGateway
@@ -19,6 +24,7 @@ import com.dropsync.data.library.SafFolderGateway
 import com.dropsync.data.library.SafFolderGatewayImpl
 import com.dropsync.data.library.ScanStateStore
 import com.dropsync.domain.library.ImportValidator
+import com.dropsync.domain.library.LibraryBrowseRepository
 import com.dropsync.domain.library.LibraryRepository
 import com.dropsync.domain.library.MarkerMatcher
 import com.dropsync.domain.library.MarkerRepository
@@ -80,6 +86,27 @@ object LibraryDataModule {
             cueTrackDao = cueTrackDao,
             safFileDao = safFileDao,
             safGateway = safGateway,
+        )
+
+    @Provides
+    @Singleton
+    fun provideLibraryBrowseRepository(
+        browseDao: LibraryBrowseDao,
+        playStatDao: PlayStatDao,
+        favoriteDao: FavoriteDao,
+        playlistDao: PlaylistDao,
+        songDao: SongDao,
+        transactionRunner: TransactionRunner,
+        dispatchers: DispatcherProvider,
+    ): LibraryBrowseRepository =
+        LibraryBrowseRepositoryImpl(
+            browseDao = browseDao,
+            playStatDao = playStatDao,
+            favoriteDao = favoriteDao,
+            playlistDao = playlistDao,
+            songDao = songDao,
+            transactionRunner = transactionRunner,
+            dispatchers = dispatchers,
         )
 
     @Provides

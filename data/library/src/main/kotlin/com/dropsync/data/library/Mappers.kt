@@ -21,6 +21,7 @@ internal fun SongEntity.toDomain(): Song =
         title = title,
         artist = artist,
         album = album,
+        genre = genre,
         isAvailable = isAvailable,
     )
 
@@ -36,6 +37,7 @@ internal fun Song.toEntity(knownSha256: String?): SongEntity =
         title = title,
         artist = artist,
         album = album,
+        genre = genre,
         isAvailable = isAvailable,
         knownSha256 = knownSha256,
     )

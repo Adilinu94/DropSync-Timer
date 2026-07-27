@@ -33,6 +33,8 @@ data class SongEntity(
     val artist: String?,
     @ColumnInfo(name = "album")
     val album: String?,
+    @ColumnInfo(name = "genre")
+    val genre: String? = null,
     @ColumnInfo(name = "is_available")
     val isAvailable: Boolean,
     /**

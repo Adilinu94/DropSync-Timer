@@ -14,6 +14,8 @@ data class Song(
     val title: String?,
     val artist: String?,
     val album: String?,
+    /** Genre aus MediaStore (Plan Phase 6), falls indexiert. */
+    val genre: String? = null,
     val isAvailable: Boolean,
 )
 

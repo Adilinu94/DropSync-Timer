@@ -8,7 +8,11 @@ import com.dropsync.core.database.TransactionRunner
 import com.dropsync.core.database.dao.CueTrackDao
 import com.dropsync.core.database.dao.EqPresetDao
 import com.dropsync.core.database.dao.ExerciseDao
+import com.dropsync.core.database.dao.FavoriteDao
+import com.dropsync.core.database.dao.LibraryBrowseDao
 import com.dropsync.core.database.dao.MarkerDao
+import com.dropsync.core.database.dao.PlayStatDao
+import com.dropsync.core.database.dao.PlaylistDao
 import com.dropsync.core.database.dao.RoutineDao
 import com.dropsync.core.database.dao.SafFileDao
 import com.dropsync.core.database.dao.SongDao
@@ -73,4 +77,16 @@ object DatabaseModule {
 
     @Provides
     fun provideSafFileDao(database: DropSyncDatabase): SafFileDao = database.safFileDao()
+
+    @Provides
+    fun provideLibraryBrowseDao(database: DropSyncDatabase): LibraryBrowseDao = database.libraryBrowseDao()
+
+    @Provides
+    fun providePlayStatDao(database: DropSyncDatabase): PlayStatDao = database.playStatDao()
+
+    @Provides
+    fun provideFavoriteDao(database: DropSyncDatabase): FavoriteDao = database.favoriteDao()
+
+    @Provides
+    fun providePlaylistDao(database: DropSyncDatabase): PlaylistDao = database.playlistDao()
 }
