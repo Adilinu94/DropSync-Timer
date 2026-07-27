@@ -1,0 +1,29 @@
+package com.dropsync.data.workout.di
+
+import com.dropsync.core.common.Clock
+import com.dropsync.core.common.DispatcherProvider
+import com.dropsync.core.database.TransactionRunner
+import com.dropsync.core.database.dao.RoutineDao
+import com.dropsync.core.database.dao.WorkoutDao
+import com.dropsync.data.workout.WorkoutRepositoryImpl
+import com.dropsync.domain.workout.WorkoutRepository
+import dagger.Module
+import dagger.Provides
+import dagger.hilt.InstallIn
+import dagger.hilt.components.SingletonComponent
+import javax.inject.Singleton
+
+/** Verdrahtet den Trainingslog (Bauplan Schritt 9/10). */
+@Module
+@InstallIn(SingletonComponent::class)
+object WorkoutDataModule {
+    @Provides
+    @Singleton
+    fun provideWorkoutRepository(
+        workoutDao: WorkoutDao,
+        routineDao: RoutineDao,
+        transactionRunner: TransactionRunner,
+        clock: Clock,
+        dispatchers: DispatcherProvider,
+    ): WorkoutRepository = WorkoutRepositoryImpl(workoutDao, routineDao, transactionRunner, clock, dispatchers)
+}

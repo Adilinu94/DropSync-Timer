@@ -1,5 +1,6 @@
 package com.dropsync.core.database.dao
 
+import androidx.room.ColumnInfo
 import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
@@ -78,6 +79,17 @@ interface WorkoutDao {
     @Query("SELECT * FROM workout_sessions WHERE id = :id")
     suspend fun getSession(id: Long): WorkoutSessionEntity?
 
+    @Query("SELECT * FROM session_exercises WHERE id = :id")
+    suspend fun getSessionExercise(id: Long): SessionExerciseEntity?
+
+    @Query("SELECT COALESCE(MAX(order_index) + 1, 0) FROM session_exercises WHERE session_id = :sessionId")
+    suspend fun nextExerciseOrderIndex(sessionId: Long): Int
+
+    @Query(
+        "SELECT COALESCE(MAX(order_index) + 1, 0) FROM set_clusters WHERE session_exercise_id = :sessionExerciseId",
+    )
+    suspend fun nextClusterOrderIndex(sessionExerciseId: Long): Int
+
     @Query("SELECT * FROM workout_sessions WHERE status = 'ACTIVE' LIMIT 1")
     fun observeActiveSession(): Flow<WorkoutSessionEntity?>
 
@@ -124,6 +136,39 @@ interface WorkoutDao {
     suspend fun countSegments(clusterId: Long): Int
 
     /**
+     * Qualifizierte Historie einer Uebung (Bauplan 5.4/1): WORKING oder
+     * FAILURE, abgeschlossen, STRENGTH, reps > 0, Last >= 0; DISCARDED
+     * zaehlt nie. Grundlage jeder vollstaendigen PR-Neuberechnung.
+     */
+    @Query(
+        "SELECT ws.id AS session_id, ws.started_at_epoch_ms AS session_started_at, " +
+            "c.id AS cluster_id, c.completed_at_epoch_ms AS completed_at, " +
+            "s.external_load_milli_kg_per_implement AS load_milli_kg, " +
+            "s.load_multiplier AS load_multiplier, s.reps AS reps " +
+            "FROM set_segments s " +
+            "INNER JOIN set_clusters c ON c.id = s.cluster_id " +
+            "INNER JOIN session_exercises se ON se.id = c.session_exercise_id " +
+            "INNER JOIN workout_sessions ws ON ws.id = se.session_id " +
+            "INNER JOIN exercises e ON e.id = se.exercise_id " +
+            "WHERE se.exercise_id = :exerciseId AND c.is_completed = 1 " +
+            "AND c.set_role IN ('WORKING','FAILURE') AND e.kind = 'STRENGTH' " +
+            "AND s.reps > 0 AND s.external_load_milli_kg_per_implement >= 0 " +
+            "AND ws.status != 'DISCARDED' AND c.completed_at_epoch_ms IS NOT NULL",
+    )
+    suspend fun getQualifiedSegments(exerciseId: Long): List<QualifiedSegmentRow>
+
+    /** Segmente des zuletzt abgeschlossenen Clusters der Uebung (9.4). */
+    @Query(
+        "SELECT * FROM set_segments WHERE cluster_id = (" +
+            "SELECT c.id FROM set_clusters c " +
+            "INNER JOIN session_exercises se ON se.id = c.session_exercise_id " +
+            "WHERE se.exercise_id = :exerciseId AND c.is_completed = 1 " +
+            "ORDER BY c.completed_at_epoch_ms DESC LIMIT 1) " +
+            "ORDER BY segment_index",
+    )
+    suspend fun getSegmentsOfLastCompletedCluster(exerciseId: Long): List<SetSegmentEntity>
+
+    /**
      * Satzabschluss als eine Transaktion (Schritt 3.4): Segmente,
      * Clusterstatus und neue PRs werden zusammen gespeichert oder gar
      * nicht. Wirft eine Ausnahme, wenn ein Teil scheitert; Room rollt
@@ -143,3 +188,21 @@ interface WorkoutDao {
         }
     }
 }
+
+/** Zeile der qualifizierten Historie (Query in [WorkoutDao]). */
+data class QualifiedSegmentRow(
+    @ColumnInfo(name = "session_id")
+    val sessionId: Long,
+    @ColumnInfo(name = "session_started_at")
+    val sessionStartedAtEpochMs: Long,
+    @ColumnInfo(name = "cluster_id")
+    val clusterId: Long,
+    @ColumnInfo(name = "completed_at")
+    val completedAtEpochMs: Long,
+    @ColumnInfo(name = "load_milli_kg")
+    val loadMilliKg: Long,
+    @ColumnInfo(name = "load_multiplier")
+    val loadMultiplier: Int,
+    @ColumnInfo(name = "reps")
+    val reps: Int,
+)

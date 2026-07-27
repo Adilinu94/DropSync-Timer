@@ -19,8 +19,8 @@ Bauplan sind nur ueber ADRs in [`docs/adr/`](docs/adr/) erlaubt.
 | 6 | Songmarker-Import | Abgeschlossen (Import/Zuordnung; Settings-UI folgt in Schritt 12) |
 | 7 | Timerkern | Abgeschlossen (Domainkern; Cue-Adapter folgen in Schritt 8) |
 | 8 | Audio-Cues, Ducking, Haptik | Abgeschlossen (Adapter; TTS-/Haptik-Geraetetest in Schritt 13) |
-| 9 | Uebungen, Routinen, Session-Log | Offen |
-| 10 | Volumen, PRs, Verlauf | Offen |
+| 9 | Uebungen, Routinen, Session-Log | Abgeschlossen (Datenschicht; UI folgt in Schritt 12) |
+| 10 | Volumen, PRs, Verlauf | Abgeschlossen (Berechnung/Persistenz; Verlaufs-UI folgt in Schritt 12) |
 | 11 | Musik-/Workout-Integration | Offen |
 | 12 | UI und Barrierefreiheit | Offen |
 | 13 | Tests, Performance, Release-Gates | Offen |
