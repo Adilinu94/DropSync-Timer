@@ -56,6 +56,7 @@ class DspSettingsStore
         private val dvcVolumeKey = doublePreferencesKey("dvc_volume")
         private val crossfadeSecondsKey = intPreferencesKey("crossfade_seconds")
         private val useSystemEffectsKey = booleanPreferencesKey("use_system_effects")
+        private val bitPerfectKey = booleanPreferencesKey("bit_perfect_enabled")
 
         val config: Flow<DspConfig> = context.dspDataStore.data.map(::readConfig)
 
@@ -82,6 +83,7 @@ class DspSettingsStore
                 prefs[dvcVolumeKey] = sanitized.dvcVolume
                 prefs[crossfadeSecondsKey] = sanitized.crossfadeSeconds
                 prefs[useSystemEffectsKey] = sanitized.useSystemEffects
+                prefs[bitPerfectKey] = sanitized.bitPerfectEnabled
             }
         }
 
@@ -119,6 +121,7 @@ class DspSettingsStore
                     dvcVolume = prefs[dvcVolumeKey] ?: 1.0,
                     crossfadeSeconds = prefs[crossfadeSecondsKey] ?: 0,
                     useSystemEffects = prefs[useSystemEffectsKey] ?: false,
+                    bitPerfectEnabled = prefs[bitPerfectKey] ?: false,
                 ),
             )
 

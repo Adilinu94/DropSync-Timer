@@ -11,6 +11,9 @@ import com.dropsync.core.testing.TestDispatcherProvider
 import com.dropsync.domain.audio.BiquadType
 import com.dropsync.domain.audio.BuiltInEqPresets
 import com.dropsync.domain.audio.EqBand
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.After
@@ -49,6 +52,14 @@ class EqPresetRepositoryTest {
                 eqPresetDao = db.eqPresetDao(),
                 transactionRunner = RoomTransactionRunner(db),
                 dispatchers = TestDispatcherProvider(),
+                profileController =
+                    OutputProfileController(
+                        deviceSnapshots = OutputDeviceMonitor(context).device,
+                        settingsStore = store,
+                        profileStore = DeviceProfileStore(context),
+                        scope = CoroutineScope(SupervisorJob() + Dispatchers.IO),
+                    ),
+                bitPerfectGateway = BitPerfectGateway(context),
             )
     }
 

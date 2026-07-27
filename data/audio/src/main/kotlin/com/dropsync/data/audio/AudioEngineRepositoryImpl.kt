@@ -8,6 +8,7 @@ import com.dropsync.core.database.dao.EqPresetDao
 import com.dropsync.core.database.entity.EqPresetEntity
 import com.dropsync.domain.audio.AudioEngineRepository
 import com.dropsync.domain.audio.AudioInfo
+import com.dropsync.domain.audio.BitPerfectSupport
 import com.dropsync.domain.audio.DspConfig
 import com.dropsync.domain.audio.EqBand
 import com.dropsync.domain.audio.EqPreset
@@ -29,10 +30,16 @@ class AudioEngineRepositoryImpl(
     private val eqPresetDao: EqPresetDao,
     private val transactionRunner: TransactionRunner,
     private val dispatchers: DispatcherProvider,
+    profileController: OutputProfileController,
+    bitPerfectGateway: BitPerfectGateway,
 ) : AudioEngineRepository {
     override val dspConfig: Flow<DspConfig> = settingsStore.config
 
     override val audioInfo: Flow<AudioInfo?> = pipeline.audioInfo
+
+    override val activeOutputProfileKey: Flow<String?> = profileController.activeProfileKey
+
+    override val bitPerfectSupport: Flow<BitPerfectSupport> = bitPerfectGateway.support
 
     override val eqPresets: Flow<List<EqPreset>> =
         eqPresetDao.observePresets().map { rows -> rows.map { it.toDomain() } }

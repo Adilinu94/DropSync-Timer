@@ -115,8 +115,13 @@ class AudioPipeline
             val sanitized = DspConfig.sanitized(config)
             mutableConfig.value = sanitized
             // MusicFX aktiv: interne Kette stumm, sonst Doppel-EQ (Phase 4).
+            // Bit-Perfect (ADR-0009): DSP-Kette komplett umgangen.
             val effective =
-                if (sanitized.useSystemEffects) sanitized.copy(enabled = false) else sanitized
+                if (sanitized.useSystemEffects || sanitized.bitPerfectEnabled) {
+                    sanitized.copy(enabled = false)
+                } else {
+                    sanitized
+                }
             masterProcessor.submitConfig(effective)
             mutableDspActive.value = effective.enabled && !isNeutral(effective)
         }

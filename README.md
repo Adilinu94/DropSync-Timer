@@ -34,7 +34,7 @@ Bauplan sind nur ueber ADRs in [`docs/adr/`](docs/adr/) erlaubt.
 | 2 (Schritt 16) | EQ (32 Baender), Bass/Hoehen, Stereo Expansion, Reverb, Dither, Resampler, DVC, Presets | Abgeschlossen (`MasterDspProcessor`, EQ-Presets in Room + Seeder/CRUD) |
 | 3 (Schritt 17) | FFmpeg-Formate (ALAC/AIFF/WMA/APE/TAK/TTA/DSD), CUE, M3U, SAF-Ordnerscan | Codeseitig abgeschlossen: Parser, Formatkatalog, SAF-Ordnerscan, `cue_tracks` + Clipping-MediaItems, Renderer-Extension-Mode. Offen: natives FFmpeg-Artefakt (manueller NDK-Build, `docs/ffmpeg-build.md`); M3U-Import in Playlisten folgt mit Phase 6 |
 | 4 (Schritt 18) | Gapless-Absicherung, Crossfade (Dual-Player), Auto-Resume, MusicFX | Abgeschlossen: `CrossfadeController` (Equal-Power, Gapless-/CUE-Ausschluss, Fallback harter Uebergang), `onPlaybackResumption` aus `PlayerStateStore`, Option "Bei BT-Verbindung automatisch fortsetzen", MusicFX-Session-Broadcasts + `useSystemEffects`-Bypass |
-| 5 (Schritt 19) | Pro-Ausgang-Profile, Bit-Perfect (USB, Android 14+), BT-Anzeige | Offen |
+| 5 (Schritt 19) | Pro-Ausgang-Profile, Bit-Perfect (USB, Android 14+), BT-Anzeige | Datenschicht abgeschlossen: Profile je Geraet (`DeviceProfileStore` + `OutputProfileController`, automatischer Wechsel + Save-Through), `BitPerfectGateway` (AudioMixerAttributes, API 34+), Bit-Perfect-Bypass (DSP aus, Float-Output aus, Crossfade aus), Vertrag `activeOutputProfileKey`/`bitPerfectSupport`. Offen: UI (Audioinfo-Panel, Hinweistexte, Link zu Systemeinstellungen) mit dem Feature-UI-Ausbau |
 | 6 (Schritt 20) | Bibliothek: Kuenstler/Alben/Genres/Ordner, Statistiken, Favoriten, Suche, Queue | Offen |
 | 7 (Schritt 21) | Feinschliff, Barrierefreiheit, Performance, Geraetetests | Offen |
 

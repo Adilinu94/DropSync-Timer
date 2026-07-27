@@ -58,6 +58,12 @@ data class DspConfig(
      * stummgeschaltet, um Doppel-EQ zu vermeiden (Plan Phase 4).
      */
     val useSystemEffects: Boolean = false,
+    /**
+     * Bit-Perfect (ADR-0009, Android 14+ nur USB): DSP-Bypass und
+     * Float-Output aus; exklusiv zur DSP-Kette und zum Crossfade.
+     * Wirkt auf den Wiedergabepfad beim naechsten Service-Start.
+     */
+    val bitPerfectEnabled: Boolean = false,
 ) {
     companion object {
         const val PREAMP_MIN_DB: Double = -12.0
@@ -168,4 +174,16 @@ interface AudioEngineRepository {
      * (aktiviert den grafischen EQ) und persistiert sie.
      */
     suspend fun applyEqPreset(id: Long): AppResult<Unit>
+
+    /**
+     * Schluessel des aktiven Ausgabegeraeteprofils (ADR-0008) fuer die
+     * Anzeige "Aktives Profil"; null solange kein Profil angelegt ist.
+     */
+    val activeOutputProfileKey: Flow<String?>
+
+    /**
+     * Bit-Perfect-Faehigkeiten des aktuellen Ausgangs (ADR-0009):
+     * nur USB-DAC ab Android 14; sonst available = false.
+     */
+    val bitPerfectSupport: Flow<BitPerfectSupport>
 }

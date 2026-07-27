@@ -18,6 +18,8 @@ import javax.inject.Singleton
 data class OutputDeviceSnapshot(
     val kind: OutputDeviceKind,
     val name: String?,
+    /** Geraeteadresse (BT/USB) fuer Profil-Schluessel (ADR-0008). */
+    val address: String? = null,
 )
 
 /**
@@ -92,6 +94,7 @@ class OutputDeviceMonitor
                         else -> OutputDeviceKind.OTHER
                     },
                 name = ranked?.productName?.toString(),
+                address = ranked?.address?.takeIf { it.isNotBlank() },
             )
         }
     }

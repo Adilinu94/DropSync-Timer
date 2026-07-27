@@ -5,6 +5,7 @@ import android.util.Log
 import com.dropsync.core.common.DispatcherProvider
 import com.dropsync.core.database.seed.ExerciseSeeder
 import com.dropsync.data.audio.EqPresetSeeder
+import com.dropsync.data.audio.OutputProfileController
 import dagger.hilt.android.HiltAndroidApp
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
@@ -21,10 +22,15 @@ class DropSyncApplication : Application() {
 
     @Inject lateinit var eqPresetSeeder: EqPresetSeeder
 
+    @Inject lateinit var outputProfileController: OutputProfileController
+
     @Inject lateinit var dispatchers: DispatcherProvider
 
     override fun onCreate() {
         super.onCreate()
+        // Pro-Ausgang-Profile (ADR-0008): Geraetewechsel beobachten und
+        // Profile automatisch anwenden.
+        outputProfileController.start()
         // Standarduebungen idempotent einspielen (Schritt 3.6); der Seed
         // ueberschreibt nie Benutzerdaten und darf bei jedem Start laufen.
         CoroutineScope(SupervisorJob() + dispatchers.io).launch {

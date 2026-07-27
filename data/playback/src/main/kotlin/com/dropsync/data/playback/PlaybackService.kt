@@ -22,6 +22,7 @@ import androidx.media3.session.MediaSession
 import com.dropsync.core.common.AppResult
 import com.dropsync.data.audio.AudioPipeline
 import com.dropsync.data.audio.DspRenderersFactory
+import com.dropsync.data.audio.DspSettingsStore
 import com.dropsync.data.audio.OutputFormatInfo
 import com.dropsync.data.audio.SourceFormatInfo
 import com.dropsync.domain.library.LibraryRepository
@@ -32,8 +33,10 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.guava.future
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import javax.inject.Inject
 
 /**
@@ -64,6 +67,9 @@ class PlaybackService : MediaLibraryService() {
     @Inject
     lateinit var playbackSettingsStore: PlaybackSettingsStore
 
+    @Inject
+    lateinit var dspSettingsStore: DspSettingsStore
+
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     // Player-Zugriffe (Crossfade, BT-Resume) gehoeren auf den Main-Thread.
@@ -79,10 +85,19 @@ class PlaybackService : MediaLibraryService() {
     @OptIn(UnstableApi::class)
     override fun onCreate() {
         super.onCreate()
+        // Bit-Perfect (ADR-0009) entscheidet ueber den Sink-Aufbau und
+        // gilt deshalb ab Service-Start (kurzer, einmaliger Store-Read).
+        val bitPerfect = runBlocking { dspSettingsStore.config.first() }.bitPerfectEnabled
         val exoPlayer =
             ExoPlayer
-                .Builder(this, DspRenderersFactory(this, audioPipeline.audioProcessors()))
-                .setAudioAttributes(
+                .Builder(
+                    this,
+                    DspRenderersFactory(
+                        this,
+                        audioPipeline.audioProcessors(),
+                        floatOutput = !bitPerfect,
+                    ),
+                ).setAudioAttributes(
                     AudioAttributes
                         .Builder()
                         .setUsage(C.USAGE_MEDIA)
@@ -125,7 +140,9 @@ class PlaybackService : MediaLibraryService() {
         controller.start()
         mainScope.launch {
             audioPipeline.currentConfig.collect { config ->
-                controller.setCrossfadeSeconds(config.crossfadeSeconds)
+                // Nie bei Bit-Perfect ueberblenden (ADR-0009).
+                val seconds = if (config.bitPerfectEnabled) 0 else config.crossfadeSeconds
+                controller.setCrossfadeSeconds(seconds)
             }
         }
         // Option "Bei BT-Verbindung automatisch fortsetzen" (Plan Phase 4).

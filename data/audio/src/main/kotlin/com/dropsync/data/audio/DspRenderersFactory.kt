@@ -11,7 +11,9 @@ import androidx.media3.exoplayer.audio.DefaultAudioSink
 /**
  * RenderersFactory der eigenen Audio-Pipeline (ADR-0005):
  * - Float-Output aktiv, damit Hi-Res-Quellen (24/32 Bit) ohne
- *   16-Bit-Zwischenschritt zum System gelangen;
+ *   16-Bit-Zwischenschritt zum System gelangen; im Bit-Perfect-Modus
+ *   (ADR-0009) wird Float-Output abgeschaltet, damit der Mixer die
+ *   Quelldaten unveraendert durchreicht;
  * - die DSP-Kette laeuft laut DefaultAudioSink.configure vor der
  *   Float-/Int16-Konvertierung und damit in beiden Pfaden;
  * - die selbstgebaute FFmpeg-Extension (ADR-0006) wird bevorzugt, sobald
@@ -22,6 +24,7 @@ import androidx.media3.exoplayer.audio.DefaultAudioSink
 class DspRenderersFactory(
     context: Context,
     private val audioProcessors: Array<AudioProcessor>,
+    private val floatOutput: Boolean = true,
 ) : DefaultRenderersFactory(context) {
     init {
         // Extension bevorzugen und bei Bedarf auf Plattformdecoder
@@ -37,7 +40,7 @@ class DspRenderersFactory(
     ): AudioSink =
         DefaultAudioSink
             .Builder(context)
-            .setEnableFloatOutput(true)
+            .setEnableFloatOutput(floatOutput)
             .setEnableAudioTrackPlaybackParams(enableAudioTrackPlaybackParams)
             .setAudioProcessors(audioProcessors)
             .build()
