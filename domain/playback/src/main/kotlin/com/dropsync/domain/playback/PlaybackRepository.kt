@@ -35,6 +35,33 @@ interface PlaybackRepository {
 
     suspend fun skipToPrevious(): AppResult<Unit>
 
+    /**
+     * Springt zum Warteschlangeneintrag [index] und startet dort
+     * (Plan Phase 6, Queue-Editor). Ein ungueltiger Index wird ignoriert.
+     */
+    suspend fun skipToQueueIndex(index: Int): AppResult<Unit>
+
+    /**
+     * Verschiebt einen Warteschlangeneintrag von [fromIndex] nach
+     * [toIndex] (Queue-Editor). Der laufende Titel bleibt derselbe.
+     */
+    suspend fun moveInQueue(
+        fromIndex: Int,
+        toIndex: Int,
+    ): AppResult<Unit>
+
+    /** Entfernt den Warteschlangeneintrag an [index] (Queue-Editor). */
+    suspend fun removeFromQueue(index: Int): AppResult<Unit>
+
+    /**
+     * Reiht [song] direkt hinter dem laufenden Titel ein ("als
+     * Naechstes"). Bei leerer Queue wird [song] zum ersten Titel.
+     */
+    suspend fun playNext(song: Song): AppResult<Unit>
+
+    /** Haengt [song] ans Ende der Warteschlange an. */
+    suspend fun addToQueueEnd(song: Song): AppResult<Unit>
+
     suspend fun setShuffle(enabled: Boolean): AppResult<Unit>
 
     suspend fun setRepeatMode(mode: RepeatMode): AppResult<Unit>

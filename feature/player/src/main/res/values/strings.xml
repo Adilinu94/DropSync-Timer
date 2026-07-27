@@ -3,6 +3,13 @@
     <string name="player_play">Play</string>
     <string name="player_pause">Pause</string>
     <string name="player_next">Next song</string>
+    <string name="player_queue_open">Open queue</string>
+    <string name="player_queue_title">Queue</string>
+    <string name="player_queue_empty">The queue is empty.</string>
+    <string name="player_queue_move_up">Move up</string>
+    <string name="player_queue_move_down">Move down</string>
+    <string name="player_queue_remove">Remove from queue</string>
+    <string name="player_queue_now_playing">Now playing</string>
     <string name="drop_rest_title">Rest until the next drop</string>
     <string name="drop_rest_effective_duration">Next drop in %1$d s. The duration always matches the marker and cannot be edited.</string>
     <string name="drop_rest_start">Start drop rest</string>

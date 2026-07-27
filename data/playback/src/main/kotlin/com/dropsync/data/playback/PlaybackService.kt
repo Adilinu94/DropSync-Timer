@@ -13,19 +13,25 @@ import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
 import androidx.media3.common.Format
 import androidx.media3.common.MediaItem
+import androidx.media3.common.MediaMetadata
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.analytics.AnalyticsListener
 import androidx.media3.exoplayer.audio.AudioSink
+import androidx.media3.session.LibraryResult
 import androidx.media3.session.MediaLibraryService
+import androidx.media3.session.MediaLibraryService.LibraryParams
 import androidx.media3.session.MediaSession
 import com.dropsync.core.common.AppResult
+import com.dropsync.core.model.Song
 import com.dropsync.data.audio.AudioPipeline
 import com.dropsync.data.audio.DspRenderersFactory
 import com.dropsync.data.audio.DspSettingsStore
 import com.dropsync.data.audio.OutputFormatInfo
 import com.dropsync.data.audio.SourceFormatInfo
+import com.dropsync.domain.library.LibraryBrowseRepository
 import com.dropsync.domain.library.LibraryRepository
+import com.google.common.collect.ImmutableList
 import com.google.common.util.concurrent.Futures
 import com.google.common.util.concurrent.ListenableFuture
 import dagger.hilt.android.AndroidEntryPoint
@@ -63,6 +69,9 @@ class PlaybackService : MediaLibraryService() {
 
     @Inject
     lateinit var libraryRepository: LibraryRepository
+
+    @Inject
+    lateinit var browseRepository: LibraryBrowseRepository
 
     @Inject
     lateinit var playbackSettingsStore: PlaybackSettingsStore
@@ -111,8 +120,17 @@ class PlaybackService : MediaLibraryService() {
         player = exoPlayer
         session =
             MediaLibrarySession
-                .Builder(this, exoPlayer, LibrarySessionCallback(serviceScope, playerStateStore, libraryRepository))
-                .build()
+                .Builder(
+                    this,
+                    exoPlayer,
+                    LibrarySessionCallback(
+                        scope = serviceScope,
+                        stateStore = playerStateStore,
+                        libraryRepository = libraryRepository,
+                        browseRepository = browseRepository,
+                        labels = browseLabels(),
+                    ),
+                ).build()
         // MusicFX (Plan Phase 4): Systemequalizer erhaelt die Session-ID;
         // ob er statt der internen Kette wirkt, steuert useSystemEffects.
         audioSessionId = exoPlayer.audioSessionId
@@ -155,6 +173,16 @@ class PlaybackService : MediaLibraryService() {
     }
 
     override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaLibrarySession? = session
+
+    /** Lokalisierte Kategorienamen fuer den Browse-Baum (Plan Phase 6.5). */
+    private fun browseLabels(): BrowseLabels =
+        BrowseLabels(
+            root = getString(R.string.browse_root_title),
+            songs = getString(R.string.browse_songs),
+            albums = getString(R.string.browse_albums),
+            artists = getString(R.string.browse_artists),
+            folders = getString(R.string.browse_folders),
+        )
 
     override fun onTaskRemoved(rootIntent: android.content.Intent?) {
         val current = player
@@ -214,16 +242,28 @@ class PlaybackService : MediaLibraryService() {
         )
     }
 
+    /** Kategorienamen des Browse-Baums (Plan Phase 6.5). */
+    private data class BrowseLabels(
+        val root: String,
+        val songs: String,
+        val albums: String,
+        val artists: String,
+        val folders: String,
+    )
+
     /**
-     * V1 bietet kein externes Browsing an; externe Controller erhalten nur
-     * die Standard-Playersteuerung, keine Custom Commands (Schritt 5.7).
-     * Auto-Resume (Plan Phase 4): BT-Reconnect und Notification-Resume
-     * stellen Queue und Position aus dem PlayerStateStore wieder her.
+     * Browse-Baum fuer externe Controller (Plan Phase 6.5): Root ->
+     * Kategorien (Titel/Alben/Interpreten/Ordner) -> abspielbare Songs.
+     * Android Auto und BT-Browsing nutzen denselben Baum. Auto-Resume
+     * (Plan Phase 4): BT-Reconnect und Notification-Resume stellen Queue
+     * und Position aus dem PlayerStateStore wieder her.
      */
     private class LibrarySessionCallback(
         private val scope: CoroutineScope,
         private val stateStore: PlayerStateStore,
         private val libraryRepository: LibraryRepository,
+        private val browseRepository: LibraryBrowseRepository,
+        private val labels: BrowseLabels,
     ) : MediaLibrarySession.Callback {
         override fun onAddMediaItems(
             mediaSession: MediaSession,
@@ -257,6 +297,136 @@ class PlaybackService : MediaLibraryService() {
                     state.positionMs,
                 )
             }
+
+        override fun onGetLibraryRoot(
+            mediaSession: MediaLibrarySession,
+            browser: MediaSession.ControllerInfo,
+            params: LibraryParams?,
+        ): ListenableFuture<LibraryResult<MediaItem>> =
+            Futures.immediateFuture(
+                LibraryResult.ofItem(
+                    browsableItem(ROOT_ID, labels.root, MediaMetadata.MEDIA_TYPE_FOLDER_MIXED),
+                    params,
+                ),
+            )
+
+        override fun onGetChildren(
+            mediaSession: MediaLibrarySession,
+            browser: MediaSession.ControllerInfo,
+            parentId: String,
+            page: Int,
+            pageSize: Int,
+            params: LibraryParams?,
+        ): ListenableFuture<LibraryResult<ImmutableList<MediaItem>>> =
+            scope.future {
+                LibraryResult.ofItemList(childrenOf(parentId), params)
+            }
+
+        private suspend fun childrenOf(parentId: String): List<MediaItem> =
+            when {
+                parentId == ROOT_ID -> {
+                    listOf(
+                        browsableItem(CAT_SONGS, labels.songs, MediaMetadata.MEDIA_TYPE_PLAYLIST),
+                        browsableItem(CAT_ALBUMS, labels.albums, MediaMetadata.MEDIA_TYPE_FOLDER_ALBUMS),
+                        browsableItem(CAT_ARTISTS, labels.artists, MediaMetadata.MEDIA_TYPE_FOLDER_ARTISTS),
+                        browsableItem(CAT_FOLDERS, labels.folders, MediaMetadata.MEDIA_TYPE_FOLDER_MIXED),
+                    )
+                }
+
+                parentId == CAT_SONGS -> {
+                    libraryRepository.availableSongs.first().map(::playableItem)
+                }
+
+                parentId == CAT_ALBUMS -> {
+                    browseRepository.albums.first().map {
+                        browsableItem(PREFIX_ALBUM + it.title, it.title, MediaMetadata.MEDIA_TYPE_ALBUM)
+                    }
+                }
+
+                parentId == CAT_ARTISTS -> {
+                    browseRepository.artists.first().map {
+                        browsableItem(PREFIX_ARTIST + it.name, it.name, MediaMetadata.MEDIA_TYPE_ARTIST)
+                    }
+                }
+
+                parentId == CAT_FOLDERS -> {
+                    browseRepository.folders.first().map {
+                        browsableItem(
+                            PREFIX_FOLDER + it.relativePath,
+                            it.relativePath,
+                            MediaMetadata.MEDIA_TYPE_FOLDER_MIXED,
+                        )
+                    }
+                }
+
+                parentId.startsWith(PREFIX_ALBUM) -> {
+                    browseRepository
+                        .songsByAlbum(parentId.removePrefix(PREFIX_ALBUM))
+                        .first()
+                        .map(::playableItem)
+                }
+
+                parentId.startsWith(PREFIX_ARTIST) -> {
+                    browseRepository
+                        .songsByArtist(parentId.removePrefix(PREFIX_ARTIST))
+                        .first()
+                        .map(::playableItem)
+                }
+
+                parentId.startsWith(PREFIX_FOLDER) -> {
+                    browseRepository
+                        .songsByFolder(parentId.removePrefix(PREFIX_FOLDER))
+                        .first()
+                        .map(::playableItem)
+                }
+
+                else -> {
+                    emptyList()
+                }
+            }
+
+        private fun browsableItem(
+            mediaId: String,
+            title: String,
+            mediaType: Int,
+        ): MediaItem =
+            MediaItem
+                .Builder()
+                .setMediaId(mediaId)
+                .setMediaMetadata(
+                    MediaMetadata
+                        .Builder()
+                        .setTitle(title)
+                        .setIsBrowsable(true)
+                        .setIsPlayable(false)
+                        .setMediaType(mediaType)
+                        .build(),
+                ).build()
+
+        private fun playableItem(song: Song): MediaItem {
+            val base = MediaItemFactory.fromSong(song)
+            return base
+                .buildUpon()
+                .setMediaMetadata(
+                    base.mediaMetadata
+                        .buildUpon()
+                        .setIsBrowsable(false)
+                        .setIsPlayable(true)
+                        .setMediaType(MediaMetadata.MEDIA_TYPE_MUSIC)
+                        .build(),
+                ).build()
+        }
+
+        private companion object {
+            const val ROOT_ID = "root"
+            const val CAT_SONGS = "cat_songs"
+            const val CAT_ALBUMS = "cat_albums"
+            const val CAT_ARTISTS = "cat_artists"
+            const val CAT_FOLDERS = "cat_folders"
+            const val PREFIX_ALBUM = "album:"
+            const val PREFIX_ARTIST = "artist:"
+            const val PREFIX_FOLDER = "folder:"
+        }
     }
 
     /**

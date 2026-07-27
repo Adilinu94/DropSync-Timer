@@ -19,14 +19,20 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
+import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -50,6 +56,8 @@ internal fun SongColumn(
     contentPadding: PaddingValues,
     onPlay: (Int) -> Unit,
     onToggleFavorite: (Long) -> Unit,
+    onPlayNext: (Song) -> Unit,
+    onAddToQueue: (Song) -> Unit,
     modifier: Modifier = Modifier,
     showFastScroller: Boolean = true,
 ) {
@@ -65,29 +73,13 @@ internal fun SongColumn(
             contentPadding = contentPadding,
         ) {
             itemsIndexed(songs, key = { _, song -> song.mediaStoreId }) { index, song ->
-                val isFavorite = song.mediaStoreId in favoriteIds
-                val playLabel = stringResource(R.string.library_play_song, songTitle(song))
-                val favLabel =
-                    stringResource(
-                        if (isFavorite) R.string.library_unfavorite else R.string.library_favorite,
-                    )
-                ListItem(
-                    headlineContent = { Text(songTitle(song), maxLines = 1, overflow = TextOverflow.Ellipsis) },
-                    supportingContent = {
-                        Text(song.artist ?: stringResource(R.string.library_unknown_artist))
-                    },
-                    trailingContent = {
-                        IconButton(onClick = { onToggleFavorite(song.mediaStoreId) }) {
-                            Icon(
-                                imageVector =
-                                    if (isFavorite) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,
-                                contentDescription = favLabel,
-                            )
-                        }
-                    },
-                    modifier =
-                        Modifier
-                            .clickable(onClickLabel = playLabel) { onPlay(index) },
+                SongRow(
+                    song = song,
+                    isFavorite = song.mediaStoreId in favoriteIds,
+                    onPlay = { onPlay(index) },
+                    onToggleFavorite = { onToggleFavorite(song.mediaStoreId) },
+                    onPlayNext = { onPlayNext(song) },
+                    onAddToQueue = { onAddToQueue(song) },
                 )
             }
         }
@@ -98,6 +90,66 @@ internal fun SongColumn(
             )
         }
     }
+}
+
+/** Eine Titelzeile mit Favoriten-Toggle und Ueberlaufmenue (als Naechstes/Queue). */
+@Composable
+private fun SongRow(
+    song: Song,
+    isFavorite: Boolean,
+    onPlay: () -> Unit,
+    onToggleFavorite: () -> Unit,
+    onPlayNext: () -> Unit,
+    onAddToQueue: () -> Unit,
+) {
+    val playLabel = stringResource(R.string.library_play_song, songTitle(song))
+    val favLabel =
+        stringResource(
+            if (isFavorite) R.string.library_unfavorite else R.string.library_favorite,
+        )
+    var menuOpen by remember { mutableStateOf(false) }
+    ListItem(
+        headlineContent = { Text(songTitle(song), maxLines = 1, overflow = TextOverflow.Ellipsis) },
+        supportingContent = {
+            Text(song.artist ?: stringResource(R.string.library_unknown_artist))
+        },
+        trailingContent = {
+            Row {
+                IconButton(onClick = onToggleFavorite) {
+                    Icon(
+                        imageVector =
+                            if (isFavorite) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,
+                        contentDescription = favLabel,
+                    )
+                }
+                IconButton(onClick = { menuOpen = true }) {
+                    Icon(
+                        Icons.Filled.MoreVert,
+                        contentDescription = stringResource(R.string.library_more_actions),
+                    )
+                }
+                DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
+                    DropdownMenuItem(
+                        text = { Text(stringResource(R.string.library_play_next)) },
+                        onClick = {
+                            onPlayNext()
+                            menuOpen = false
+                        },
+                    )
+                    DropdownMenuItem(
+                        text = { Text(stringResource(R.string.library_add_to_queue)) },
+                        onClick = {
+                            onAddToQueue()
+                            menuOpen = false
+                        },
+                    )
+                }
+            }
+        },
+        modifier =
+            Modifier
+                .clickable(onClickLabel = playLabel) { onPlay() },
+    )
 }
 
 /** Vertikaler A–Z-Index; tippen springt zum ersten passenden Titel. */

@@ -3,6 +3,13 @@
     <string name="player_play">Wiedergeben</string>
     <string name="player_pause">Pausieren</string>
     <string name="player_next">Naechster Song</string>
+    <string name="player_queue_open">Warteschlange oeffnen</string>
+    <string name="player_queue_title">Warteschlange</string>
+    <string name="player_queue_empty">Die Warteschlange ist leer.</string>
+    <string name="player_queue_move_up">Nach oben</string>
+    <string name="player_queue_move_down">Nach unten</string>
+    <string name="player_queue_remove">Aus Warteschlange entfernen</string>
+    <string name="player_queue_now_playing">Laeuft gerade</string>
     <string name="drop_rest_title">Rest bis zum naechsten Drop</string>
     <string name="drop_rest_effective_duration">Naechster Drop in %1$d s. Die Dauer folgt immer dem Marker und ist nicht editierbar.</string>
     <string name="drop_rest_start">Drop-Rest starten</string>

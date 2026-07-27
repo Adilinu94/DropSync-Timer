@@ -200,6 +200,16 @@ class LibraryViewModel
             }
         }
 
+        /** Reiht [song] direkt hinter dem laufenden Titel ein ("als Naechstes"). */
+        fun playNext(song: Song) {
+            viewModelScope.launch { playbackRepository.playNext(song) }
+        }
+
+        /** Haengt [song] ans Ende der Warteschlange an. */
+        fun addToQueue(song: Song) {
+            viewModelScope.launch { playbackRepository.addToQueueEnd(song) }
+        }
+
         private fun <T> Flow<T>.asState(initial: T): StateFlow<T> =
             stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), initial)
 

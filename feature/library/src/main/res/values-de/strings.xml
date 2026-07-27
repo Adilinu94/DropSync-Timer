@@ -9,6 +9,9 @@
     <string name="library_unknown_artist">Unbekannter Interpret</string>
     <string name="library_favorite">Zu Favoriten hinzufuegen</string>
     <string name="library_unfavorite">Aus Favoriten entfernen</string>
+    <string name="library_more_actions">Weitere Aktionen</string>
+    <string name="library_play_next">Als Naechstes spielen</string>
+    <string name="library_add_to_queue">Zur Warteschlange hinzufuegen</string>
     <string name="library_track_count">%1$d Titel</string>
     <string name="library_search_hint">Titel, Interpret oder Album suchen</string>
     <string name="library_search_clear">Suche loeschen</string>

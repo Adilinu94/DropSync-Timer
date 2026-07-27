@@ -78,6 +78,8 @@ internal fun LibraryContent(
                     contentPadding = contentPadding,
                     onPlay = { index -> viewModel.play(results, index) },
                     onToggleFavorite = viewModel::toggleFavorite,
+                    onPlayNext = viewModel::playNext,
+                    onAddToQueue = viewModel::addToQueue,
                     showFastScroller = false,
                 )
             }
@@ -92,6 +94,8 @@ internal fun LibraryContent(
                     contentPadding = contentPadding,
                     onPlay = { index -> viewModel.play(detailSongs, index) },
                     onToggleFavorite = viewModel::toggleFavorite,
+                    onPlayNext = viewModel::playNext,
+                    onAddToQueue = viewModel::addToQueue,
                     showFastScroller = false,
                 )
             }
@@ -202,6 +206,8 @@ private fun LibraryViewBody(
                     contentPadding = contentPadding,
                     onPlay = { index -> viewModel.play(songs, index) },
                     onToggleFavorite = viewModel::toggleFavorite,
+                    onPlayNext = viewModel::playNext,
+                    onAddToQueue = viewModel::addToQueue,
                 )
             }
         }
@@ -256,6 +262,8 @@ private fun LibraryViewBody(
                 contentPadding = contentPadding,
                 onPlay = { index -> viewModel.play(favorites, index) },
                 onToggleFavorite = viewModel::toggleFavorite,
+                onPlayNext = viewModel::playNext,
+                onAddToQueue = viewModel::addToQueue,
             )
         }
 
@@ -267,6 +275,8 @@ private fun LibraryViewBody(
                 contentPadding = contentPadding,
                 onPlay = { index -> viewModel.play(recent, index) },
                 onToggleFavorite = viewModel::toggleFavorite,
+                onPlayNext = viewModel::playNext,
+                onAddToQueue = viewModel::addToQueue,
                 showFastScroller = false,
             )
         }
@@ -279,6 +289,8 @@ private fun LibraryViewBody(
                 contentPadding = contentPadding,
                 onPlay = { index -> viewModel.play(most, index) },
                 onToggleFavorite = viewModel::toggleFavorite,
+                onPlayNext = viewModel::playNext,
+                onAddToQueue = viewModel::addToQueue,
                 showFastScroller = false,
             )
         }

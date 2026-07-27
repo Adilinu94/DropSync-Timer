@@ -8,6 +8,7 @@ import com.dropsync.core.model.Song
 import com.dropsync.domain.playback.PersistedPlayerState
 import com.dropsync.domain.playback.PlaybackRepository
 import com.dropsync.domain.playback.PlaybackState
+import com.dropsync.domain.playback.QueueItem
 import com.dropsync.domain.playback.RepeatMode
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
@@ -60,6 +61,41 @@ class PlaybackRepositoryImpl(
     override suspend fun skipToNext(): AppResult<Unit> = command { it.seekToNextMediaItem() }
 
     override suspend fun skipToPrevious(): AppResult<Unit> = command { it.seekToPreviousMediaItem() }
+
+    override suspend fun skipToQueueIndex(index: Int): AppResult<Unit> =
+        command { player ->
+            if (index in 0 until player.mediaItemCount) player.seekTo(index, 0L)
+        }
+
+    override suspend fun moveInQueue(
+        fromIndex: Int,
+        toIndex: Int,
+    ): AppResult<Unit> =
+        command { player ->
+            val count = player.mediaItemCount
+            if (fromIndex in 0 until count && toIndex in 0 until count && fromIndex != toIndex) {
+                player.moveMediaItem(fromIndex, toIndex)
+            }
+        }
+
+    override suspend fun removeFromQueue(index: Int): AppResult<Unit> =
+        command { player ->
+            if (index in 0 until player.mediaItemCount) player.removeMediaItem(index)
+        }
+
+    override suspend fun playNext(song: Song): AppResult<Unit> =
+        command { player ->
+            val insertIndex =
+                if (player.mediaItemCount == 0) 0 else player.currentMediaItemIndex + 1
+            player.addMediaItem(insertIndex, MediaItemFactory.fromSong(song))
+            if (player.playbackState == Player.STATE_IDLE) player.prepare()
+        }
+
+    override suspend fun addToQueueEnd(song: Song): AppResult<Unit> =
+        command { player ->
+            player.addMediaItem(MediaItemFactory.fromSong(song))
+            if (player.playbackState == Player.STATE_IDLE) player.prepare()
+        }
 
     override suspend fun setShuffle(enabled: Boolean): AppResult<Unit> = command { it.shuffleModeEnabled = enabled }
 
@@ -144,8 +180,18 @@ class PlaybackRepositoryImpl(
 
     companion object {
         /** Reine Abbildung Player -> Domainzustand; ohne Seiteneffekte. */
-        fun Player.toPlaybackState(): PlaybackState =
-            PlaybackState(
+        fun Player.toPlaybackState(): PlaybackState {
+            val items =
+                (0 until mediaItemCount).map { index ->
+                    val item = getMediaItemAt(index)
+                    QueueItem(
+                        mediaId = item.mediaId,
+                        songId = item.mediaId.toLongOrNull(),
+                        title = item.mediaMetadata.title?.toString() ?: item.mediaId,
+                        artist = item.mediaMetadata.artist?.toString(),
+                    )
+                }
+            return PlaybackState(
                 isPlaying = isPlaying,
                 currentSongId = currentMediaItem?.mediaId?.toLongOrNull(),
                 positionMs = currentPosition.coerceAtLeast(0),
@@ -157,10 +203,10 @@ class PlaybackRepositoryImpl(
                         Player.REPEAT_MODE_ALL -> RepeatMode.ALL
                         else -> RepeatMode.OFF
                     },
-                queueSongIds =
-                    (0 until mediaItemCount).mapNotNull {
-                        getMediaItemAt(it).mediaId.toLongOrNull()
-                    },
+                queueSongIds = items.mapNotNull { it.songId },
+                currentIndex = if (mediaItemCount == 0) -1 else currentMediaItemIndex,
+                queue = items,
             )
+        }
     }
 }

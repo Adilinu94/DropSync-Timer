@@ -5,10 +5,12 @@ import androidx.lifecycle.viewModelScope
 import com.dropsync.core.common.getOrNull
 import com.dropsync.domain.library.LibraryRepository
 import com.dropsync.domain.playback.PlaybackRepository
+import com.dropsync.domain.playback.QueueItem
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapLatest
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -20,6 +22,12 @@ data class MiniPlayerState(
     val isPlaying: Boolean = false,
     val title: String = "",
     val artist: String? = null,
+)
+
+/** Zustand des Queue-Editors (Plan Phase 6, Punkt 3). */
+data class QueueUiState(
+    val items: List<QueueItem> = emptyList(),
+    val currentIndex: Int = -1,
 )
 
 @HiltViewModel
@@ -59,5 +67,26 @@ class PlayerViewModel
 
         fun skipToNext() {
             viewModelScope.launch { playbackRepository.skipToNext() }
+        }
+
+        /** Beobachtbare Warteschlange fuer den Queue-Editor (Plan Phase 6). */
+        val queue: StateFlow<QueueUiState> =
+            playbackRepository.state
+                .map { QueueUiState(items = it.queue, currentIndex = it.currentIndex) }
+                .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), QueueUiState())
+
+        fun playQueueItem(index: Int) {
+            viewModelScope.launch { playbackRepository.skipToQueueIndex(index) }
+        }
+
+        fun moveQueueItem(
+            fromIndex: Int,
+            toIndex: Int,
+        ) {
+            viewModelScope.launch { playbackRepository.moveInQueue(fromIndex, toIndex) }
+        }
+
+        fun removeQueueItem(index: Int) {
+            viewModelScope.launch { playbackRepository.removeFromQueue(index) }
         }
     }

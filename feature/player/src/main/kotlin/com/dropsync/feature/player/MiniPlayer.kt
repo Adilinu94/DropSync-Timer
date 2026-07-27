@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.QueueMusic
 import androidx.compose.material.icons.filled.SkipNext
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -16,6 +17,9 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -36,6 +40,8 @@ fun MiniPlayer(
 ) {
     val state by viewModel.miniPlayer.collectAsStateWithLifecycle()
     if (!state.isVisible) return
+
+    var showQueue by remember { mutableStateOf(false) }
 
     Surface(
         modifier = modifier.fillMaxWidth(),
@@ -88,6 +94,26 @@ fun MiniPlayer(
                     contentDescription = stringResource(R.string.player_next),
                 )
             }
+            IconButton(
+                onClick = { showQueue = true },
+                modifier = Modifier.size(48.dp),
+            ) {
+                Icon(
+                    Icons.Filled.QueueMusic,
+                    contentDescription = stringResource(R.string.player_queue_open),
+                )
+            }
         }
+    }
+
+    if (showQueue) {
+        val queueState by viewModel.queue.collectAsStateWithLifecycle()
+        QueueSheet(
+            state = queueState,
+            onDismiss = { showQueue = false },
+            onPlay = viewModel::playQueueItem,
+            onMove = viewModel::moveQueueItem,
+            onRemove = viewModel::removeQueueItem,
+        )
     }
 }
