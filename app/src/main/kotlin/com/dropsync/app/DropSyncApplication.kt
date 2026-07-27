@@ -4,6 +4,7 @@ import android.app.Application
 import android.util.Log
 import com.dropsync.core.common.DispatcherProvider
 import com.dropsync.core.database.seed.ExerciseSeeder
+import com.dropsync.data.audio.EqPresetSeeder
 import dagger.hilt.android.HiltAndroidApp
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
@@ -17,6 +18,8 @@ import javax.inject.Inject
 @HiltAndroidApp
 class DropSyncApplication : Application() {
     @Inject lateinit var seeder: ExerciseSeeder
+
+    @Inject lateinit var eqPresetSeeder: EqPresetSeeder
 
     @Inject lateinit var dispatchers: DispatcherProvider
 
@@ -34,6 +37,12 @@ class DropSyncApplication : Application() {
             } catch (e: Exception) {
                 // Fehlerhafter Seed darf den App-Start nie verhindern.
                 Log.e("DropSyncApplication", "Seed fehlgeschlagen", e)
+            }
+            try {
+                // Eingebaute EQ-Presets idempotent einspielen (Plan Phase 2).
+                eqPresetSeeder.seed()
+            } catch (e: Exception) {
+                Log.e("DropSyncApplication", "EQ-Preset-Seed fehlgeschlagen", e)
             }
         }
     }

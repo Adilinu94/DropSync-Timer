@@ -2,12 +2,15 @@ package com.dropsync.core.database
 
 import androidx.room.Database
 import androidx.room.RoomDatabase
+import com.dropsync.core.database.dao.EqPresetDao
 import com.dropsync.core.database.dao.ExerciseDao
 import com.dropsync.core.database.dao.MarkerDao
 import com.dropsync.core.database.dao.RoutineDao
 import com.dropsync.core.database.dao.SongDao
 import com.dropsync.core.database.dao.TimerPresetDao
 import com.dropsync.core.database.dao.WorkoutDao
+import com.dropsync.core.database.entity.EqPresetBandEntity
+import com.dropsync.core.database.entity.EqPresetEntity
 import com.dropsync.core.database.entity.ExerciseEntity
 import com.dropsync.core.database.entity.ExerciseMuscleEntity
 import com.dropsync.core.database.entity.ExerciseNameEntity
@@ -56,6 +59,8 @@ import com.dropsync.core.database.entity.WorkoutSessionEntity
         SetSegmentEntity::class,
         PersonalRecordEntity::class,
         PlaybackSnapshotEntity::class,
+        EqPresetEntity::class,
+        EqPresetBandEntity::class,
     ],
     version = 1,
     exportSchema = true,
@@ -72,6 +77,8 @@ abstract class DropSyncDatabase : RoomDatabase() {
     abstract fun routineDao(): RoutineDao
 
     abstract fun workoutDao(): WorkoutDao
+
+    abstract fun eqPresetDao(): EqPresetDao
 
     companion object {
         const val NAME = "dropsync.db"

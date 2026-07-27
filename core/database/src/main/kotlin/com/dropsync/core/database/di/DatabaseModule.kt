@@ -5,6 +5,7 @@ import androidx.room.Room
 import com.dropsync.core.database.DropSyncDatabase
 import com.dropsync.core.database.RoomTransactionRunner
 import com.dropsync.core.database.TransactionRunner
+import com.dropsync.core.database.dao.EqPresetDao
 import com.dropsync.core.database.dao.ExerciseDao
 import com.dropsync.core.database.dao.MarkerDao
 import com.dropsync.core.database.dao.RoutineDao
@@ -61,4 +62,7 @@ object DatabaseModule {
 
     @Provides
     fun provideWorkoutDao(database: DropSyncDatabase): WorkoutDao = database.workoutDao()
+
+    @Provides
+    fun provideEqPresetDao(database: DropSyncDatabase): EqPresetDao = database.eqPresetDao()
 }

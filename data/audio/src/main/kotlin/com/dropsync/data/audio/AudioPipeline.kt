@@ -2,8 +2,9 @@ package com.dropsync.data.audio
 
 import androidx.media3.common.audio.AudioProcessor
 import com.dropsync.domain.audio.AudioInfo
-import com.dropsync.domain.audio.AudioMath
+import com.dropsync.domain.audio.DitherMode
 import com.dropsync.domain.audio.DspConfig
+import com.dropsync.domain.audio.StereoMatrix
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -47,7 +48,7 @@ class AudioPipeline
     ) {
         private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
-        private val preamp = PreampProcessor()
+        private val masterProcessor = MasterDspProcessor()
 
         private val mutableDspActive = MutableStateFlow(false)
         val dspActive: StateFlow<Boolean> = mutableDspActive.asStateFlow()
@@ -89,7 +90,7 @@ class AudioPipeline
         }
 
         /** Prozessorkette fuer den DefaultAudioSink (Reihenfolge ADR-0005). */
-        fun audioProcessors(): Array<AudioProcessor> = arrayOf(preamp)
+        fun audioProcessors(): Array<AudioProcessor> = arrayOf(masterProcessor)
 
         fun onSourceFormatChanged(info: SourceFormatInfo) {
             mutableSourceFormat.value = info
@@ -107,10 +108,19 @@ class AudioPipeline
 
         private fun apply(config: DspConfig) {
             val sanitized = DspConfig.sanitized(config)
-            preamp.gainLinear =
-                if (sanitized.enabled) AudioMath.dbToLinear(sanitized.preampDb) else 1.0
-            preamp.limiterEnabled = sanitized.enabled && sanitized.limiterEnabled
-            mutableDspActive.value =
-                sanitized.enabled && (sanitized.preampDb != 0.0 || sanitized.limiterEnabled)
+            masterProcessor.submitConfig(sanitized)
+            mutableDspActive.value = sanitized.enabled && !isNeutral(sanitized)
         }
+
+        /** true, wenn keine klangliche Stufe eingreift. */
+        private fun isNeutral(config: DspConfig): Boolean =
+            config.preampDb == 0.0 &&
+                !config.eq.enabled &&
+                config.bassGainDb == 0.0 &&
+                config.trebleGainDb == 0.0 &&
+                config.stereoWidthPercent == StereoMatrix.NEUTRAL_WIDTH_PERCENT &&
+                !config.reverb.enabled &&
+                config.resampler.targetRateHz == null &&
+                config.ditherMode == DitherMode.TPDF &&
+                !config.dvcEnabled
     }
