@@ -18,7 +18,7 @@ Bauplan sind nur ueber ADRs in [`docs/adr/`](docs/adr/) erlaubt.
 | 5 | Media3-Playback-Service | Abgeschlossen (Code; Geraeteverifikation in Schritt 13) |
 | 6 | Songmarker-Import | Abgeschlossen (Import/Zuordnung; Settings-UI folgt in Schritt 12) |
 | 7 | Timerkern | Abgeschlossen (Domainkern; Cue-Adapter folgen in Schritt 8) |
-| 8 | Audio-Cues, Ducking, Haptik | Offen |
+| 8 | Audio-Cues, Ducking, Haptik | Abgeschlossen (Adapter; TTS-/Haptik-Geraetetest in Schritt 13) |
 | 9 | Uebungen, Routinen, Session-Log | Offen |
 | 10 | Volumen, PRs, Verlauf | Offen |
 | 11 | Musik-/Workout-Integration | Offen |

@@ -9,7 +9,9 @@ import com.dropsync.data.playback.MediaControllerConnection
 import com.dropsync.data.playback.PlaybackRepositoryImpl
 import com.dropsync.data.playback.PlayerConnection
 import com.dropsync.data.playback.PlayerStateStore
+import com.dropsync.data.playback.PlayerVolumeGateImpl
 import com.dropsync.domain.playback.PlaybackRepository
+import com.dropsync.domain.playback.PlayerVolumeGate
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -48,4 +50,11 @@ object PlaybackDataModule {
         stateStore: PlayerStateStore,
         dispatchers: DispatcherProvider,
     ): PlaybackRepository = PlaybackRepositoryImpl(connection, stateStore, dispatchers)
+
+    @Provides
+    @Singleton
+    fun providePlayerVolumeGate(
+        connection: PlayerConnection,
+        dispatchers: DispatcherProvider,
+    ): PlayerVolumeGate = PlayerVolumeGateImpl(connection, dispatchers)
 }
