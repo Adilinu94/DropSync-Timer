@@ -23,6 +23,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
@@ -30,6 +31,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.dropsync.feature.library.LibraryScreen
+import com.dropsync.feature.player.DropRestCard
 import com.dropsync.feature.player.MiniPlayer
 import com.dropsync.feature.settings.SettingsScreen
 import com.dropsync.feature.timer.TimerSection
@@ -108,6 +110,9 @@ private fun DropSyncNavHost(
                         .padding(top = contentPadding.calculateTopPadding()),
             ) {
                 TimerSection()
+                // Drop-Rest gehoert fachlich zum Satzende im Training (11.2);
+                // die Karte lebt in :feature:player, weil sie Playback braucht.
+                DropRestCard(modifier = Modifier.padding(horizontal = 16.dp))
                 WorkoutScreen(
                     contentPadding =
                         PaddingValues(bottom = contentPadding.calculateBottomPadding()),

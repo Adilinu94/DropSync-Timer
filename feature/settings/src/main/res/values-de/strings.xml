@@ -1,6 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="settings_markers_section">Songmarker</string>
+    <string name="settings_import_button">Markerdatei importieren</string>
+    <string name="settings_import_running">Import laeuft …</string>
+    <string name="settings_import_report">Import abgeschlossen: %1$d hinzugefuegt, %2$d aktualisiert, %3$d nicht zugeordnet.</string>
+    <string name="settings_import_rejected">Import abgelehnt: %1$d ungueltige Eintraege. Es wurde nichts geaendert.</string>
+    <string name="settings_import_too_large">Die Datei ist groesser als 5 MB und wurde nicht importiert.</string>
+    <string name="settings_import_unreadable">Die Datei konnte nicht gelesen werden.</string>
+    <string name="settings_import_malformed">Die Datei ist kein gueltiges Markerdokument.</string>
+    <string name="settings_import_store_failed">Der Import konnte nicht gespeichert werden. Es wurde nichts geaendert.</string>
+    <string name="settings_link_marker">Zuordnen</string>
+    <string name="settings_link_dialog_title">\"%1$s\" einem Song zuordnen</string>
+    <string name="settings_link_no_songs">Keine Songs vorhanden. Aktualisiere zuerst die Bibliothek.</string>
+    <string name="settings_link_confirm">Waehlen</string>
+    <string name="settings_link_cancel">Abbrechen</string>
     <plurals name="settings_unmatched_markers">
         <item quantity="one">%1$d importierter Marker ist noch keinem Song zugeordnet.</item>
         <item quantity="other">%1$d importierte Marker sind noch keinem Song zugeordnet.</item>

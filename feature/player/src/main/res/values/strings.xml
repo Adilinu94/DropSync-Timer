@@ -3,4 +3,17 @@
     <string name="player_play">Play</string>
     <string name="player_pause">Pause</string>
     <string name="player_next">Next song</string>
+    <string name="drop_rest_title">Rest until the next drop</string>
+    <string name="drop_rest_effective_duration">Next drop in %1$d s. The duration always matches the marker and cannot be edited.</string>
+    <string name="drop_rest_start">Start drop rest</string>
+    <string name="drop_rest_running">%1$d s until the drop</string>
+    <string name="drop_rest_completed">Drop reached – go!</string>
+    <string name="drop_rest_cancelled">Drop rest stopped</string>
+    <string name="drop_rest_interrupted">Playback changed – drop rest ended. Your workout set is unchanged.</string>
+    <string name="drop_rest_cancel">Cancel</string>
+    <string name="drop_rest_ok">OK</string>
+    <string name="drop_rest_blocked_no_song">No song is playing.</string>
+    <string name="drop_rest_blocked_not_playing">Playback is paused.</string>
+    <string name="drop_rest_blocked_no_marker">The current song has no upcoming drop marker.</string>
+    <string name="drop_rest_blocked_too_close">The next drop is less than 5 seconds away.</string>
 </resources>

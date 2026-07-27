@@ -1,6 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="settings_markers_section">Song markers</string>
+    <string name="settings_import_button">Import marker file</string>
+    <string name="settings_import_running">Importing …</string>
+    <string name="settings_import_report">Import finished: %1$d added, %2$d updated, %3$d not linked.</string>
+    <string name="settings_import_rejected">Import rejected: %1$d invalid entries. Nothing was changed.</string>
+    <string name="settings_import_too_large">The file is larger than 5 MB and was not imported.</string>
+    <string name="settings_import_unreadable">The file could not be read.</string>
+    <string name="settings_import_malformed">The file is not a valid marker document.</string>
+    <string name="settings_import_store_failed">The import could not be saved. Nothing was changed.</string>
+    <string name="settings_link_marker">Link</string>
+    <string name="settings_link_dialog_title">Link \"%1$s\" to a song</string>
+    <string name="settings_link_no_songs">No songs available. Refresh the library first.</string>
+    <string name="settings_link_confirm">Choose</string>
+    <string name="settings_link_cancel">Cancel</string>
     <plurals name="settings_unmatched_markers">
         <item quantity="one">%1$d imported marker is not linked to a song yet.</item>
         <item quantity="other">%1$d imported markers are not linked to a song yet.</item>

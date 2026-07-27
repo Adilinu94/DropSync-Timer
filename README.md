@@ -22,7 +22,7 @@ Bauplan sind nur ueber ADRs in [`docs/adr/`](docs/adr/) erlaubt.
 | 9 | Uebungen, Routinen, Session-Log | Abgeschlossen (Datenschicht; UI folgt in Schritt 12) |
 | 10 | Volumen, PRs, Verlauf | Abgeschlossen (Berechnung/Persistenz; Verlaufs-UI folgt in Schritt 12) |
 | 11 | Musik-/Workout-Integration | Abgeschlossen (Domainregeln + Snapshots; UI-Verdrahtung in Schritt 12) |
-| 12 | UI und Barrierefreiheit | In Arbeit (Shell, Navigation, Satz-Logging mit Undo, Resttimer-Karte; Import- und DropSync-UI folgen) |
+| 12 | UI und Barrierefreiheit | Abgeschlossen (Shell, Navigation, Satz-Logging mit Undo, Resttimer, Markerimport mit Zuordnung, Drop-Rest; TalkBack-/200%-Schrift-Abnahme nur am Geraet, siehe Schritt 13) |
 | 13 | Tests, Performance, Release-Gates | Offen |
 | 14 | Datenschutz-, Lizenz-, Releasepruefung | Offen |
 

@@ -22,6 +22,8 @@ dependencies {
     implementation(project(":core:common"))
     implementation(project(":core:model"))
     implementation(libs.kotlinx.coroutines.core)
+    // JsonElement-API fuer den Markerimport-Parser (6.1); kein Codegen noetig.
+    implementation(libs.kotlinx.serialization.json)
 
     testImplementation(project(":core:testing"))
 }

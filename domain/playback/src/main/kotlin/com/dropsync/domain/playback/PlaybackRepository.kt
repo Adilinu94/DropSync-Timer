@@ -41,4 +41,11 @@ interface PlaybackRepository {
 
     /** Zuletzt gespeicherter Wiederherstellungszustand (Schritt 5.5). */
     suspend fun lastPersistedState(): PersistedPlayerState?
+
+    /**
+     * Live-Momentaufnahme derselben Player-Instanz inklusive aktueller
+     * Position; Grundlage fuer Drop-Rest-Gate und -Ueberwachung (11.2),
+     * weil [state] die Position nur bei Player-Ereignissen aktualisiert.
+     */
+    suspend fun snapshotNow(): AppResult<PlaybackState>
 }

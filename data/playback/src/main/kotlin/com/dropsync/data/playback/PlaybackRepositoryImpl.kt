@@ -75,6 +75,15 @@ class PlaybackRepositoryImpl(
 
     override suspend fun lastPersistedState(): PersistedPlayerState? = stateStore.read()
 
+    override suspend fun snapshotNow(): AppResult<PlaybackState> =
+        try {
+            withContext(dispatchers.main) {
+                AppResult.success(connection.requirePlayer().toPlaybackState())
+            }
+        } catch (e: Exception) {
+            AppResult.failure(AppError.Unknown(e.message))
+        }
+
     private suspend fun command(block: (Player) -> Unit): AppResult<Unit> =
         try {
             withContext(dispatchers.main) {
