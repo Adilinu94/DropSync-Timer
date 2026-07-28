@@ -12,7 +12,7 @@ Grundsätze: offline (Raleway als gebündelte OFL-TTF, kein Netz), keine neuen F
 | 2 | Design-Tokens + Raleway-Typografie + Spacing (`:core:designsystem`) | Abgeschlossen |
 | 3 | Marken-Komponenten (Buttons, BrandCard, ProgressRing) | Abgeschlossen |
 | 4 | Rebrand FlowRep (app_name, Launcher-Icon) | Abgeschlossen |
-| 5 | Screen-Redesign: Bibliothek (`:feature:library`) | Offen |
+| 5 | Screen-Redesign: Bibliothek (`:feature:library`) | Abgeschlossen |
 | 6 | Screen-Redesign: Now-Playing + Mini-Player (`:feature:player`) | Offen |
 | 7 | Timer + Bottom-Nav + globaler Feinschliff | Offen |
 
@@ -30,6 +30,12 @@ Grundsätze: offline (Raleway als gebündelte OFL-TTF, kein Netz), keine neuen F
 ## Phase 4 – Rebrand FlowRep (Abgeschlossen)
 
 - `app_name` → „FlowRep"; Launcher-Hintergrund `#0D0D0D`; [ic_launcher_foreground.xml](app/src/main/res/drawable/ic_launcher_foreground.xml) als geometrisches Lime-„F"-Monogramm (dient auch als monochrome Variante). Projekt-/Paketname bleiben `com.dropsync`; README mit Marken-Hinweis ergänzt.
+
+## Phase 5 – Screen-Redesign: Bibliothek (Abgeschlossen)
+
+- [LibraryLists.kt](feature/library/src/main/kotlin/com/dropsync/feature/library/LibraryLists.kt): Songzeilen als FlowRep-Zeilen (gerundete 52dp-Cover-Kachel mit Outline-Glyph, Raleway-Titel, Meta „Interpret | Dauer | Format", Favorit aktiv=Lime, Outline-Overflow); Sammlungszeilen mit gerundeter Icon-Kachel.
+- [LibraryContent.kt](feature/library/src/main/kotlin/com/dropsync/feature/library/LibraryContent.kt): durchgehend Outline-Icons (Suche/Clear/Tune/Zurück/Pfeile), farbige Kategorie-Punkte auf den Ansicht-Chips (Wayfinding), Shuffle mit Outline-Icon.
+- Hinweis: Album-Art-Laden bleibt ausserhalb des Feature-Moduls (keine Bild-Abhaengigkeit in `:feature:library`); die Cover-Kachel ist der gerundete Platzhalter-Slot.
 
 ## Verifikation je Phase
 

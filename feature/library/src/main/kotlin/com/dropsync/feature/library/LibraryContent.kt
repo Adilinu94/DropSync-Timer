@@ -1,26 +1,33 @@
 package com.dropsync.feature.library
 
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Clear
-import androidx.compose.material.icons.filled.KeyboardArrowDown
-import androidx.compose.material.icons.filled.KeyboardArrowUp
-import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.Tune
+import androidx.compose.material.icons.automirrored.outlined.ArrowBack
+import androidx.compose.material.icons.outlined.Clear
+import androidx.compose.material.icons.outlined.KeyboardArrowDown
+import androidx.compose.material.icons.outlined.KeyboardArrowUp
+import androidx.compose.material.icons.outlined.Search
+import androidx.compose.material.icons.outlined.Shuffle
+import androidx.compose.material.icons.outlined.Tune
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Checkbox
@@ -42,6 +49,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -176,12 +185,12 @@ private fun SearchField(
         value = query,
         onValueChange = onQueryChange,
         singleLine = true,
-        leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
+        leadingIcon = { Icon(Icons.Outlined.Search, contentDescription = null) },
         trailingIcon = {
             if (query.isNotEmpty()) {
                 IconButton(onClick = { onQueryChange("") }) {
                     Icon(
-                        Icons.Filled.Clear,
+                        Icons.Outlined.Clear,
                         contentDescription = stringResource(R.string.library_search_clear),
                     )
                 }
@@ -271,12 +280,21 @@ private fun ViewChips(
                     selected = view == selected,
                     onClick = { onSelect(view) },
                     label = { Text(stringResource(view.labelRes())) },
+                    leadingIcon = {
+                        Box(
+                            modifier =
+                                Modifier
+                                    .size(10.dp)
+                                    .clip(CircleShape)
+                                    .background(viewColor(view)),
+                        )
+                    },
                 )
             }
         }
         IconButton(onClick = onOpenConfig) {
             Icon(
-                Icons.Filled.Tune,
+                Icons.Outlined.Tune,
                 contentDescription = stringResource(R.string.library_views_configure),
             )
         }
@@ -320,7 +338,7 @@ private fun ViewConfigDialog(
                             enabled = index > 0,
                         ) {
                             Icon(
-                                Icons.Filled.KeyboardArrowUp,
+                                Icons.Outlined.KeyboardArrowUp,
                                 contentDescription = stringResource(R.string.library_views_move_up),
                             )
                         }
@@ -329,7 +347,7 @@ private fun ViewConfigDialog(
                             enabled = index < ordered.lastIndex,
                         ) {
                             Icon(
-                                Icons.Filled.KeyboardArrowDown,
+                                Icons.Outlined.KeyboardArrowDown,
                                 contentDescription = stringResource(R.string.library_views_move_down),
                             )
                         }
@@ -356,7 +374,7 @@ private fun DetailHeader(
     ) {
         IconButton(onClick = onBack) {
             Icon(
-                Icons.AutoMirrored.Filled.ArrowBack,
+                Icons.AutoMirrored.Outlined.ArrowBack,
                 contentDescription = stringResource(R.string.library_back),
             )
         }
@@ -390,6 +408,12 @@ private fun ShuffleBar(
             enabled = enabled,
             modifier = Modifier.heightIn(min = 48.dp),
         ) {
+            Icon(
+                Icons.Outlined.Shuffle,
+                contentDescription = null,
+                modifier = Modifier.size(18.dp),
+            )
+            Spacer(Modifier.width(8.dp))
             Text(stringResource(R.string.library_shuffle))
         }
     }
@@ -609,6 +633,19 @@ private fun SortFilterBar(viewModel: LibraryViewModel) {
         }
     }
 }
+
+private fun viewColor(view: LibraryView): Color =
+    when (view) {
+        LibraryView.SONGS -> Color(0xFFDFFF2F)
+        LibraryView.ARTISTS -> Color(0xFF9BAA5A)
+        LibraryView.ALBUMS -> Color(0xFF4F7BEA)
+        LibraryView.GENRES -> Color(0xFF9B6BEA)
+        LibraryView.FOLDERS -> Color(0xFF3FBF6B)
+        LibraryView.FAVORITES -> Color(0xFFEA5A9B)
+        LibraryView.RECENTLY_ADDED -> Color(0xFFEA8A3F)
+        LibraryView.MOST_PLAYED -> Color(0xFFEACB3F)
+        LibraryView.PLAYLISTS -> Color(0xFF3FB5BF)
+    }
 
 private fun LibraryView.labelRes(): Int =
     when (this) {

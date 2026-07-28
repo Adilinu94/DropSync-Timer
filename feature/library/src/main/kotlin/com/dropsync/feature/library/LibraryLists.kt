@@ -1,25 +1,31 @@
 package com.dropsync.feature.library
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Favorite
-import androidx.compose.material.icons.filled.FavoriteBorder
-import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.outlined.FavoriteBorder
+import androidx.compose.material.icons.outlined.LibraryMusic
+import androidx.compose.material.icons.outlined.MoreVert
+import androidx.compose.material.icons.outlined.MusicNote
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
@@ -35,6 +41,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -114,62 +121,104 @@ private fun SongRow(
             if (isFavorite) R.string.library_unfavorite else R.string.library_favorite,
         )
     var menuOpen by remember { mutableStateOf(false) }
-    ListItem(
-        headlineContent = { Text(songTitle(song), maxLines = 1, overflow = TextOverflow.Ellipsis) },
-        supportingContent = {
-            Text(song.artist ?: stringResource(R.string.library_unknown_artist))
-        },
-        trailingContent = {
-            Row {
-                IconButton(onClick = onToggleFavorite) {
-                    Icon(
-                        imageVector =
-                            if (isFavorite) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,
-                        contentDescription = favLabel,
-                    )
-                }
-                IconButton(onClick = { menuOpen = true }) {
-                    Icon(
-                        Icons.Filled.MoreVert,
-                        contentDescription = stringResource(R.string.library_more_actions),
-                    )
-                }
-                DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
-                    DropdownMenuItem(
-                        text = { Text(stringResource(R.string.library_play_next)) },
-                        onClick = {
-                            onPlayNext()
-                            menuOpen = false
-                        },
-                    )
-                    DropdownMenuItem(
-                        text = { Text(stringResource(R.string.library_add_to_queue)) },
-                        onClick = {
-                            onAddToQueue()
-                            menuOpen = false
-                        },
-                    )
-                    DropdownMenuItem(
-                        text = { Text(stringResource(R.string.library_detect_drops)) },
-                        onClick = {
-                            onDetectDrops()
-                            menuOpen = false
-                        },
-                    )
-                    DropdownMenuItem(
-                        text = { Text(stringResource(R.string.library_add_to_playlist)) },
-                        onClick = {
-                            onAddToPlaylist()
-                            menuOpen = false
-                        },
-                    )
-                }
+    val meta =
+        buildString {
+            append(song.artist ?: stringResource(R.string.library_unknown_artist))
+            append("  |  ")
+            append(formatDuration(song.durationMs))
+            songFormat(song)?.let {
+                append("  |  ")
+                append(it)
             }
-        },
+        }
+    Row(
         modifier =
             Modifier
-                .clickable(onClickLabel = playLabel) { onPlay() },
-    )
+                .fillMaxWidth()
+                .clickable(onClickLabel = playLabel) { onPlay() }
+                .padding(horizontal = 16.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Box(
+            modifier =
+                Modifier
+                    .size(52.dp)
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(MaterialTheme.colorScheme.surfaceVariant),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                Icons.Outlined.MusicNote,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        Spacer(Modifier.width(12.dp))
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = songTitle(song),
+                style = MaterialTheme.typography.titleMedium,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            Text(
+                text = meta,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
+        IconButton(onClick = onToggleFavorite) {
+            val favTint =
+                if (isFavorite) {
+                    MaterialTheme.colorScheme.primary
+                } else {
+                    MaterialTheme.colorScheme.onSurfaceVariant
+                }
+            Icon(
+                imageVector = if (isFavorite) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
+                contentDescription = favLabel,
+                tint = favTint,
+            )
+        }
+        IconButton(onClick = { menuOpen = true }) {
+            Icon(
+                Icons.Outlined.MoreVert,
+                contentDescription = stringResource(R.string.library_more_actions),
+            )
+        }
+        DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
+            DropdownMenuItem(
+                text = { Text(stringResource(R.string.library_play_next)) },
+                onClick = {
+                    onPlayNext()
+                    menuOpen = false
+                },
+            )
+            DropdownMenuItem(
+                text = { Text(stringResource(R.string.library_add_to_queue)) },
+                onClick = {
+                    onAddToQueue()
+                    menuOpen = false
+                },
+            )
+            DropdownMenuItem(
+                text = { Text(stringResource(R.string.library_detect_drops)) },
+                onClick = {
+                    onDetectDrops()
+                    menuOpen = false
+                },
+            )
+            DropdownMenuItem(
+                text = { Text(stringResource(R.string.library_add_to_playlist)) },
+                onClick = {
+                    onAddToPlaylist()
+                    menuOpen = false
+                },
+            )
+        }
+    }
 }
 
 /** Vertikaler A–Z-Index; tippen springt zum ersten passenden Titel. */
@@ -228,7 +277,30 @@ internal fun BucketColumn(
     LazyColumn(modifier = modifier.fillMaxSize(), contentPadding = contentPadding) {
         items(labels, key = { it.key }) { item ->
             ListItem(
-                headlineContent = { Text(item.title, maxLines = 1, overflow = TextOverflow.Ellipsis) },
+                leadingContent = {
+                    Box(
+                        modifier =
+                            Modifier
+                                .size(44.dp)
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(MaterialTheme.colorScheme.surfaceVariant),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Icon(
+                            Icons.Outlined.LibraryMusic,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                },
+                headlineContent = {
+                    Text(
+                        item.title,
+                        style = MaterialTheme.typography.titleMedium,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                },
                 supportingContent = item.subtitle?.let { { Text(it) } },
                 trailingContent = {
                     Text(
@@ -271,3 +343,17 @@ private fun EmptyHint(
 }
 
 private const val FAST_SCROLLER_MIN_ITEMS = 20
+
+private fun formatDuration(ms: Long): String {
+    val totalSeconds = (ms / 1000).coerceAtLeast(0)
+    val minutes = totalSeconds / 60
+    val seconds = totalSeconds % 60
+    return "%d:%02d".format(minutes, seconds)
+}
+
+/** Grossgeschriebene Dateiendung als Format-Kuerzel (z. B. FLAC), sonst null. */
+private fun songFormat(song: Song): String? =
+    song.displayName
+        .substringAfterLast('.', "")
+        .uppercase()
+        .takeIf { it.isNotEmpty() && it.length <= 5 }
