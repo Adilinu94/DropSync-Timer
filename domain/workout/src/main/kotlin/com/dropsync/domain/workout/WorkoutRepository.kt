@@ -1,6 +1,7 @@
 package com.dropsync.domain.workout
 
 import com.dropsync.core.common.AppResult
+import com.dropsync.core.model.RestMode
 import com.dropsync.core.model.SessionStatus
 import com.dropsync.core.model.SetRole
 import kotlinx.coroutines.flow.Flow
@@ -106,4 +107,78 @@ interface WorkoutRepository {
 
     /** Snapshots einer Session, aufsteigend nach Aufnahmezeit. */
     suspend fun getPlaybackSnapshots(sessionId: Long): AppResult<List<PlaybackSnapshotInfo>>
+
+    // --- Uebungsbibliothek (Schritt 9.1/9.2) ---
+
+    /** Alle aktiven Uebungen mit Equipment fuer die Bibliotheksliste. */
+    fun observeExerciseLibrary(locale: String): Flow<List<ExerciseLibraryItem>>
+
+    /** Legt eine eigene Uebung mit Muskel-Mapping an (eindeutiger Slug). */
+    suspend fun createCustomExercise(input: CustomExerciseInput): AppResult<Long>
+
+    /** Vollstaendige Details inkl. Muskelbeteiligung fuer die Detailansicht. */
+    suspend fun getExerciseDetail(
+        exerciseId: Long,
+        locale: String,
+    ): AppResult<ExerciseDetail>
+
+    /** Archiviert eine Uebung (verschwindet aus Auswahl; Historie bleibt). */
+    suspend fun archiveExercise(exerciseId: Long): AppResult<Unit>
+
+    // --- Resttimer pro Uebung (Abschnitt 8) ---
+
+    /** Gemerkte Rest-Praeferenz der Uebung; null, wenn noch keine gesetzt. */
+    suspend fun getRestPref(exerciseId: Long): AppResult<RestPref?>
+
+    suspend fun setRestPref(
+        exerciseId: Long,
+        restSeconds: Int,
+        restMode: RestMode,
+    ): AppResult<Unit>
+
+    // --- Uebungstausch und Wiederholen (Schritt 9) ---
+
+    /**
+     * Tauscht eine Sessionuebung: KEEP behaelt die geloggten Saetze an der
+     * alten Uebung und haengt die neue an; MOVE ordnet die Saetze der neuen
+     * Uebung zu; DISCARD verwirft die Saetze dieser Session. Die PRs der
+     * betroffenen Uebungen werden in derselben Transaktion neu berechnet.
+     */
+    suspend fun swapSessionExercise(
+        sessionExerciseId: Long,
+        newExerciseId: Long,
+        strategy: SwapStrategy,
+    ): AppResult<Unit>
+
+    /** Startet eine neue Session aus der zuletzt abgeschlossenen Session. */
+    suspend fun repeatLastSession(): AppResult<Long>
+
+    // --- Routinen / Templates (Schritt 9.7) ---
+
+    fun observeRoutines(): Flow<List<RoutineInfo>>
+
+    suspend fun getRoutineDetail(
+        routineId: Long,
+        locale: String,
+    ): AppResult<RoutineDetail>
+
+    suspend fun createRoutine(
+        name: String,
+        entries: List<RoutineEntry>,
+    ): AppResult<Long>
+
+    /** Speichert die gegebene Session als wiederverwendbare Routine. */
+    suspend fun createRoutineFromSession(
+        sessionId: Long,
+        name: String,
+    ): AppResult<Long>
+
+    // --- Fortschritt & Analyse (Abschnitt 3) ---
+
+    fun observePersonalRecords(exerciseId: Long): Flow<List<PrRecord>>
+
+    suspend fun getExerciseProgress(exerciseId: Long): AppResult<List<ExerciseProgressPoint>>
+
+    /** Waehrend der Session gespielte Tracks (Auswertung, Schritt 11.1). */
+    suspend fun getSessionMusic(sessionId: Long): AppResult<List<PlayedTrackInfo>>
 }

@@ -36,7 +36,7 @@ import com.dropsync.feature.player.DropRestCard
 import com.dropsync.feature.player.MiniPlayer
 import com.dropsync.feature.settings.SettingsScreen
 import com.dropsync.feature.timer.TimerSection
-import com.dropsync.feature.workout.WorkoutScreen
+import com.dropsync.feature.workout.WorkoutFeature
 
 /**
  * Hauptnavigation mit genau drei Zielen (Bauplan 12.2): Musik, Training,
@@ -120,7 +120,9 @@ private fun DropSyncNavHost(
                 // Drop-Rest gehoert fachlich zum Satzende im Training (11.2);
                 // die Karte lebt in :feature:player, weil sie Playback braucht.
                 DropRestCard(modifier = Modifier.padding(horizontal = 16.dp))
-                WorkoutScreen(
+                // Interner NavHost des Trainings-Tabs (Session, Bibliothek,
+                // Routinen, Fortschritt); Timer/DropRest bleiben sichtbar.
+                WorkoutFeature(
                     contentPadding =
                         PaddingValues(bottom = contentPadding.calculateBottomPadding()),
                     modifier = Modifier.weight(1f),

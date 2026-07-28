@@ -39,6 +39,8 @@ dependencies {
     implementation(project(":core:model"))
     implementation(project(":core:database"))
     implementation(project(":domain:workout"))
+    // Musikverknuepfung der Session (Schritt 11.1); Praezedenz: data:timer -> domain:playback.
+    implementation(project(":domain:playback"))
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.kotlinx.coroutines.android)

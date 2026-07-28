@@ -6,9 +6,11 @@ import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Transaction
+import androidx.room.Upsert
 import com.dropsync.core.database.entity.ExerciseEntity
 import com.dropsync.core.database.entity.ExerciseMuscleEntity
 import com.dropsync.core.database.entity.ExerciseNameEntity
+import com.dropsync.core.database.entity.ExerciseRestPrefEntity
 import com.dropsync.core.database.entity.MuscleGroupEntity
 import com.dropsync.core.database.entity.PersonalRecordEntity
 import com.dropsync.core.database.entity.PlaybackSnapshotEntity
@@ -68,6 +70,35 @@ interface ExerciseDao {
             "ORDER BY COALESCE(n.display_name, e.canonical_name) COLLATE NOCASE",
     )
     fun observeActiveWithNames(locale: String): Flow<List<ExerciseNameRow>>
+
+    /** Einzelne Uebung fuer Detail- und Tauschlogik. */
+    @Query("SELECT * FROM exercises WHERE id = :id")
+    suspend fun getExercise(id: Long): ExerciseEntity?
+
+    /** Muskelbeteiligung einer Uebung (Detailansicht, Schritt 9.2). */
+    @Query("SELECT * FROM exercise_muscles WHERE exercise_id = :exerciseId")
+    suspend fun getMuscles(exerciseId: Long): List<ExerciseMuscleEntity>
+
+    /** Neu angelegte eigene Uebung; ABORT deckt doppelte Slugs auf (9.1). */
+    @Insert(onConflict = OnConflictStrategy.ABORT)
+    suspend fun insertCustomExercise(exercise: ExerciseEntity): Long
+
+    @Query("UPDATE exercises SET is_archived = 1 WHERE id = :id")
+    suspend fun archiveExercise(id: Long)
+
+    /**
+     * Aktive Uebungen mit Namen und Equipment fuer die Bibliotheksliste
+     * (Schritt 9.2); ohne Uebersetzung faellt die UI auf den Slug zurueck.
+     */
+    @Query(
+        "SELECT e.id AS id, e.canonical_name AS slug, n.display_name AS display_name, " +
+            "e.equipment AS equipment, e.is_custom AS is_custom " +
+            "FROM exercises e " +
+            "LEFT JOIN exercise_names n ON n.exercise_id = e.id AND n.locale = :locale " +
+            "WHERE e.is_archived = 0 " +
+            "ORDER BY COALESCE(n.display_name, e.canonical_name) COLLATE NOCASE",
+    )
+    fun observeLibrary(locale: String): Flow<List<ExerciseLibraryRow>>
 }
 
 /** Zeile der Uebungsauswahl (Query in [ExerciseDao]). */
@@ -78,6 +109,20 @@ data class ExerciseNameRow(
     val slug: String,
     @ColumnInfo(name = "display_name")
     val displayName: String?,
+)
+
+/** Zeile der Bibliotheksliste inkl. Equipment (Query in [ExerciseDao]). */
+data class ExerciseLibraryRow(
+    @ColumnInfo(name = "id")
+    val id: Long,
+    @ColumnInfo(name = "slug")
+    val slug: String,
+    @ColumnInfo(name = "display_name")
+    val displayName: String?,
+    @ColumnInfo(name = "equipment")
+    val equipment: String,
+    @ColumnInfo(name = "is_custom")
+    val isCustom: Boolean,
 )
 
 @Dao
@@ -93,6 +138,25 @@ interface RoutineDao {
 
     @Query("SELECT * FROM routine_exercises WHERE routine_id = :routineId ORDER BY order_index")
     suspend fun getExercisesForRoutine(routineId: Long): List<RoutineExerciseEntity>
+
+    @Query("SELECT * FROM routines WHERE id = :id")
+    suspend fun getRoutine(id: Long): RoutineEntity?
+
+    /** Uebungen einer Routine mit lokalisiertem Namen (Detailansicht). */
+    @Query(
+        "SELECT re.id AS id, re.exercise_id AS exercise_id, re.order_index AS order_index, " +
+            "re.superset_group_id AS superset_group_id, re.target_sets AS target_sets, " +
+            "re.target_reps_min AS target_reps_min, re.target_reps_max AS target_reps_max, " +
+            "re.rest_seconds AS rest_seconds, e.canonical_name AS slug, n.display_name AS display_name " +
+            "FROM routine_exercises re " +
+            "INNER JOIN exercises e ON e.id = re.exercise_id " +
+            "LEFT JOIN exercise_names n ON n.exercise_id = e.id AND n.locale = :locale " +
+            "WHERE re.routine_id = :routineId ORDER BY re.order_index",
+    )
+    suspend fun getRoutineExercisesWithNames(
+        routineId: Long,
+        locale: String,
+    ): List<RoutineExerciseRow>
 }
 
 @Dao
@@ -229,6 +293,62 @@ interface WorkoutDao {
     )
     suspend fun getSegmentsOfLastCompletedCluster(exerciseId: Long): List<SetSegmentEntity>
 
+    // --- Rest-Praeferenz pro Uebung (Abschnitt 8) ---
+
+    @Query("SELECT * FROM exercise_rest_prefs WHERE exercise_id = :exerciseId")
+    suspend fun getRestPref(exerciseId: Long): ExerciseRestPrefEntity?
+
+    @Upsert
+    suspend fun upsertRestPref(pref: ExerciseRestPrefEntity)
+
+    // --- Letzte Session wiederholen ---
+
+    @Query(
+        "SELECT * FROM workout_sessions WHERE status = 'COMPLETED' " +
+            "ORDER BY COALESCE(ended_at_epoch_ms, started_at_epoch_ms) DESC, id DESC LIMIT 1",
+    )
+    suspend fun getLastCompletedSession(): WorkoutSessionEntity?
+
+    @Query("SELECT * FROM session_exercises WHERE session_id = :sessionId ORDER BY order_index")
+    suspend fun getSessionExercisesRaw(sessionId: Long): List<SessionExerciseEntity>
+
+    @Query(
+        "SELECT COUNT(*) FROM set_clusters WHERE session_exercise_id = :sessionExerciseId " +
+            "AND is_completed = 1 AND set_role IN ('WORKING','FAILURE')",
+    )
+    suspend fun countCompletedWorkingClusters(sessionExerciseId: Long): Int
+
+    // --- Uebungstausch (behalten/verschieben/verwerfen) ---
+
+    @Query("UPDATE session_exercises SET exercise_id = :newExerciseId WHERE id = :sessionExerciseId")
+    suspend fun updateSessionExerciseExerciseId(
+        sessionExerciseId: Long,
+        newExerciseId: Long,
+    )
+
+    @Query(
+        "DELETE FROM set_segments WHERE cluster_id IN " +
+            "(SELECT id FROM set_clusters WHERE session_exercise_id = :sessionExerciseId)",
+    )
+    suspend fun deleteSegmentsForSessionExercise(sessionExerciseId: Long)
+
+    @Query("DELETE FROM set_clusters WHERE session_exercise_id = :sessionExerciseId")
+    suspend fun deleteClustersForSessionExercise(sessionExerciseId: Long)
+
+    // --- Musikverknuepfung auswerten (Schritt 11.1) ---
+
+    @Query(
+        "SELECT p.song_id AS song_id, s.title AS title, s.artist AS artist, " +
+            "s.display_name AS display_name, p.position_ms AS position_ms, " +
+            "p.captured_at_epoch_ms AS captured_at " +
+            "FROM playback_snapshots p INNER JOIN songs s ON s.media_store_id = p.song_id " +
+            "WHERE p.session_id = :sessionId ORDER BY p.captured_at_epoch_ms, p.id",
+    )
+    suspend fun getPlayedTracksForSession(sessionId: Long): List<PlayedTrackRow>
+
+    @Query("SELECT * FROM personal_records WHERE exercise_id = :exerciseId")
+    fun observePersonalRecordsForExercise(exerciseId: Long): Flow<List<PersonalRecordEntity>>
+
     /**
      * Satzabschluss als eine Transaktion (Schritt 3.4): Segmente,
      * Clusterstatus und neue PRs werden zusammen gespeichert oder gar
@@ -280,4 +400,44 @@ data class QualifiedSegmentRow(
     val loadMultiplier: Int,
     @ColumnInfo(name = "reps")
     val reps: Int,
+)
+
+/** Zeile der Uebungen einer Routine (Query in [RoutineDao]). */
+data class RoutineExerciseRow(
+    @ColumnInfo(name = "id")
+    val id: Long,
+    @ColumnInfo(name = "exercise_id")
+    val exerciseId: Long,
+    @ColumnInfo(name = "order_index")
+    val orderIndex: Int,
+    @ColumnInfo(name = "superset_group_id")
+    val supersetGroupId: Long?,
+    @ColumnInfo(name = "target_sets")
+    val targetSets: Int?,
+    @ColumnInfo(name = "target_reps_min")
+    val targetRepsMin: Int?,
+    @ColumnInfo(name = "target_reps_max")
+    val targetRepsMax: Int?,
+    @ColumnInfo(name = "rest_seconds")
+    val restSeconds: Int?,
+    @ColumnInfo(name = "slug")
+    val slug: String,
+    @ColumnInfo(name = "display_name")
+    val displayName: String?,
+)
+
+/** Zeile der gespielten Tracks einer Session (Query in [WorkoutDao]). */
+data class PlayedTrackRow(
+    @ColumnInfo(name = "song_id")
+    val songId: Long,
+    @ColumnInfo(name = "title")
+    val title: String?,
+    @ColumnInfo(name = "artist")
+    val artist: String?,
+    @ColumnInfo(name = "display_name")
+    val displayName: String,
+    @ColumnInfo(name = "position_ms")
+    val positionMs: Long,
+    @ColumnInfo(name = "captured_at")
+    val capturedAtEpochMs: Long,
 )

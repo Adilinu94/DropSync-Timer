@@ -12,6 +12,13 @@ enum class SessionStatus { ACTIVE, COMPLETED, DISCARDED }
 /** Art einer Uebung; bestimmt die erlaubten Eingabefelder (Schritt 9.3). */
 enum class ExerciseKind { STRENGTH, TIME, DISTANCE }
 
+/**
+ * Rest-Modus einer Uebung (Abschnitt 8): normaler Resttimer mit fester
+ * Dauer oder DropSync (naechster Satz startet auf dem naechsten Song-Drop).
+ * In der Datenbank als stabiler String gespeichert.
+ */
+enum class RestMode { NORMAL, DROPSYNC }
+
 /** Rolle eines Satzclusters. WARMUP qualifiziert nie fuer Volumen/PRs (5.4). */
 enum class SetRole { WARMUP, WORKING, FAILURE, TIME, DISTANCE }
 

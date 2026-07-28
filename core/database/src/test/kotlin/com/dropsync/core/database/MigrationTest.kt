@@ -10,8 +10,8 @@ import org.robolectric.RobolectricTestRunner
 
 /**
  * Migrationstest gemaess Schritt 3.5: jede exportierte Schemaversion muss
- * bis zur aktuellen Version migrierbar sein. Aktuell existiert Version 1;
- * fuer jede neue Version wird hier die Migrationskette ergaenzt.
+ * bis zur aktuellen Version migrierbar sein. Fuer jede neue Version wird
+ * hier die Migrationskette ergaenzt.
  * Destruktive Migration ist in Release verboten.
  */
 @RunWith(RobolectricTestRunner::class)
@@ -35,7 +35,19 @@ class MigrationTest {
         helper.runMigrationsAndValidate(dbPath, 1, true)
     }
 
+    @Test
+    fun `migration 1 auf 2 ergaenzt exercise rest prefs`() {
+        // Kette v1 -> v2 (neue Tabelle exercise_rest_prefs, Abschnitt 8);
+        // validiert gegen das exportierte Schema 2.json.
+        val context = ApplicationProvider.getApplicationContext<android.content.Context>()
+        val dbPath = context.getDatabasePath(TEST_DB_V2).absolutePath
+
+        helper.createDatabase(dbPath, 1).close()
+        helper.runMigrationsAndValidate(dbPath, 2, true, *DROPSYNC_MIGRATIONS).close()
+    }
+
     private companion object {
         const val TEST_DB = "migration-test.db"
+        const val TEST_DB_V2 = "migration-test-v2.db"
     }
 }

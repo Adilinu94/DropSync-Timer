@@ -1,8 +1,11 @@
 package com.dropsync.domain.workout
 
+import com.dropsync.core.model.Equipment
 import com.dropsync.core.model.ExerciseKind
+import com.dropsync.core.model.MuscleGroup
 import com.dropsync.core.model.PrType
 import com.dropsync.core.model.PrValueUnit
+import com.dropsync.core.model.RestMode
 import com.dropsync.core.model.SetRole
 
 // Domainmodelle des Trainingslogs (Bauplan 5.4, Abschnitt 6).
@@ -77,3 +80,83 @@ object Qualification {
         return reps > 0 && load >= 0
     }
 }
+
+/** Strategie beim Uebungstausch mitten in der Session (Schritt 9). */
+enum class SwapStrategy { KEEP, MOVE, DISCARD }
+
+/** Pro Uebung gemerkter Resttimer (Abschnitt 8). */
+data class RestPref(
+    val restSeconds: Int,
+    val restMode: RestMode,
+)
+
+/** Muskelbeteiligung in Prozent (1..100) einer Uebung (Schritt 9.2). */
+data class MuscleContribution(
+    val group: MuscleGroup,
+    val percent: Int,
+)
+
+/** Eingabe zum Anlegen einer eigenen Uebung (Schritt 9.1/9.2). */
+data class CustomExerciseInput(
+    /** Mindestens "de" und "en" (analog Seeder). */
+    val displayNames: Map<String, String>,
+    val kind: ExerciseKind,
+    val equipment: Equipment,
+    val muscles: List<MuscleContribution>,
+)
+
+/** Listeneintrag der Uebungsbibliothek (Equipment sichtbar). */
+data class ExerciseLibraryItem(
+    val id: Long,
+    val slug: String,
+    val displayName: String,
+    val equipment: Equipment,
+    val isCustom: Boolean,
+)
+
+/** Vollstaendige Uebungsdetails inkl. Muskel-Mapping (Detailansicht). */
+data class ExerciseDetail(
+    val id: Long,
+    val slug: String,
+    val displayName: String,
+    val kind: ExerciseKind,
+    val equipment: Equipment,
+    val muscles: List<MuscleContribution>,
+)
+
+/** Routine als Listeneintrag (Schritt 9.7). */
+data class RoutineInfo(
+    val id: Long,
+    val name: String,
+)
+
+/** Uebung innerhalb einer Routine mit Anzeigename (Detailansicht). */
+data class RoutineExerciseDetail(
+    val exerciseId: Long,
+    val orderIndex: Int,
+    val supersetGroupId: Long?,
+    val targetSets: Int?,
+    val targetRepsMin: Int?,
+    val targetRepsMax: Int?,
+    val restSeconds: Int?,
+    val displayName: String,
+)
+
+/** Routine mit ihren Uebungen (Detailansicht/Bearbeiten). */
+data class RoutineDetail(
+    val id: Long,
+    val name: String,
+    val exercises: List<RoutineExerciseDetail>,
+)
+
+/**
+ * Waehrend einer Session gespielter Track (Schritt 11.1): Grundlage der
+ * Auswertung "zu diesem PR lief dieser Track".
+ */
+data class PlayedTrackInfo(
+    val songId: Long,
+    val title: String,
+    val artist: String?,
+    val positionMs: Long,
+    val capturedAtEpochMs: Long,
+)

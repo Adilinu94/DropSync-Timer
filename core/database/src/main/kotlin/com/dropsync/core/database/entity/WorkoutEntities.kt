@@ -399,3 +399,30 @@ data class PlaybackSnapshotEntity(
     @ColumnInfo(name = "captured_at_epoch_ms")
     val capturedAtEpochMs: Long,
 )
+
+/**
+ * Pro Uebung gemerkter Resttimer (Abschnitt 8): individuelle Dauer und
+ * Rest-Modus (normaler Resttimer oder DropSync). Kein globaler Standardwert;
+ * geloescht per CASCADE, wenn die Uebung entfernt wird.
+ */
+@Entity(
+    tableName = "exercise_rest_prefs",
+    foreignKeys = [
+        ForeignKey(
+            entity = ExerciseEntity::class,
+            parentColumns = ["id"],
+            childColumns = ["exercise_id"],
+            onDelete = ForeignKey.CASCADE,
+        ),
+    ],
+)
+data class ExerciseRestPrefEntity(
+    @PrimaryKey
+    @ColumnInfo(name = "exercise_id")
+    val exerciseId: Long,
+    @ColumnInfo(name = "rest_seconds")
+    val restSeconds: Int,
+    /** Stabiler String aus RestMode (NORMAL, DROPSYNC). */
+    @ColumnInfo(name = "rest_mode")
+    val restMode: String,
+)

@@ -8,6 +8,7 @@ import com.dropsync.core.common.DispatcherProvider
 import com.dropsync.data.timer.AndroidCueOutput
 import com.dropsync.data.timer.CompletionTonePlayer
 import com.dropsync.data.timer.DataStoreMonotonicStateStore
+import com.dropsync.data.timer.DefaultDropRestRequestBus
 import com.dropsync.data.timer.DuckingController
 import com.dropsync.data.timer.HapticsAdapter
 import com.dropsync.data.timer.MonotonicStateStore
@@ -15,6 +16,7 @@ import com.dropsync.data.timer.SpeechTextFormatter
 import com.dropsync.data.timer.TtsSpeaker
 import com.dropsync.domain.playback.PlayerVolumeGate
 import com.dropsync.domain.timer.CueOutput
+import com.dropsync.domain.timer.DropRestRequestBus
 import com.dropsync.domain.timer.TimerEngine
 import dagger.Module
 import dagger.Provides
@@ -69,6 +71,11 @@ object TimerDataModule {
         clock: Clock,
         cueOutput: CueOutput,
     ): TimerEngine = TimerEngine(clock, cueOutput)
+
+    /** Schmale Workout-zu-Player-Kopplung fuer Drop-Rest (Schritt 11). */
+    @Provides
+    @Singleton
+    fun provideDropRestRequestBus(): DropRestRequestBus = DefaultDropRestRequestBus()
 
     @Provides
     @Singleton

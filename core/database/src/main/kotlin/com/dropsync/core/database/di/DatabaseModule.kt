@@ -2,6 +2,7 @@ package com.dropsync.core.database.di
 
 import android.content.Context
 import androidx.room.Room
+import com.dropsync.core.database.DROPSYNC_MIGRATIONS
 import com.dropsync.core.database.DropSyncDatabase
 import com.dropsync.core.database.RoomTransactionRunner
 import com.dropsync.core.database.TransactionRunner
@@ -41,6 +42,7 @@ object DatabaseModule {
     ): DropSyncDatabase =
         Room
             .databaseBuilder(context, DropSyncDatabase::class.java, DropSyncDatabase.NAME)
+            .addMigrations(*DROPSYNC_MIGRATIONS)
             .build()
 
     @Provides

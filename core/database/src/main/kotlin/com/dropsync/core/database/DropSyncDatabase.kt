@@ -21,6 +21,7 @@ import com.dropsync.core.database.entity.EqPresetEntity
 import com.dropsync.core.database.entity.ExerciseEntity
 import com.dropsync.core.database.entity.ExerciseMuscleEntity
 import com.dropsync.core.database.entity.ExerciseNameEntity
+import com.dropsync.core.database.entity.ExerciseRestPrefEntity
 import com.dropsync.core.database.entity.FavoriteEntity
 import com.dropsync.core.database.entity.MarkerSongLinkEntity
 import com.dropsync.core.database.entity.MuscleGroupEntity
@@ -72,6 +73,7 @@ import com.dropsync.core.database.entity.WorkoutSessionEntity
         SetSegmentEntity::class,
         PersonalRecordEntity::class,
         PlaybackSnapshotEntity::class,
+        ExerciseRestPrefEntity::class,
         EqPresetEntity::class,
         EqPresetBandEntity::class,
         CueTrackEntity::class,
@@ -82,7 +84,7 @@ import com.dropsync.core.database.entity.WorkoutSessionEntity
         PlaylistItemEntity::class,
         SongFtsEntity::class,
     ],
-    version = 1,
+    version = 2,
     exportSchema = true,
 )
 abstract class DropSyncDatabase : RoomDatabase() {

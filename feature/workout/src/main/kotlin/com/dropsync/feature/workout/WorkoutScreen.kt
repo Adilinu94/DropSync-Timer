@@ -13,19 +13,24 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.RadioButton
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -40,20 +45,27 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.dropsync.core.model.RestMode
 import com.dropsync.domain.workout.ExerciseInfo
+import com.dropsync.domain.workout.RestPref
 import com.dropsync.domain.workout.SessionExerciseInfo
+import com.dropsync.domain.workout.SwapStrategy
 import java.text.DateFormat
 import java.util.Date
 
 /**
- * Trainings-Tab (Schritt 12.3): Training -> freie Session -> Uebung
- * hinzufuegen -> Satz abschliessen. Der Satzabschluss zeigt eine klar
- * sichtbare Rueckgaengig-Aktion fuer die letzten 10 Sekunden (12.5);
- * SnackbarDuration.Long entspricht 10 s.
+ * Sessionansicht des Trainings-Tabs (Schritt 12.3, erweitert um Schritt 9):
+ * Prefill aus dem letzten Satz, gemerkter Rest-Timer pro Uebung (Normal/
+ * DropSync), Uebungstausch KEEP/MOVE/DISCARD, "Als Routine speichern",
+ * "Letzte Session wiederholen" und der zuletzt gespielte Track (11.1).
+ * Satzabschluss zeigt 10 s lang Rueckgaengig (12.5).
  */
 @Composable
-fun WorkoutScreen(
+fun SessionScreen(
     contentPadding: PaddingValues,
+    onOpenLibrary: () -> Unit,
+    onOpenRoutines: () -> Unit,
+    onOpenProgress: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: WorkoutViewModel = hiltViewModel(),
 ) {
@@ -61,6 +73,9 @@ fun WorkoutScreen(
     val exercises by viewModel.exercises.collectAsStateWithLifecycle()
     val sessionExercises by viewModel.sessionExercises.collectAsStateWithLifecycle()
     val lastCompleted by viewModel.lastCompleted.collectAsStateWithLifecycle()
+    val prefills by viewModel.prefills.collectAsStateWithLifecycle()
+    val restPrefs by viewModel.restPrefs.collectAsStateWithLifecycle()
+    val lastPlayedTrack by viewModel.lastPlayedTrack.collectAsStateWithLifecycle()
 
     val snackbarHostState = remember { SnackbarHostState() }
     val undoLabel = stringResource(R.string.workout_undo)
@@ -68,6 +83,8 @@ fun WorkoutScreen(
 
     LaunchedEffect(lastCompleted) {
         val completed = lastCompleted ?: return@LaunchedEffect
+        // Nach dem Satz den ggf. erfassten Track nachladen (11.1).
+        viewModel.refreshSessionMusic()
         val result =
             snackbarHostState.showSnackbar(
                 message = "$completedText ${completed.summary}",
@@ -80,6 +97,9 @@ fun WorkoutScreen(
             viewModel.clearLastCompleted()
         }
     }
+    LaunchedEffect(sessionExercises) {
+        sessionExercises.forEach(viewModel::loadExerciseExtras)
+    }
 
     Column(modifier = modifier.fillMaxSize()) {
         val active = session
@@ -87,6 +107,10 @@ fun WorkoutScreen(
             EmptySessionContent(
                 contentPadding = contentPadding,
                 onStart = viewModel::startSession,
+                onRepeatLast = viewModel::repeatLastSession,
+                onOpenLibrary = onOpenLibrary,
+                onOpenRoutines = onOpenRoutines,
+                onOpenProgress = onOpenProgress,
                 modifier = Modifier.weight(1f),
             )
         } else {
@@ -94,11 +118,23 @@ fun WorkoutScreen(
                 startedAtEpochMs = active.startedAtEpochMs,
                 exercises = exercises,
                 sessionExercises = sessionExercises,
+                prefills = prefills,
+                restPrefs = restPrefs,
+                lastPlayedTrackLabel =
+                    lastPlayedTrack?.let { track ->
+                        listOfNotNull(track.artist, track.title).joinToString(" - ")
+                    },
                 contentPadding = contentPadding,
                 onAddExercise = viewModel::addExercise,
                 onCompleteSet = viewModel::completeSet,
                 onCompleteSession = viewModel::completeSession,
                 onDiscardSession = viewModel::discardSession,
+                onStartRest = viewModel::startRest,
+                onSetRestPref = viewModel::setRestPref,
+                onSwapExercise = viewModel::swapExercise,
+                onSaveAsRoutine = viewModel::saveSessionAsRoutine,
+                onOpenLibrary = onOpenLibrary,
+                onOpenProgress = onOpenProgress,
                 modifier = Modifier.weight(1f),
             )
         }
@@ -110,6 +146,10 @@ fun WorkoutScreen(
 private fun EmptySessionContent(
     contentPadding: PaddingValues,
     onStart: () -> Unit,
+    onRepeatLast: () -> Unit,
+    onOpenLibrary: () -> Unit,
+    onOpenRoutines: () -> Unit,
+    onOpenProgress: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(
@@ -129,6 +169,23 @@ private fun EmptySessionContent(
         Button(onClick = onStart, modifier = Modifier.heightIn(min = 48.dp)) {
             Text(stringResource(R.string.workout_start_session))
         }
+        Spacer(Modifier.height(8.dp))
+        // Letzte Session mit einem Tap wiederholen (9.6).
+        OutlinedButton(onClick = onRepeatLast, modifier = Modifier.heightIn(min = 48.dp)) {
+            Text(stringResource(R.string.workout_repeat_last))
+        }
+        Spacer(Modifier.height(24.dp))
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            TextButton(onClick = onOpenLibrary) {
+                Text(stringResource(R.string.workout_open_library))
+            }
+            TextButton(onClick = onOpenRoutines) {
+                Text(stringResource(R.string.workout_open_routines))
+            }
+            TextButton(onClick = onOpenProgress) {
+                Text(stringResource(R.string.workout_open_progress))
+            }
+        }
     }
 }
 
@@ -137,13 +194,34 @@ private fun ActiveSessionContent(
     startedAtEpochMs: Long,
     exercises: List<ExerciseInfo>,
     sessionExercises: List<SessionExerciseInfo>,
+    prefills: Map<Long, PrefillUi>,
+    restPrefs: Map<Long, RestPref>,
+    lastPlayedTrackLabel: String?,
     contentPadding: PaddingValues,
     onAddExercise: (Long) -> Unit,
     onCompleteSet: (Long, String, String, Boolean, String) -> Unit,
     onCompleteSession: () -> Unit,
     onDiscardSession: () -> Unit,
+    onStartRest: (Long) -> Unit,
+    onSetRestPref: (Long, Int, RestMode) -> Unit,
+    onSwapExercise: (Long, Long, SwapStrategy) -> Unit,
+    onSaveAsRoutine: (String) -> Unit,
+    onOpenLibrary: () -> Unit,
+    onOpenProgress: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    var showSaveRoutineDialog by rememberSaveable { mutableStateOf(false) }
+
+    if (showSaveRoutineDialog) {
+        SaveRoutineDialog(
+            onConfirm = { name ->
+                onSaveAsRoutine(name)
+                showSaveRoutineDialog = false
+            },
+            onDismiss = { showSaveRoutineDialog = false },
+        )
+    }
+
     LazyColumn(
         modifier = modifier.fillMaxSize(),
         contentPadding = contentPadding,
@@ -163,6 +241,26 @@ private fun ActiveSessionContent(
                         ),
                     style = MaterialTheme.typography.bodyMedium,
                 )
+                if (lastPlayedTrackLabel != null) {
+                    // Zur Session erfasster Track (11.1); rein informativ.
+                    AssistChip(
+                        onClick = {},
+                        label = {
+                            Text(stringResource(R.string.workout_now_playing, lastPlayedTrackLabel))
+                        },
+                    )
+                }
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    TextButton(onClick = onOpenLibrary) {
+                        Text(stringResource(R.string.workout_open_library))
+                    }
+                    TextButton(onClick = onOpenProgress) {
+                        Text(stringResource(R.string.workout_open_progress))
+                    }
+                    TextButton(onClick = { showSaveRoutineDialog = true }) {
+                        Text(stringResource(R.string.workout_save_as_routine))
+                    }
+                }
             }
         }
         item {
@@ -175,7 +273,13 @@ private fun ActiveSessionContent(
         items(sessionExercises, key = { it.id }) { sessionExercise ->
             SetEntryCard(
                 sessionExercise = sessionExercise,
+                prefill = prefills[sessionExercise.id],
+                restPref = restPrefs[sessionExercise.exerciseId],
+                exercises = exercises,
                 onCompleteSet = onCompleteSet,
+                onStartRest = onStartRest,
+                onSetRestPref = onSetRestPref,
+                onSwapExercise = onSwapExercise,
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
             )
         }
@@ -203,7 +307,7 @@ private fun ActiveSessionContent(
 
 @OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 @Composable
-private fun ExercisePicker(
+internal fun ExercisePicker(
     exercises: List<ExerciseInfo>,
     onAddExercise: (Long) -> Unit,
     modifier: Modifier = Modifier,
@@ -241,7 +345,6 @@ private fun ExercisePicker(
                 }
             }
         }
-        Spacer(Modifier.height(0.dp))
         Button(
             onClick = { selected?.let { onAddExercise(it.id) } },
             enabled = selected != null,
@@ -258,19 +361,61 @@ private fun ExercisePicker(
 @Composable
 private fun SetEntryCard(
     sessionExercise: SessionExerciseInfo,
+    prefill: PrefillUi?,
+    restPref: RestPref?,
+    exercises: List<ExerciseInfo>,
     onCompleteSet: (Long, String, String, Boolean, String) -> Unit,
+    onStartRest: (Long) -> Unit,
+    onSetRestPref: (Long, Int, RestMode) -> Unit,
+    onSwapExercise: (Long, Long, SwapStrategy) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    var weight by rememberSaveable(sessionExercise.id) { mutableStateOf("") }
-    var reps by rememberSaveable(sessionExercise.id) { mutableStateOf("") }
-    var perHand by rememberSaveable(sessionExercise.id) { mutableStateOf(false) }
+    // Prefill fuellt die Felder erst, sobald die Werte geladen sind (9.4).
+    var weight by rememberSaveable(sessionExercise.id, prefill) {
+        mutableStateOf(prefill?.weight ?: "")
+    }
+    var reps by rememberSaveable(sessionExercise.id, prefill) {
+        mutableStateOf(prefill?.reps ?: "")
+    }
+    var perHand by rememberSaveable(sessionExercise.id, prefill) {
+        mutableStateOf(prefill?.perHand ?: false)
+    }
+    var showRestDialog by rememberSaveable(sessionExercise.id) { mutableStateOf(false) }
+    var showSwapDialog by rememberSaveable(sessionExercise.id) { mutableStateOf(false) }
+
+    if (showRestDialog) {
+        RestPrefDialog(
+            initial = restPref,
+            onConfirm = { seconds, mode ->
+                onSetRestPref(sessionExercise.exerciseId, seconds, mode)
+                showRestDialog = false
+            },
+            onDismiss = { showRestDialog = false },
+        )
+    }
+    if (showSwapDialog) {
+        SwapExerciseDialog(
+            exercises = exercises.filter { it.id != sessionExercise.exerciseId },
+            onConfirm = { newExerciseId, strategy ->
+                onSwapExercise(sessionExercise.id, newExerciseId, strategy)
+                showSwapDialog = false
+            },
+            onDismiss = { showSwapDialog = false },
+        )
+    }
 
     Card(modifier = modifier.fillMaxWidth()) {
         Column(Modifier.padding(16.dp)) {
-            Text(
-                text = sessionExercise.displayName,
-                style = MaterialTheme.typography.titleMedium,
-            )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = sessionExercise.displayName,
+                    style = MaterialTheme.typography.titleMedium,
+                    modifier = Modifier.weight(1f),
+                )
+                TextButton(onClick = { showSwapDialog = true }) {
+                    Text(stringResource(R.string.workout_swap))
+                }
+            }
             Spacer(Modifier.height(8.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedTextField(
@@ -295,6 +440,22 @@ private fun SetEntryCard(
                 // Keine Funktion nur ueber Farbe; expliziter Text (12.1).
                 Text(stringResource(R.string.workout_per_hand))
             }
+            // Rest-Timer pro Uebung: gemerkte Dauer + Modus (Abschnitt 8).
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                val restLabel =
+                    if (restPref?.restMode == RestMode.DROPSYNC) {
+                        stringResource(R.string.workout_rest_mode_dropsync)
+                    } else {
+                        stringResource(R.string.workout_rest_seconds_label, restPref?.restSeconds ?: 90)
+                    }
+                Text(text = restLabel, modifier = Modifier.weight(1f))
+                TextButton(onClick = { showRestDialog = true }) {
+                    Text(stringResource(R.string.workout_rest_edit))
+                }
+                OutlinedButton(onClick = { onStartRest(sessionExercise.exerciseId) }) {
+                    Text(stringResource(R.string.workout_rest_start))
+                }
+            }
             val summary = "${sessionExercise.displayName}: $weight kg x $reps"
             Button(
                 onClick = {
@@ -312,4 +473,191 @@ private fun SetEntryCard(
             }
         }
     }
+}
+
+/** Restdauer und Rest-Modus (Normal/DropSync) je Uebung aendern. */
+@Composable
+private fun RestPrefDialog(
+    initial: RestPref?,
+    onConfirm: (Int, RestMode) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    var secondsText by rememberSaveable { mutableStateOf((initial?.restSeconds ?: 90).toString()) }
+    var mode by rememberSaveable { mutableStateOf(initial?.restMode ?: RestMode.NORMAL) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.workout_rest_dialog_title)) },
+        text = {
+            Column {
+                OutlinedTextField(
+                    value = secondsText,
+                    onValueChange = { secondsText = it },
+                    label = { Text(stringResource(R.string.workout_rest_seconds)) },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    singleLine = true,
+                )
+                Spacer(Modifier.height(8.dp))
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    FilterChip(
+                        selected = mode == RestMode.NORMAL,
+                        onClick = { mode = RestMode.NORMAL },
+                        label = { Text(stringResource(R.string.workout_rest_mode_normal)) },
+                    )
+                    // DropSync: naechster Satz startet auf dem naechsten Drop (8a).
+                    FilterChip(
+                        selected = mode == RestMode.DROPSYNC,
+                        onClick = { mode = RestMode.DROPSYNC },
+                        label = { Text(stringResource(R.string.workout_rest_mode_dropsync)) },
+                    )
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = {
+                    val seconds = secondsText.trim().toIntOrNull() ?: return@TextButton
+                    onConfirm(seconds, mode)
+                },
+            ) {
+                Text(stringResource(R.string.workout_save))
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(stringResource(R.string.workout_cancel))
+            }
+        },
+    )
+}
+
+/** Uebungstausch mit expliziter Strategie (9.5); MOVE ist Nutzerentscheidung. */
+@OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
+@Composable
+private fun SwapExerciseDialog(
+    exercises: List<ExerciseInfo>,
+    onConfirm: (Long, SwapStrategy) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    var expanded by remember { mutableStateOf(false) }
+    var selected by remember { mutableStateOf<ExerciseInfo?>(null) }
+    var strategy by rememberSaveable { mutableStateOf(SwapStrategy.KEEP) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.workout_swap_title)) },
+        text = {
+            Column {
+                ExposedDropdownMenuBox(
+                    expanded = expanded,
+                    onExpandedChange = { expanded = it },
+                ) {
+                    OutlinedTextField(
+                        value = selected?.displayName ?: "",
+                        onValueChange = {},
+                        readOnly = true,
+                        label = { Text(stringResource(R.string.workout_pick_exercise)) },
+                        trailingIcon = {
+                            ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded)
+                        },
+                        modifier =
+                            Modifier
+                                .menuAnchor(
+                                    androidx.compose.material3.MenuAnchorType.PrimaryNotEditable,
+                                ).fillMaxWidth(),
+                    )
+                    ExposedDropdownMenu(
+                        expanded = expanded,
+                        onDismissRequest = { expanded = false },
+                    ) {
+                        exercises.forEach { exercise ->
+                            DropdownMenuItem(
+                                text = { Text(exercise.displayName) },
+                                onClick = {
+                                    selected = exercise
+                                    expanded = false
+                                },
+                            )
+                        }
+                    }
+                }
+                Spacer(Modifier.height(8.dp))
+                SwapStrategyOption(
+                    label = stringResource(R.string.workout_swap_keep),
+                    selected = strategy == SwapStrategy.KEEP,
+                    onSelect = { strategy = SwapStrategy.KEEP },
+                )
+                SwapStrategyOption(
+                    label = stringResource(R.string.workout_swap_move),
+                    selected = strategy == SwapStrategy.MOVE,
+                    onSelect = { strategy = SwapStrategy.MOVE },
+                )
+                SwapStrategyOption(
+                    label = stringResource(R.string.workout_swap_discard),
+                    selected = strategy == SwapStrategy.DISCARD,
+                    onSelect = { strategy = SwapStrategy.DISCARD },
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(
+                enabled = selected != null,
+                onClick = { selected?.let { onConfirm(it.id, strategy) } },
+            ) {
+                Text(stringResource(R.string.workout_swap))
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(stringResource(R.string.workout_cancel))
+            }
+        },
+    )
+}
+
+@Composable
+private fun SwapStrategyOption(
+    label: String,
+    selected: Boolean,
+    onSelect: () -> Unit,
+) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        RadioButton(selected = selected, onClick = onSelect)
+        Text(label)
+    }
+}
+
+/** Name fuer die aus der Session erzeugte Routine (9.7). */
+@Composable
+private fun SaveRoutineDialog(
+    onConfirm: (String) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    var name by rememberSaveable { mutableStateOf("") }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.workout_save_as_routine)) },
+        text = {
+            OutlinedTextField(
+                value = name,
+                onValueChange = { name = it },
+                label = { Text(stringResource(R.string.workout_routine_name)) },
+                singleLine = true,
+            )
+        },
+        confirmButton = {
+            TextButton(
+                enabled = name.isNotBlank(),
+                onClick = { onConfirm(name) },
+            ) {
+                Text(stringResource(R.string.workout_save))
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(stringResource(R.string.workout_cancel))
+            }
+        },
+    )
 }

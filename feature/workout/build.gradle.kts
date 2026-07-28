@@ -37,6 +37,9 @@ dependencies {
     implementation(project(":core:model"))
     implementation(project(":core:designsystem"))
     implementation(project(":domain:workout"))
+    // Rest-Timer der Uebung nutzt die eine TimerEngine (Praezedenz
+    // :feature:timer/:feature:player); DropSync-Rest via DropRestRequestBus.
+    implementation(project(":domain:timer"))
 
     val composeBom = platform(libs.androidx.compose.bom)
     implementation(composeBom)
@@ -45,6 +48,8 @@ dependencies {
     implementation(libs.androidx.compose.ui.tooling.preview)
     debugImplementation(libs.androidx.compose.ui.tooling)
 
+    // Interner NavHost des Trainings-Tabs (session/library/routines/...).
+    implementation(libs.androidx.navigation.compose)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
     implementation(libs.androidx.lifecycle.runtime.compose)
     implementation(libs.androidx.hilt.navigation.compose)

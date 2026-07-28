@@ -7,6 +7,7 @@ import com.dropsync.core.database.dao.ExerciseDao
 import com.dropsync.core.database.dao.RoutineDao
 import com.dropsync.core.database.dao.WorkoutDao
 import com.dropsync.data.workout.WorkoutRepositoryImpl
+import com.dropsync.domain.playback.PlaybackRepository
 import com.dropsync.domain.workout.WorkoutRepository
 import dagger.Module
 import dagger.Provides
@@ -25,8 +26,17 @@ object WorkoutDataModule {
         routineDao: RoutineDao,
         exerciseDao: ExerciseDao,
         transactionRunner: TransactionRunner,
+        playbackRepository: PlaybackRepository,
         clock: Clock,
         dispatchers: DispatcherProvider,
     ): WorkoutRepository =
-        WorkoutRepositoryImpl(workoutDao, routineDao, exerciseDao, transactionRunner, clock, dispatchers)
+        WorkoutRepositoryImpl(
+            workoutDao,
+            routineDao,
+            exerciseDao,
+            transactionRunner,
+            playbackRepository,
+            clock,
+            dispatchers,
+        )
 }

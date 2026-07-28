@@ -3,10 +3,17 @@ package com.dropsync.feature.workout
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.dropsync.core.common.AppResult
+import com.dropsync.core.model.RestMode
 import com.dropsync.core.model.SetRole
+import com.dropsync.domain.timer.DropRestRequestBus
+import com.dropsync.domain.timer.TimerEngine
+import com.dropsync.domain.timer.TimerMode
 import com.dropsync.domain.workout.ExerciseInfo
+import com.dropsync.domain.workout.PlayedTrackInfo
+import com.dropsync.domain.workout.RestPref
 import com.dropsync.domain.workout.SegmentInput
 import com.dropsync.domain.workout.SessionExerciseInfo
+import com.dropsync.domain.workout.SwapStrategy
 import com.dropsync.domain.workout.WorkoutMath
 import com.dropsync.domain.workout.WorkoutRepository
 import com.dropsync.domain.workout.WorkoutSessionInfo
@@ -29,11 +36,20 @@ data class CompletedClusterUi(
     val summary: String,
 )
 
+/** Vorbelegung der Eingabefelder aus dem letzten Satz derselben Uebung (9.4). */
+data class PrefillUi(
+    val weight: String,
+    val reps: String,
+    val perHand: Boolean,
+)
+
 @HiltViewModel
 class WorkoutViewModel
     @Inject
     constructor(
         private val workoutRepository: WorkoutRepository,
+        private val timerEngine: TimerEngine,
+        private val dropRestRequestBus: DropRestRequestBus,
     ) : ViewModel() {
         private val locale: String = Locale.getDefault().language
 
@@ -69,6 +85,21 @@ class WorkoutViewModel
 
         /** Letzter Abschluss; UI bietet 10 s lang Rueckgaengig an (12.5). */
         val lastCompleted: StateFlow<CompletedClusterUi?> = _lastCompleted.asStateFlow()
+
+        private val _restPrefs = MutableStateFlow<Map<Long, RestPref>>(emptyMap())
+
+        /** Pro Uebung gemerkter Resttimer, Schluessel = exerciseId (Abschnitt 8). */
+        val restPrefs: StateFlow<Map<Long, RestPref>> = _restPrefs.asStateFlow()
+
+        private val _prefills = MutableStateFlow<Map<Long, PrefillUi>>(emptyMap())
+
+        /** Prefill je Sessionuebung, Schluessel = sessionExerciseId (9.4). */
+        val prefills: StateFlow<Map<Long, PrefillUi>> = _prefills.asStateFlow()
+
+        private val _lastPlayedTrack = MutableStateFlow<PlayedTrackInfo?>(null)
+
+        /** Zuletzt zur Session erfasster Track fuer den Chip (11.1). */
+        val lastPlayedTrack: StateFlow<PlayedTrackInfo?> = _lastPlayedTrack.asStateFlow()
 
         fun startSession() {
             viewModelScope.launch {
@@ -145,4 +176,113 @@ class WorkoutViewModel
         fun clearLastCompleted() {
             _lastCompleted.value = null
         }
+
+        /** Laedt Prefill (9.4) und Rest-Praeferenz (Abschnitt 8) einer Sessionuebung. */
+        fun loadExerciseExtras(sessionExercise: SessionExerciseInfo) {
+            viewModelScope.launch {
+                val prefillResult =
+                    workoutRepository.lastCompletedClusterPrefill(sessionExercise.exerciseId)
+                if (prefillResult is AppResult.Success) {
+                    val first = prefillResult.value.firstOrNull()
+                    val load = first?.externalLoadMilliKgPerImplement
+                    val reps = first?.reps
+                    if (first != null && load != null && reps != null) {
+                        _prefills.value = _prefills.value +
+                            (
+                                sessionExercise.id to
+                                    PrefillUi(
+                                        weight = formatKg(load),
+                                        reps = reps.toString(),
+                                        perHand = first.loadMultiplier == 2,
+                                    )
+                            )
+                    }
+                }
+                val prefResult = workoutRepository.getRestPref(sessionExercise.exerciseId)
+                if (prefResult is AppResult.Success) {
+                    val pref = prefResult.value
+                    if (pref != null) {
+                        _restPrefs.value = _restPrefs.value + (sessionExercise.exerciseId to pref)
+                    }
+                }
+            }
+        }
+
+        /** Merkt Restdauer und Rest-Modus pro Uebung (kein globaler Standard). */
+        fun setRestPref(
+            exerciseId: Long,
+            restSeconds: Int,
+            restMode: RestMode,
+        ) {
+            if (restSeconds <= 0) return
+            viewModelScope.launch {
+                workoutRepository.setRestPref(exerciseId, restSeconds, restMode)
+                _restPrefs.value = _restPrefs.value + (exerciseId to RestPref(restSeconds, restMode))
+            }
+        }
+
+        /**
+         * Startet den Rest gemaess Praeferenz: fester REST-Timer ueber die
+         * eine TimerEngine oder DropSync-Wunsch an den Player (8, 11.2).
+         */
+        fun startRest(exerciseId: Long) {
+            val pref =
+                _restPrefs.value[exerciseId]
+                    ?: RestPref(DEFAULT_REST_SECONDS, RestMode.NORMAL)
+            if (pref.restMode == RestMode.DROPSYNC) {
+                dropRestRequestBus.request()
+            } else {
+                timerEngine.start(TimerMode.REST, pref.restSeconds * 1_000L)
+            }
+        }
+
+        /** Uebungstausch KEEP/MOVE/DISCARD mitten in der Session (Schritt 9). */
+        fun swapExercise(
+            sessionExerciseId: Long,
+            newExerciseId: Long,
+            strategy: SwapStrategy,
+        ) {
+            viewModelScope.launch {
+                workoutRepository.swapSessionExercise(sessionExerciseId, newExerciseId, strategy)
+            }
+        }
+
+        /** Letzte abgeschlossene Session mit einem Tap wiederholen (9.6). */
+        fun repeatLastSession() {
+            viewModelScope.launch { workoutRepository.repeatLastSession() }
+        }
+
+        /** Speichert die aktive Session als wiederverwendbare Routine (9.7). */
+        fun saveSessionAsRoutine(name: String) {
+            val session = activeSession.value ?: return
+            if (name.isBlank()) return
+            viewModelScope.launch {
+                workoutRepository.createRoutineFromSession(session.id, name.trim())
+            }
+        }
+
+        /** Aktualisiert den zuletzt erfassten Track der Session (11.1). */
+        fun refreshSessionMusic() {
+            val session = activeSession.value ?: return
+            viewModelScope.launch {
+                val result = workoutRepository.getSessionMusic(session.id)
+                if (result is AppResult.Success) {
+                    _lastPlayedTrack.value = result.value.lastOrNull()
+                }
+            }
+        }
+
+        private companion object {
+            /** Vorgabe, solange die Uebung noch keine Praeferenz hat. */
+            const val DEFAULT_REST_SECONDS = 90
+        }
     }
+
+/** Millikilogramm als kg-Eingabetext, z. B. 92500 -> "92.5" (5.4). */
+internal fun formatKg(milliKg: Long): String {
+    val whole = milliKg / 1000
+    val frac = milliKg % 1000
+    if (frac == 0L) return whole.toString()
+    val fracText = frac.toString().padStart(3, '0').trimEnd('0')
+    return "$whole.$fracText"
+}

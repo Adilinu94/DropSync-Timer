@@ -11,6 +11,7 @@ import com.dropsync.domain.timer.DropRestBlockReason
 import com.dropsync.domain.timer.DropRestEligibility
 import com.dropsync.domain.timer.DropRestGate
 import com.dropsync.domain.timer.DropRestMonitor
+import com.dropsync.domain.timer.DropRestRequestBus
 import com.dropsync.domain.timer.MarkerPoint
 import com.dropsync.domain.timer.PlaybackSample
 import com.dropsync.domain.timer.TimerEngine
@@ -39,8 +40,18 @@ class DropRestViewModel
         private val playbackRepository: PlaybackRepository,
         private val markerRepository: MarkerRepository,
         private val timerEngine: TimerEngine,
+        private val dropRestRequestBus: DropRestRequestBus,
     ) : ViewModel() {
         val timerState: StateFlow<TimerState> = timerEngine.state
+
+        init {
+            // Drop-Rest-Wunsch aus dem Trainingslog (Schritt 11): startet den
+            // Modus, sofern das Gate im Moment des Klicks offen ist. startDropRest
+            // ist idempotent, wenn bereits ein Timer laeuft.
+            viewModelScope.launch {
+                dropRestRequestBus.requests.collect { startDropRest() }
+            }
+        }
 
         /**
          * Gate-Neubewertung im UI-Takt, nur solange ein Screen zuschaut;
