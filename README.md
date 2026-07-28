@@ -26,7 +26,7 @@ Bauplan sind nur ueber ADRs in [`docs/adr/`](docs/adr/) erlaubt.
 | 13 | Tests, Performance, Release-Gates | Offen |
 | 14 | Datenschutz-, Lizenz-, Releasepruefung | Offen |
 
-### Audio-Engine-Ausbau (Plan "DropSync Audio-Engine-Ausbau", ADR-0005 bis ADR-0010)
+### Audio-Engine-Ausbau (Plan `AUDIO_ENGINE_AUSBAU_PLAN.md`, ADR-0005 bis ADR-0010)
 
 | Phase | Inhalt | Status |
 | ----- | ------ | ------ |
@@ -37,6 +37,17 @@ Bauplan sind nur ueber ADRs in [`docs/adr/`](docs/adr/) erlaubt.
 | 5 (Schritt 19) | Pro-Ausgang-Profile, Bit-Perfect (USB, Android 14+), BT-Anzeige | Abgeschlossen: Profile je Geraet (`DeviceProfileStore` + `OutputProfileController`, automatischer Wechsel + Save-Through), `BitPerfectGateway` (AudioMixerAttributes, API 34+), Bit-Perfect-Bypass (DSP aus, Float-Output aus, Crossfade aus), Vertrag `activeOutputProfileKey`/`bitPerfectSupport`; UI in `:feature:audio` (Bit-Perfect-Panel mit DAC-Faehigkeiten, aktives Ausgabeprofil, BT-Hinweis + Link zu den System-Toneinstellungen), erreichbar ueber Einstellungen -> Audio & DSP |
 | 6 (Schritt 20) | Bibliothek: Kuenstler/Alben/Genres/Ordner, Statistiken, Favoriten, Suche, Queue | Datenschicht + UI-Ansichten abgeschlossen: Room (`play_stats`, `favorites`, `playlists`/`playlist_items`, FTS4 `song_fts`, `genre`-Spalte), `LibraryBrowseRepository` (Alben/Kuenstler/Genres/Ordner, zuletzt/meistgespielt, Favoriten, Volltextsuche, Playlisten-CRUD/Move, M3U-Import); `LibraryScreen`/`LibraryContent` mit Ansichts-Chips, Volltextsuche, Sortierung, Filtern nach Format/Dauer/Hi-Res, Favoriten-Toggle, Alphabet-Schnellscroller, horizontalem Swipen zwischen Ansichten (`HorizontalPager`) und Sammlungs-Drilldown; konfigurierbare Ansichten (ein-/ausblenden + Reihenfolge, persistiert via `LibraryViewPreferencesRepository`); Queue-Editor (verschieben/entfernen/als Naechstes/zur Queue) ueber `PlaybackRepository` als Bottom-Sheet am Mini-Player; `MediaLibraryService`-Browse-Baum (Root -> Titel/Alben/Interpreten/Ordner -> Songs) fuer Android Auto/BT |
 | 7 (Schritt 21) | Feinschliff, Barrierefreiheit, Performance, Geraetetests | Codeseitig abgeschlossen: Barrierefreiheit (Slider mit `stateDescription`, 48-dp-Schaltflaechen, Schaltererklaerungen), DE/EN-Strings, Akku-Hinweis bei Hi-Res-Resampling, DSP-Durchsatz-/Stabilitaetswaechter (`DspPerformanceTest`: 32 Baender/48 kHz > 2x Echtzeit, keine NaN/Inf). Geraeteabhaengig offen (nicht automatisierbar): Baseline-Profile-Generierung (Macrobenchmark auf Geraet), reale CPU-Messung Mittelklasse, USB-DAC-Bit-Perfect, BT-Codec-Verhalten, MusicFX mit/ohne Systemequalizer |
+
+### Workout-Funktionen-Ausbau (Plan `WORKOUT_FUNKTIONEN_AUSBAU_PLAN.md`)
+
+| Phase | Inhalt | Status |
+| ----- | ------ | ------ |
+| A | Datenschicht: `exercise_rest_prefs` (Rest-Timer pro Uebung), DB v2 + `MIGRATION_1_2`, DAO-Erweiterungen (Bibliothek, Tausch, Wiederholen, Session-Tracks) | Abgeschlossen |
+| B | Domain: eigene Uebungen mit Muskel-Mapping (`Slugs`), Uebungstausch KEEP/MOVE/DISCARD mit PR-Neuberechnung, `repeatLastSession`, Routinen aus Session, `ProgressSeriesBuilder` + `ProgressionClassifier` (Plateau-Alarm + Vorschlag) | Abgeschlossen |
+| C | Musik-Kopplung: `DropRestRequestBus` (Workout fordert DropSync-Rest an), Playback-Snapshot beim Satzabschluss (best-effort, 11.1) | Abgeschlossen |
+| D | Charts: animierte `LineChart`/`BarChart` in `:core:designsystem` (nur Compose-Canvas) | Abgeschlossen |
+| E | Feature-UI: `WorkoutFeature`-NavHost (Session, Bibliothek, Uebungsdetail, Routinen, Fortschritt), Prefill, Rest Normal/DropSync, Swap-Dialog, Routinen-Aktionen, Track-Chip, Strings DE/EN | Abgeschlossen (Geraete-Abnahme in Schritt 13) |
+| F | Tests: Domain (Slugs, Progressanalyse), Repository (18 Tests inkl. Swap/Wiederholen/RestPref/Snapshot), Migration 1 -> 2 gegen `2.json` | Abgeschlossen |
 
 ## Build
 
