@@ -119,6 +119,38 @@ class MasterDspProcessorTest {
     }
 
     @Test
+    fun `cue ducking wirkt am preamp knoten auch bei deaktivierter kette`() {
+        // Plan Phase 1.5: Ducking ist vom DSP-Schalter unabhaengig und
+        // muss nach der Ansage exakt auf den Basiswert zurueckkehren.
+        val processor = processor(DspConfig(enabled = false))
+        processor.configure(AudioProcessor.AudioFormat(48_000, 1, C.ENCODING_PCM_FLOAT))
+        processor.flush()
+
+        processor.setDuckingGain(0.5)
+        processor.queueInput(floatBuffer(0.8f))
+        assertEquals(0.4f, readFloats(processor.output)[0], 1e-6f)
+
+        processor.setDuckingGain(1.0)
+        processor.queueInput(floatBuffer(0.8f))
+        assertEquals(0.8f, readFloats(processor.output)[0], 1e-6f)
+    }
+
+    @Test
+    fun `cue ducking und dvc bleiben multiplikativ und kollidieren nicht`() {
+        // Plan Phase 1.5: Ducking (Preamp-Knoten) x DVC (Kettenende).
+        val processor =
+            processor(
+                DspConfig(dvcEnabled = true, dvcVolume = 0.5, limiterEnabled = false),
+            )
+        processor.configure(AudioProcessor.AudioFormat(48_000, 1, C.ENCODING_PCM_FLOAT))
+        processor.flush()
+
+        processor.setDuckingGain(0.5)
+        processor.queueInput(floatBuffer(0.8f))
+        assertEquals(0.2f, readFloats(processor.output)[0], 1e-6f)
+    }
+
+    @Test
     fun `eq band senkt einen sinus im band messbar ab`() {
         val config =
             DspConfig(
