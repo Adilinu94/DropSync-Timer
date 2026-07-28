@@ -8,6 +8,7 @@ import com.dropsync.core.common.onSuccess
 import com.dropsync.core.model.Song
 import com.dropsync.domain.library.Album
 import com.dropsync.domain.library.Artist
+import com.dropsync.domain.library.AudioFileFormat
 import com.dropsync.domain.library.Genre
 import com.dropsync.domain.library.LibraryBrowseRepository
 import com.dropsync.domain.library.LibraryFolder
@@ -54,6 +55,16 @@ data class BucketDetail(
     val key: String,
     val label: String,
 )
+
+/** Dauer-Filter der Titelliste (Plan Phase 6.2: Filter nach Dauer). */
+enum class DurationFilter(
+    val range: LongRange,
+) {
+    ALL(0L..Long.MAX_VALUE),
+    UNDER_4_MIN(0L until 4L * 60_000),
+    FROM_4_TO_10_MIN(4L * 60_000..10L * 60_000),
+    OVER_10_MIN(10L * 60_000 + 1..Long.MAX_VALUE),
+}
 
 @OptIn(FlowPreview::class, ExperimentalCoroutinesApi::class)
 @HiltViewModel
@@ -115,14 +126,42 @@ class LibraryViewModel
         private val _hiResOnly = MutableStateFlow(false)
         val hiResOnly: StateFlow<Boolean> = _hiResOnly.asStateFlow()
 
+        // Filter nach Format und Dauer (Plan Phase 6.2); null/ALL = kein Filter.
+        private val _formatFilter = MutableStateFlow<AudioFileFormat?>(null)
+        val formatFilter: StateFlow<AudioFileFormat?> = _formatFilter.asStateFlow()
+
+        private val _durationFilter = MutableStateFlow(DurationFilter.ALL)
+        val durationFilter: StateFlow<DurationFilter> = _durationFilter.asStateFlow()
+
+        /** Formate, die in der Bibliothek tatsaechlich vorkommen (fuer das Filtermenue). */
+        val availableFormats: StateFlow<List<AudioFileFormat>> =
+            libraryRepository.availableSongs
+                .map { list ->
+                    list
+                        .mapNotNull { AudioFileFormat.fromFileName(it.displayName) }
+                        .distinct()
+                        .sortedBy { it.ordinal }
+                }.asState(emptyList())
+
         private val _searchQuery = MutableStateFlow("")
         val searchQuery: StateFlow<String> = _searchQuery.asStateFlow()
 
-        /** Titelliste, client-seitig sortiert und optional auf Hi-Res gefiltert. */
+        /** Titelliste, client-seitig sortiert und nach Hi-Res/Format/Dauer gefiltert. */
         val songs: StateFlow<List<Song>> =
-            combine(libraryRepository.availableSongs, _sort, _hiResOnly) { list, sort, hiResOnly ->
-                val filtered = if (hiResOnly) list.filter(::isHiRes) else list
-                filtered.sortedWith(comparatorFor(sort))
+            combine(
+                libraryRepository.availableSongs,
+                _sort,
+                _hiResOnly,
+                _formatFilter,
+                _durationFilter,
+            ) { list, sort, hiResOnly, format, duration ->
+                list
+                    .asSequence()
+                    .filter { !hiResOnly || isHiRes(it) }
+                    .filter { format == null || AudioFileFormat.fromFileName(it.displayName) == format }
+                    .filter { duration == DurationFilter.ALL || it.durationMs in duration.range }
+                    .sortedWith(comparatorFor(sort))
+                    .toList()
             }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
         val albums: StateFlow<List<Album>> = browseRepository.albums.asState(emptyList())
@@ -236,6 +275,16 @@ class LibraryViewModel
             _hiResOnly.value = !_hiResOnly.value
         }
 
+        /** Filtert die Titelliste auf [format]; null hebt den Filter auf. */
+        fun setFormatFilter(format: AudioFileFormat?) {
+            _formatFilter.value = format
+        }
+
+        /** Filtert die Titelliste nach Dauer-Bereich. */
+        fun setDurationFilter(filter: DurationFilter) {
+            _durationFilter.value = filter
+        }
+
         fun setSearchQuery(query: String) {
             _searchQuery.value = query
         }
@@ -300,10 +349,7 @@ class LibraryViewModel
 
         private fun Song.displayTitle(): String = title ?: displayName
 
-        private fun isHiRes(song: Song): Boolean =
-            com.dropsync.domain.library.AudioFileFormat
-                .fromFileName(song.displayName)
-                ?.hiResCapable == true
+        private fun isHiRes(song: Song): Boolean = AudioFileFormat.fromFileName(song.displayName)?.hiResCapable == true
 
         private fun keyToView(key: String): LibraryView? = LibraryView.entries.firstOrNull { it.name == key }
 

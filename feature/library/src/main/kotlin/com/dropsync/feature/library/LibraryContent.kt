@@ -440,9 +440,18 @@ private fun LibraryViewBody(
 private fun SortFilterBar(viewModel: LibraryViewModel) {
     val sort by viewModel.sort.collectAsStateWithLifecycle()
     val hiResOnly by viewModel.hiResOnly.collectAsStateWithLifecycle()
+    val formatFilter by viewModel.formatFilter.collectAsStateWithLifecycle()
+    val durationFilter by viewModel.durationFilter.collectAsStateWithLifecycle()
+    val availableFormats by viewModel.availableFormats.collectAsStateWithLifecycle()
     var menuOpen by remember { mutableStateOf(false) }
+    var formatMenuOpen by remember { mutableStateOf(false) }
+    var durationMenuOpen by remember { mutableStateOf(false) }
     Row(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .horizontalScroll(rememberScrollState())
+                .padding(horizontal = 12.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         AssistChip(
@@ -465,6 +474,49 @@ private fun SortFilterBar(viewModel: LibraryViewModel) {
             onClick = { viewModel.toggleHiResOnly() },
             label = { Text(stringResource(R.string.library_filter_hires)) },
         )
+        // Filter nach Format (Plan Phase 6.2); nur tatsaechlich vorhandene Formate.
+        FilterChip(
+            selected = formatFilter != null,
+            onClick = { formatMenuOpen = true },
+            label = {
+                Text(formatFilter?.displayName ?: stringResource(R.string.library_filter_format))
+            },
+        )
+        DropdownMenu(expanded = formatMenuOpen, onDismissRequest = { formatMenuOpen = false }) {
+            DropdownMenuItem(
+                text = { Text(stringResource(R.string.library_filter_format_all)) },
+                onClick = {
+                    viewModel.setFormatFilter(null)
+                    formatMenuOpen = false
+                },
+            )
+            availableFormats.forEach { format ->
+                DropdownMenuItem(
+                    text = { Text(format.displayName) },
+                    onClick = {
+                        viewModel.setFormatFilter(format)
+                        formatMenuOpen = false
+                    },
+                )
+            }
+        }
+        // Filter nach Dauer (Plan Phase 6.2).
+        FilterChip(
+            selected = durationFilter != DurationFilter.ALL,
+            onClick = { durationMenuOpen = true },
+            label = { Text(stringResource(durationFilter.labelRes())) },
+        )
+        DropdownMenu(expanded = durationMenuOpen, onDismissRequest = { durationMenuOpen = false }) {
+            DurationFilter.entries.forEach { option ->
+                DropdownMenuItem(
+                    text = { Text(stringResource(option.labelRes())) },
+                    onClick = {
+                        viewModel.setDurationFilter(option)
+                        durationMenuOpen = false
+                    },
+                )
+            }
+        }
     }
 }
 
@@ -487,4 +539,12 @@ private fun SongSort.labelRes(): Int =
         SongSort.ALBUM -> R.string.library_sort_album
         SongSort.DURATION -> R.string.library_sort_duration
         SongSort.DATE_ADDED -> R.string.library_sort_date_added
+    }
+
+private fun DurationFilter.labelRes(): Int =
+    when (this) {
+        DurationFilter.ALL -> R.string.library_filter_duration_all
+        DurationFilter.UNDER_4_MIN -> R.string.library_filter_duration_short
+        DurationFilter.FROM_4_TO_10_MIN -> R.string.library_filter_duration_medium
+        DurationFilter.OVER_10_MIN -> R.string.library_filter_duration_long
     }

@@ -17,6 +17,12 @@
     <string name="library_search_clear">Clear search</string>
     <string name="library_back">Back</string>
     <string name="library_filter_hires">Hi-Res only</string>
+    <string name="library_filter_format">Format</string>
+    <string name="library_filter_format_all">All formats</string>
+    <string name="library_filter_duration_all">Duration</string>
+    <string name="library_filter_duration_short">Under 4 min</string>
+    <string name="library_filter_duration_medium">4–10 min</string>
+    <string name="library_filter_duration_long">Over 10 min</string>
     <string name="library_view_songs">Songs</string>
     <string name="library_view_artists">Artists</string>
     <string name="library_view_albums">Albums</string>
