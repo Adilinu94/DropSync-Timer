@@ -41,6 +41,12 @@ class MasterDspProcessor : BaseAudioProcessor() {
 
     private var config: DspConfig = DspConfig()
 
+    // Transientes Cue-Ducking (Plan Phase 1.5): eigener Gain am
+    // Preamp-Knoten, unabhaengig von config.enabled, damit Ducking und
+    // DVC nie kollidieren; 1.0 = kein Ducking, nur Absenkung erlaubt.
+    @Volatile
+    private var duckingGain: Double = 1.0
+
     private var inputEncoding: PcmEncoding = PcmEncoding.PCM_16
     private var sampleRateHz = 0
     private var channelCount = 0
@@ -64,6 +70,11 @@ class MasterDspProcessor : BaseAudioProcessor() {
     /** Neue Konfiguration; Uebernahme am naechsten Blockanfang. */
     fun submitConfig(newConfig: DspConfig) {
         pendingConfig.set(DspConfig.sanitized(newConfig))
+    }
+
+    /** Cue-Ducking-Gain (0..1) am Preamp-Knoten; wirkt sofort. */
+    fun setDuckingGain(gain: Double) {
+        duckingGain = gain.coerceIn(0.0, 1.0)
     }
 
     override fun onConfigure(inputAudioFormat: AudioProcessor.AudioFormat): AudioProcessor.AudioFormat {
@@ -105,6 +116,15 @@ class MasterDspProcessor : BaseAudioProcessor() {
             samples = DoubleArray(available)
         }
         val count = PcmCodec.decode(inputBuffer, inputEncoding, samples)
+
+        // Preamp-Knoten: Cue-Ducking zuerst, damit es mit Preamp/DVC
+        // multiplikativ bleibt und nie mit der Nutzerlautstaerke kollidiert.
+        val ducking = duckingGain
+        if (ducking != 1.0) {
+            for (i in 0 until count) {
+                samples[i] *= ducking
+            }
+        }
 
         val active = config.enabled
         if (active) {

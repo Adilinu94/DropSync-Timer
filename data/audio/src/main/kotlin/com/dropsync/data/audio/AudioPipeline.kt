@@ -97,6 +97,22 @@ class AudioPipeline
         /** Prozessorkette fuer den DefaultAudioSink (Reihenfolge ADR-0005). */
         fun audioProcessors(): Array<AudioProcessor> = arrayOf(masterProcessor)
 
+        private val mutableDuckingGain = MutableStateFlow(1.0)
+
+        /** Aktueller Cue-Ducking-Gain am Preamp-Knoten (1.0 = kein Ducking). */
+        val duckingGain: StateFlow<Double> = mutableDuckingGain.asStateFlow()
+
+        /**
+         * Cue-Ducking auf dem Preamp-Knoten (Plan Phase 1.5): wirkt in der
+         * 64-Bit-Kette vor Preamp/DVC und kollidiert daher weder mit der
+         * Nutzerlautstaerke noch mit der digitalen Lautstaerke (DVC).
+         */
+        fun setDuckingGain(gain: Double) {
+            val sanitized = gain.coerceIn(0.0, 1.0)
+            mutableDuckingGain.value = sanitized
+            masterProcessor.setDuckingGain(sanitized)
+        }
+
         fun onSourceFormatChanged(info: SourceFormatInfo) {
             mutableSourceFormat.value = info
         }

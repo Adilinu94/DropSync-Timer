@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.datastore.preferences.preferencesDataStoreFile
 import com.dropsync.core.common.DispatcherProvider
+import com.dropsync.data.audio.AudioPipeline
 import com.dropsync.data.playback.DataStorePlayerStateStore
 import com.dropsync.data.playback.MediaControllerConnection
 import com.dropsync.data.playback.PlaybackRepositoryImpl
@@ -53,8 +54,5 @@ object PlaybackDataModule {
 
     @Provides
     @Singleton
-    fun providePlayerVolumeGate(
-        connection: PlayerConnection,
-        dispatchers: DispatcherProvider,
-    ): PlayerVolumeGate = PlayerVolumeGateImpl(connection, dispatchers)
+    fun providePlayerVolumeGate(pipeline: AudioPipeline): PlayerVolumeGate = PlayerVolumeGateImpl(pipeline)
 }
