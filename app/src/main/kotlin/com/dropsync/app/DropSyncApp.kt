@@ -34,6 +34,7 @@ import com.dropsync.feature.audio.AudioSettingsScreen
 import com.dropsync.feature.library.LibraryScreen
 import com.dropsync.feature.player.DropRestCard
 import com.dropsync.feature.player.MiniPlayer
+import com.dropsync.feature.player.NowPlayingScreen
 import com.dropsync.feature.settings.SettingsScreen
 import com.dropsync.feature.timer.TimerSection
 import com.dropsync.feature.workout.WorkoutFeature
@@ -58,6 +59,12 @@ enum class TopLevelDestination(
  * Erreichbar ueber den Audio-Einstieg in [SettingsScreen].
  */
 private const val ROUTE_AUDIO_SETTINGS = "audio_settings"
+
+/**
+ * Now-Playing-Screen (Marker/Waveform-Plan Phase 1), erreichbar per Tap
+ * auf den Mini-Player; kein viertes Hauptziel.
+ */
+private const val ROUTE_NOW_PLAYING = "now_playing"
 
 @Composable
 fun DropSyncApp(windowSizeClass: WindowSizeClass) {
@@ -84,7 +91,9 @@ private fun DropSyncContent(
         bottomBar = {
             Column {
                 // Der aktive Mini-Player bleibt in der Shell sichtbar (12.2).
-                MiniPlayer()
+                MiniPlayer(
+                    onOpenNowPlaying = { navController.navigate(ROUTE_NOW_PLAYING) },
+                )
                 if (showBottomBar) {
                     DropSyncNavigationBar(navController)
                 }
@@ -137,6 +146,12 @@ private fun DropSyncNavHost(
         }
         composable(ROUTE_AUDIO_SETTINGS) {
             AudioSettingsScreen(
+                contentPadding = contentPadding,
+                onBack = { navController.popBackStack() },
+            )
+        }
+        composable(ROUTE_NOW_PLAYING) {
+            NowPlayingScreen(
                 contentPadding = contentPadding,
                 onBack = { navController.popBackStack() },
             )

@@ -3,6 +3,11 @@
     <string name="player_play">Wiedergeben</string>
     <string name="player_pause">Pausieren</string>
     <string name="player_next">Naechster Song</string>
+    <string name="player_previous">Vorheriger Song</string>
+    <string name="now_playing_title">Laeuft gerade</string>
+    <string name="now_playing_back">Zurueck</string>
+    <string name="now_playing_empty">Gerade laeuft nichts.</string>
+    <string name="now_playing_cover">Albumcover</string>
     <string name="player_queue_open">Warteschlange oeffnen</string>
     <string name="player_queue_title">Warteschlange</string>
     <string name="player_queue_empty">Die Warteschlange ist leer.</string>

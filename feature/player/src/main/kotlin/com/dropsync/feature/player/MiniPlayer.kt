@@ -1,5 +1,6 @@
 package com.dropsync.feature.player
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -31,11 +32,13 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 /**
  * Aktiver Mini-Player: bleibt als klar beschriebene, bedienbare
  * Komponente in der Shell sichtbar (Schritt 12.2). Jeder Icon-Button hat
- * eine lokalisierte Inhaltsbeschreibung (12.4).
+ * eine lokalisierte Inhaltsbeschreibung (12.4). Tap auf die Titelzeile
+ * oeffnet den Now-Playing-Screen (Marker/Waveform-Plan Phase 1).
  */
 @Composable
 fun MiniPlayer(
     modifier: Modifier = Modifier,
+    onOpenNowPlaying: () -> Unit = {},
     viewModel: PlayerViewModel = hiltViewModel(),
 ) {
     val state by viewModel.miniPlayer.collectAsStateWithLifecycle()
@@ -52,7 +55,12 @@ fun MiniPlayer(
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Column(modifier = Modifier.weight(1f)) {
+            Column(
+                modifier =
+                    Modifier
+                        .weight(1f)
+                        .clickable(onClick = onOpenNowPlaying),
+            ) {
                 Text(
                     text = state.title,
                     style = MaterialTheme.typography.titleSmall,

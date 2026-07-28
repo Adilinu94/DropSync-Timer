@@ -1,0 +1,316 @@
+package com.dropsync.feature.player
+
+import android.graphics.BitmapFactory
+import android.media.MediaMetadataRetriever
+import android.net.Uri
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.MusicNote
+import androidx.compose.material.icons.filled.Pause
+import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.SkipNext
+import androidx.compose.material.icons.filled.SkipPrevious
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilledIconButton
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Slider
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.withContext
+import java.util.Locale
+
+/** Tick-Intervall des Positions-Tickers; laeuft nur bei sichtbarem Screen. */
+private const val POSITION_TICK_MS = 200L
+
+/**
+ * Now-Playing-Screen (Marker/Waveform-Plan Phase 1): Cover, Titel,
+ * Interpret, Fortschritt mit Scrubbing-Vorstufe und Transportsteuerung.
+ * Grosse Touch-Ziele (12.5), lokalisierte Beschreibungen (12.4).
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun NowPlayingScreen(
+    onBack: () -> Unit,
+    contentPadding: PaddingValues = PaddingValues(),
+    viewModel: PlayerViewModel = hiltViewModel(),
+) {
+    val state by viewModel.nowPlaying.collectAsStateWithLifecycle()
+    val livePosition by viewModel.livePositionMs.collectAsStateWithLifecycle()
+
+    // Ticker nur, solange dieser Screen in der Composition ist: `state`
+    // aktualisiert die Position nur bei Player-Ereignissen (Plan Phase 1).
+    LaunchedEffect(state.isVisible) {
+        while (state.isVisible) {
+            viewModel.refreshPosition()
+            delay(POSITION_TICK_MS)
+        }
+    }
+
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text(stringResource(R.string.now_playing_title)) },
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(
+                            Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = stringResource(R.string.now_playing_back),
+                        )
+                    }
+                },
+            )
+        },
+    ) { innerPadding ->
+        Column(
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding)
+                    .padding(bottom = contentPadding.calculateBottomPadding())
+                    .padding(horizontal = 24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center,
+        ) {
+            if (!state.isVisible) {
+                Text(
+                    text = stringResource(R.string.now_playing_empty),
+                    style = MaterialTheme.typography.bodyLarge,
+                    textAlign = TextAlign.Center,
+                )
+                return@Column
+            }
+
+            CoverArt(contentUri = state.contentUri)
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            Text(
+                text = state.title,
+                style = MaterialTheme.typography.headlineSmall,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            state.artist?.let {
+                Text(
+                    text = it,
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            ProgressSection(
+                positionMs = livePosition ?: state.positionMs,
+                durationMs = state.durationMs,
+                onSeek = viewModel::seekTo,
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            TransportControls(
+                isPlaying = state.isPlaying,
+                onPrevious = viewModel::skipToPrevious,
+                onTogglePlayPause = viewModel::togglePlayPause,
+                onNext = viewModel::skipToNext,
+            )
+        }
+    }
+}
+
+/**
+ * Fortschrittsleiste mit Zeitlabels. Drag zeigt die Zielposition live an;
+ * der Sprung erfolgt erst beim Loslassen (Vorstufe zur Waveform, Phase 3).
+ */
+@Composable
+private fun ProgressSection(
+    positionMs: Long,
+    durationMs: Long,
+    onSeek: (Long) -> Unit,
+) {
+    var scrubPositionMs by remember { mutableStateOf<Long?>(null) }
+    val shownPositionMs = scrubPositionMs ?: positionMs
+    val safeDuration = durationMs.coerceAtLeast(1L)
+
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Slider(
+            value = (shownPositionMs.toFloat() / safeDuration).coerceIn(0f, 1f),
+            onValueChange = { fraction ->
+                scrubPositionMs = (fraction * safeDuration).toLong()
+            },
+            onValueChangeFinished = {
+                scrubPositionMs?.let(onSeek)
+                scrubPositionMs = null
+            },
+            modifier = Modifier.fillMaxWidth(),
+        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+        ) {
+            Text(
+                text = formatTimeMs(shownPositionMs),
+                style = MaterialTheme.typography.labelMedium,
+            )
+            Text(
+                text = formatTimeMs(durationMs),
+                style = MaterialTheme.typography.labelMedium,
+            )
+        }
+    }
+}
+
+@Composable
+private fun TransportControls(
+    isPlaying: Boolean,
+    onPrevious: () -> Unit,
+    onTogglePlayPause: () -> Unit,
+    onNext: () -> Unit,
+) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(16.dp),
+    ) {
+        IconButton(onClick = onPrevious, modifier = Modifier.size(56.dp)) {
+            Icon(
+                Icons.Filled.SkipPrevious,
+                contentDescription = stringResource(R.string.player_previous),
+            )
+        }
+        FilledIconButton(onClick = onTogglePlayPause, modifier = Modifier.size(72.dp)) {
+            if (isPlaying) {
+                Icon(
+                    Icons.Filled.Pause,
+                    contentDescription = stringResource(R.string.player_pause),
+                )
+            } else {
+                Icon(
+                    Icons.Filled.PlayArrow,
+                    contentDescription = stringResource(R.string.player_play),
+                )
+            }
+        }
+        IconButton(onClick = onNext, modifier = Modifier.size(56.dp)) {
+            Icon(
+                Icons.Filled.SkipNext,
+                contentDescription = stringResource(R.string.player_next),
+            )
+        }
+    }
+}
+
+/**
+ * Cover aus dem eingebetteten Bild der Datei, off dem Main-Thread.
+ * MediaMetadataRetriever statt loadThumbnail(), weil minSdk 26 unter
+ * API 29 liegt; keine neue Abhaengigkeit (Plan-Architekturentscheidung).
+ */
+@Composable
+private fun CoverArt(contentUri: String?) {
+    val context = LocalContext.current
+    val cover by produceState<ImageBitmap?>(initialValue = null, contentUri) {
+        value =
+            if (contentUri == null) {
+                null
+            } else {
+                withContext(Dispatchers.IO) { loadEmbeddedCover(context, contentUri) }
+            }
+    }
+
+    Box(
+        modifier =
+            Modifier
+                .fillMaxWidth(0.8f)
+                .aspectRatio(1f)
+                .clip(RoundedCornerShape(16.dp))
+                .background(MaterialTheme.colorScheme.surfaceContainerHigh),
+        contentAlignment = Alignment.Center,
+    ) {
+        val bitmap = cover
+        if (bitmap != null) {
+            Image(
+                bitmap = bitmap,
+                contentDescription = stringResource(R.string.now_playing_cover),
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.fillMaxSize(),
+            )
+        } else {
+            Icon(
+                Icons.Filled.MusicNote,
+                contentDescription = stringResource(R.string.now_playing_cover),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.fillMaxSize(0.4f),
+            )
+        }
+    }
+}
+
+private fun loadEmbeddedCover(
+    context: android.content.Context,
+    contentUri: String,
+): ImageBitmap? =
+    runCatching {
+        val retriever = MediaMetadataRetriever()
+        try {
+            retriever.setDataSource(context, Uri.parse(contentUri))
+            retriever.embeddedPicture?.let { bytes ->
+                BitmapFactory.decodeByteArray(bytes, 0, bytes.size)?.asImageBitmap()
+            }
+        } finally {
+            retriever.release()
+        }
+    }.getOrNull()
+
+/** mm:ss bzw. h:mm:ss bei Ueberlaenge; stabile Locale-unabhaengige Ziffern. */
+private fun formatTimeMs(ms: Long): String {
+    val totalSeconds = (ms.coerceAtLeast(0L)) / 1000
+    val hours = totalSeconds / 3600
+    val minutes = (totalSeconds % 3600) / 60
+    val seconds = totalSeconds % 60
+    return if (hours > 0) {
+        String.format(Locale.ROOT, "%d:%02d:%02d", hours, minutes, seconds)
+    } else {
+        String.format(Locale.ROOT, "%d:%02d", minutes, seconds)
+    }
+}

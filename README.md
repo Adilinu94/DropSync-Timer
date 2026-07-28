@@ -49,6 +49,16 @@ Bauplan sind nur ueber ADRs in [`docs/adr/`](docs/adr/) erlaubt.
 | E | Feature-UI: `WorkoutFeature`-NavHost (Session, Bibliothek, Uebungsdetail, Routinen, Fortschritt), Prefill, Rest Normal/DropSync, Swap-Dialog, Routinen-Aktionen, Track-Chip, Strings DE/EN | Abgeschlossen (Geraete-Abnahme in Schritt 13) |
 | F | Tests: Domain (Slugs, Progressanalyse), Repository (18 Tests inkl. Swap/Wiederholen/RestPref/Snapshot), Migration 1 -> 2 gegen `2.json` | Abgeschlossen |
 
+### Marker- und Waveform-Ausbau (Plan `MARKER_UND_WAVEFORM_AUSBAU_PLAN.md`)
+
+| Phase | Inhalt | Status |
+| ----- | ------ | ------ |
+| 1 | Now-Playing-Screen-Fundament: `NowPlayingScreen` (Cover via `MediaMetadataRetriever.embeddedPicture`, da minSdk 26 < API 29 fuer `loadThumbnail()`), `NowPlayingUiState` + Positions-Ticker (200 ms `snapshotNow()`, nur bei sichtbarem Screen), `skipToPrevious`/`seekTo`, Route `now_playing` per Tap auf den Mini-Player | Abgeschlossen |
+| 2 | Geteilte Analyse-Grundlage: `TrackAnalyzer` (`:domain:audio`), `track_analysis`-Cache (DB v3, `MIGRATION_2_3`), PCM-Decode in `:data:audio` | Offen |
+| 3 | Waveform-Anzeige mit Scrubbing (`:core:designsystem`, Compose-Canvas) | Offen |
+| 4 | A1 - Manuelles Marker-Setzen (`createManualMarker`/`deleteMarker`, Bestaetigungs-Sheet, Marker-Ticks) | Offen |
+| 5 | A2 - On-Device-Drop-/Onset-Erkennung (Novelty + Peak-Picking, Kandidaten `AUTO_DETECTED`/`isEnabled=false`, Review-Liste) | Offen |
+
 ## Build
 
 Voraussetzungen:
