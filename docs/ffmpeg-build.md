@@ -10,6 +10,9 @@ lokales Gradle-Modul eingebunden.
 > Ohne das Artefakt bleibt die App voll funktionsfaehig und faellt auf die
 > Plattformdecoder zurueck (Gradle-Flag `dropsync.enableFfmpeg=false`, Default).
 
+> **Schnellstart auf einem Linux-PC:** die vereinfachte
+> Schritt-fuer-Schritt-Anleitung steht in `docs/ffmpeg-build-linux.md`.
+
 ## Ziel-Formate
 
 Nur Audio-Decoder, keine Encoder, kein Muxing, kein GPL:
