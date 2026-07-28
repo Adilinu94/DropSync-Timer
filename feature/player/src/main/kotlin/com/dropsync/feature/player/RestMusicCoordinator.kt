@@ -152,7 +152,13 @@ class RestMusicCoordinator
                     // Nutzer nicht manuell pausiert hat (Nutzer hat Vorrang).
                     if (activeSessionId != sessionId) return@launch
                     val snapshot = playbackRepository.snapshotNow().getOrNull()
-                    if (snapshot != null && !snapshot.isPlaying) return@launch
+                    if (snapshot != null && !snapshot.isPlaying) {
+                        // Manueller Eingriff (Pause/Medientaste): Automatik
+                        // ganz abgeben, damit auch am Pausenende nichts
+                        // erzwungen wird (Hardware-/Touch-Control, F4).
+                        controlling = false
+                        return@launch
+                    }
                     playbackRepository.crossfadeTo(workSong, plan.startAtPositionMs)
                     landed = true
                 }

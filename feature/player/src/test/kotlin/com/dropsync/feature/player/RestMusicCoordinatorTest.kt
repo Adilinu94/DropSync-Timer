@@ -107,6 +107,28 @@ class RestMusicCoordinatorTest {
         }
 
     @Test
+    fun `manuelle Pause bricht die Drop-Landung ab`() =
+        runTest(dispatcher) {
+            browse.playlistsByLabelMap[PlaylistLabel.REST] = listOf(playlist(1L))
+            browse.songsByPlaylist[1L] = listOf(song(10L))
+            browse.playlistsByLabelMap[PlaylistLabel.WORK] = listOf(playlist(2L))
+            browse.songsByPlaylist[2L] = listOf(song(20L, durationMs = 200_000L))
+            markers.markersBySong[20L] = listOf(marker(id = 5L, positionMs = 20_000L, songId = 20L))
+            settings.behaviorState.value = RestMusicBehavior.DROP_LANDING
+
+            coordinator().start()
+            engine.start(TimerMode.REST, durationMs = 30_000L)
+            dispatcher.scheduler.runCurrent()
+
+            // Nutzer pausiert (Medientaste) waehrend der Pause: Landung faellt aus.
+            playback.playing = false
+            dispatcher.scheduler.advanceTimeBy(10_001L)
+            dispatcher.scheduler.runCurrent()
+
+            assertTrue(playback.crossfadeCalls.isEmpty())
+        }
+
+    @Test
     fun `NORMAL greift nicht in die Wiedergabe ein`() =
         runTest(dispatcher) {
             browse.playlistsByLabelMap[PlaylistLabel.REST] = listOf(playlist(1L))

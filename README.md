@@ -67,7 +67,7 @@ Bauplan sind nur ueber ADRs in [`docs/adr/`](docs/adr/) erlaubt.
 | 2 | Playlist-Labels "Rest/Pause" und "Work" (F2): additive Spalte `label`, DB v3->v4 (`MIGRATION_3_4`, `4.json`), Label-Auswahl + Badge in der UI | Abgeschlossen |
 | 3 | Rest-Musik-Domain + Einstellungen: `RestMusicBehavior`, reiner `DropLandingPlanner` (`:domain:timer`), `RestMusicSettingsRepository`/-`Store` (DataStore), Abschnitt "Musik in Pausen" in den Einstellungen | Abgeschlossen |
 | 4 | Rest-Musik-Orchestrierung + Drop-Landung (F3): `RestMusicCoordinator` (`:feature:player`) beobachtet `TimerEngine`+Einstellung, setzt Rest-Queue bei Pausenbeginn, terminiert die Drop-Landung und wechselt per `crossfadeTo` (MediaSession-Custom-Kommando -> erweiterter `CrossfadeController`), Fallback-Kette + Nutzer-Vorrang; ADR-0012 | Abgeschlossen |
-| 5 | Hardware-/Touch-Control (F4): Verifikation MediaSession-Standardbefehle, Override-Absicherung, Doku `docs/hardware-control.md` | Offen |
+| 5 | Hardware-/Touch-Control (F4): Verifikation MediaSession-Standardbefehle, Override-Absicherung, Doku `docs/hardware-control.md` | Abgeschlossen (codeseitig: Standardkommandos + Notification-Aktionen ueber `MediaLibrarySession`, Nutzer-Vorrang der Automatik getestet, Doku; Geraeteabnahme wie Schritt 13 offen) |
 | 6 | Extras: Intelligentes Shuffle (A5), Rest-Timer-Presets (B8), Get-Ready-Countdown 3-2-1 (B9) | Offen |
 
 ## Build
