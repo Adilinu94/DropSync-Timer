@@ -14,6 +14,7 @@ import com.dropsync.core.database.dao.RoutineDao
 import com.dropsync.core.database.dao.SafFileDao
 import com.dropsync.core.database.dao.SongDao
 import com.dropsync.core.database.dao.TimerPresetDao
+import com.dropsync.core.database.dao.TrackAnalysisDao
 import com.dropsync.core.database.dao.WorkoutDao
 import com.dropsync.core.database.entity.CueTrackEntity
 import com.dropsync.core.database.entity.EqPresetBandEntity
@@ -41,6 +42,7 @@ import com.dropsync.core.database.entity.SongEntity
 import com.dropsync.core.database.entity.SongFtsEntity
 import com.dropsync.core.database.entity.SongMarkerEntity
 import com.dropsync.core.database.entity.TimerPresetEntity
+import com.dropsync.core.database.entity.TrackAnalysisEntity
 import com.dropsync.core.database.entity.WorkoutSessionEntity
 
 /**
@@ -83,8 +85,9 @@ import com.dropsync.core.database.entity.WorkoutSessionEntity
         PlaylistEntity::class,
         PlaylistItemEntity::class,
         SongFtsEntity::class,
+        TrackAnalysisEntity::class,
     ],
-    version = 2,
+    version = 3,
     exportSchema = true,
 )
 abstract class DropSyncDatabase : RoomDatabase() {
@@ -113,6 +116,8 @@ abstract class DropSyncDatabase : RoomDatabase() {
     abstract fun favoriteDao(): FavoriteDao
 
     abstract fun playlistDao(): PlaylistDao
+
+    abstract fun trackAnalysisDao(): TrackAnalysisDao
 
     companion object {
         const val NAME = "dropsync.db"

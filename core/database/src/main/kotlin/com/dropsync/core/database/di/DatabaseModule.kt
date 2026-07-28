@@ -18,6 +18,7 @@ import com.dropsync.core.database.dao.RoutineDao
 import com.dropsync.core.database.dao.SafFileDao
 import com.dropsync.core.database.dao.SongDao
 import com.dropsync.core.database.dao.TimerPresetDao
+import com.dropsync.core.database.dao.TrackAnalysisDao
 import com.dropsync.core.database.dao.WorkoutDao
 import com.dropsync.core.database.seed.ExerciseSeeder
 import dagger.Module
@@ -91,4 +92,7 @@ object DatabaseModule {
 
     @Provides
     fun providePlaylistDao(database: DropSyncDatabase): PlaylistDao = database.playlistDao()
+
+    @Provides
+    fun provideTrackAnalysisDao(database: DropSyncDatabase): TrackAnalysisDao = database.trackAnalysisDao()
 }

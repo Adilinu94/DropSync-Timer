@@ -28,5 +28,25 @@ val MIGRATION_1_2 =
         }
     }
 
+/**
+ * v2 -> v3: fuegt die Tabelle `track_analysis` hinzu (Waveform-/Analyse-
+ * Cache, Marker/Waveform-Plan Phase 2). Rein additiv; bestehende Daten
+ * bleiben unveraendert.
+ */
+val MIGRATION_2_3 =
+    object : Migration(2, 3) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL(
+                "CREATE TABLE IF NOT EXISTS `track_analysis` (" +
+                    "`song_id` INTEGER NOT NULL, " +
+                    "`waveform_data` BLOB NOT NULL, " +
+                    "`bucket_count` INTEGER NOT NULL, " +
+                    "`analyzer_version` INTEGER NOT NULL, " +
+                    "`analyzed_at_epoch_ms` INTEGER NOT NULL, " +
+                    "PRIMARY KEY(`song_id`))",
+            )
+        }
+    }
+
 /** Vollstaendige Migrationskette der Datenbank (Reihenfolge egal). */
-val DROPSYNC_MIGRATIONS: Array<Migration> = arrayOf(MIGRATION_1_2)
+val DROPSYNC_MIGRATIONS: Array<Migration> = arrayOf(MIGRATION_1_2, MIGRATION_2_3)

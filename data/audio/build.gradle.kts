@@ -45,6 +45,9 @@ dependencies {
     implementation(libs.androidx.media3.common)
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.datastore.preferences)
+    // Aufschiebbare Track-Analyse (Marker/Waveform-Plan Phase 2):
+    // OneTimeWorkRequest, dedupliziert ueber track_analysis_<songId>.
+    implementation(libs.androidx.work.runtime.ktx)
     implementation(libs.kotlinx.coroutines.android)
 
     // Optionale FFmpeg-Decoder-Extension (Plan Phase 3, ADR-0006): nur wenn
