@@ -86,6 +86,7 @@ fun DropSyncTheme(
     MaterialTheme(
         colorScheme = if (darkTheme) DarkColors else LightColors,
         shapes = BrandShapes,
+        typography = DropSyncTypography,
         content = content,
     )
 }

@@ -33,6 +33,16 @@ Status-Werte: `FREIGEGEBEN` (Lizenz geprueft, kompatibel), `OFFEN` (in Pruefung)
 | Spotless (Gradle-Plugin) | 8.8.0 | Apache-2.0 | Formatierung/statische Analyse (nur Build, keine Distribution) | https://github.com/diffplug/spotless | FREIGEGEBEN |
 | ktlint | 1.8.0 | MIT | Kotlin-Linting via Spotless (nur Build) | https://github.com/pinterest/ktlint | FREIGEGEBEN |
 | FFmpeg (libavcodec, libavformat, libavutil) | 6.1+ | LGPL-2.1-or-later | Audiodecoder-Extension (ALAC/AIFF/WMA/APE/TAK/TTA/DSD), dynamisch gelinkt, aus androidx/media gebaut (ADR-0006) | https://ffmpeg.org | OFFEN |
+| Raleway (Schriftfamilie) | static (wght) | OFL-1.1 | Marken-Typografie, gebuendelte TTF in `:core:designsystem` (`res/font`) | https://github.com/impallari/Raleway | FREIGEGEBEN |
+
+## Raleway (SIL OFL 1.1)
+
+Die Marken-Schriftfamilie Raleway wird unter der SIL Open Font License 1.1
+als statische TTF (Gewichte 400/500/600/700/800) in `:core:designsystem`
+(`src/main/res/font/`) gebuendelt und offline ausgeliefert - kein
+Google-Fonts-Provider, kein Netzzugriff. Der vollstaendige Lizenztext liegt
+unter `UI/Raleway/OFL.txt`. OFL erlaubt das Einbetten in Anwendungen; die
+Fonts werden nicht separat verkauft und der Lizenztext begleitet die Dateien.
 
 ## FFmpeg (LGPL 2.1+)
 
