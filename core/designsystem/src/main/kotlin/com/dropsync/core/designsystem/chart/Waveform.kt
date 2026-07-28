@@ -82,6 +82,9 @@ object WaveformMapping {
  * [progressFraction] ist der gespielte Anteil [0..1]. Tap springt sofort
  * ([onSeek]); Drag meldet eine Live-Vorschau ueber [onScrubPreview] und
  * springt erst beim Loslassen — keine seekTo-Flut waehrend der Geste.
+ * [markerFractions] zeichnet vorhandene Marker als duenne Ticks in
+ * Akzentfarbe (Phase 4); Long-Press meldet die Position an [onLongPress]
+ * (Marker setzen bzw. nahe eines Ticks loeschen — der Aufrufer entscheidet).
  */
 @Composable
 fun Waveform(
@@ -90,10 +93,13 @@ fun Waveform(
     onSeek: (Float) -> Unit,
     onScrubPreview: (Float?) -> Unit,
     modifier: Modifier = Modifier,
+    markerFractions: List<Float> = emptyList(),
+    onLongPress: ((Float) -> Unit)? = null,
     contentDescription: String? = null,
 ) {
     val playedColor = MaterialTheme.colorScheme.primary
     val restColor = MaterialTheme.colorScheme.outlineVariant
+    val markerColor = MaterialTheme.colorScheme.tertiary
     var scrubFraction by remember { mutableFloatStateOf(-1f) }
     val desc = contentDescription
     val semanticsModifier =
@@ -105,10 +111,18 @@ fun Waveform(
     Canvas(
         modifier =
             semanticsModifier
-                .pointerInput(Unit) {
-                    detectTapGestures { offset ->
-                        onSeek(WaveformMapping.fractionAt(offset.x, size.width.toFloat()))
-                    }
+                .pointerInput(onLongPress != null) {
+                    detectTapGestures(
+                        onTap = { offset ->
+                            onSeek(WaveformMapping.fractionAt(offset.x, size.width.toFloat()))
+                        },
+                        onLongPress =
+                            onLongPress?.let { callback ->
+                                { offset: Offset ->
+                                    callback(WaveformMapping.fractionAt(offset.x, size.width.toFloat()))
+                                }
+                            },
+                    )
                 }.pointerInput(Unit) {
                     detectHorizontalDragGestures(
                         onDragStart = { offset ->
@@ -141,6 +155,16 @@ fun Waveform(
                 topLeft = Offset(bar.left, bar.top),
                 size = Size(bar.width, bar.height),
                 cornerRadius = CornerRadius(1.dp.toPx(), 1.dp.toPx()),
+            )
+        }
+        // Marker-Ticks (Phase 4): duenne Linien in Akzentfarbe.
+        markerFractions.forEach { fraction ->
+            val x = fraction.coerceIn(0f, 1f) * size.width
+            drawLine(
+                color = markerColor,
+                start = Offset(x, 0f),
+                end = Offset(x, size.height),
+                strokeWidth = 2.dp.toPx(),
             )
         }
         // Positionslinie als klarer Anker der Bedienflaeche.

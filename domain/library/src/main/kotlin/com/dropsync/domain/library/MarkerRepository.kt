@@ -40,4 +40,20 @@ interface MarkerRepository {
 
     /** Aktive Marker eines Songs, aufsteigend nach Position. */
     suspend fun getEnabledMarkersForSong(songId: Long): AppResult<List<SongMarker>>
+
+    /**
+     * Legt einen manuellen Marker samt Zuordnung an (Marker/Waveform-Plan
+     * Phase 4, "Tap-to-Mark"): SongMarker(source = MANUAL, isEnabled = true)
+     * und Link (MANUAL) entstehen in einer Transaktion. Der Fingerprint
+     * wird aus den bekannten Songfeldern abgeleitet (Pfad/Name/Groesse/
+     * Dauer), keine neue Fingerprint-Logik.
+     */
+    suspend fun createManualMarker(
+        songId: Long,
+        label: String,
+        positionMs: Long,
+    ): AppResult<SongMarker>
+
+    /** Loescht einen Marker; die Zuordnung faellt per Cascade mit. */
+    suspend fun deleteMarker(markerId: Long): AppResult<Unit>
 }

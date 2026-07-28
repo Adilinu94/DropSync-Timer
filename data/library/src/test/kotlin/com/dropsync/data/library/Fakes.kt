@@ -121,6 +121,13 @@ class FakeMarkerDao : MarkerDao {
     override suspend fun getLinkForMarker(markerId: Long): MarkerSongLinkEntity? =
         links.values.firstOrNull { it.markerId == markerId }
 
+    override suspend fun deleteMarker(markerId: Long) {
+        // Bildet ON DELETE CASCADE nach: die Linkzeile faellt mit.
+        markers.remove(markerId)
+        links.values.filter { it.markerId == markerId }.forEach { links.remove(it.id) }
+        emit()
+    }
+
     override suspend fun getEnabledMarkersForSong(songId: Long): List<SongMarkerEntity> {
         val ids =
             links.values

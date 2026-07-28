@@ -94,6 +94,10 @@ interface MarkerDao {
             "WHERE l.song_id = :songId AND m.is_enabled = 1 ORDER BY m.position_ms",
     )
     suspend fun getEnabledMarkersForSong(songId: Long): List<SongMarkerEntity>
+
+    /** Loescht den Marker; die Linkzeile faellt per ON DELETE CASCADE mit. */
+    @Query("DELETE FROM song_markers WHERE id = :markerId")
+    suspend fun deleteMarker(markerId: Long)
 }
 
 @Dao

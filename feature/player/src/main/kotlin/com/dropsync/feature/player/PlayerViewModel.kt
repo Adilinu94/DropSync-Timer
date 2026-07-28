@@ -3,8 +3,10 @@ package com.dropsync.feature.player
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.dropsync.core.common.getOrNull
+import com.dropsync.core.model.SongMarker
 import com.dropsync.domain.audio.TrackAnalysisRepository
 import com.dropsync.domain.library.LibraryRepository
+import com.dropsync.domain.library.MarkerRepository
 import com.dropsync.domain.playback.PlaybackRepository
 import com.dropsync.domain.playback.QueueItem
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -13,6 +15,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
@@ -82,6 +85,7 @@ class PlayerViewModel
         private val playbackRepository: PlaybackRepository,
         private val libraryRepository: LibraryRepository,
         private val trackAnalysisRepository: TrackAnalysisRepository,
+        private val markerRepository: MarkerRepository,
     ) : ViewModel() {
         @OptIn(ExperimentalCoroutinesApi::class)
         val miniPlayer: StateFlow<MiniPlayerState> =
@@ -213,6 +217,47 @@ class PlayerViewModel
                 libraryRepository.getSong(songId).getOrNull()?.let {
                     trackAnalysisRepository.requestAnalysis(it)
                 }
+            }
+        }
+
+        /**
+         * Aktive Marker des laufenden Songs fuer die Waveform-Ticks
+         * (Phase 4); [markersVersion] erzwingt einen Reload nach
+         * createMarker/deleteMarker.
+         */
+        private val markersVersion = MutableStateFlow(0)
+
+        @OptIn(ExperimentalCoroutinesApi::class)
+        val nowPlayingMarkers: StateFlow<List<SongMarker>> =
+            combine(
+                playbackRepository.state.map { it.currentSongId }.distinctUntilChanged(),
+                markersVersion,
+            ) { songId, _ -> songId }
+                .mapLatest { songId ->
+                    if (songId == null) {
+                        emptyList()
+                    } else {
+                        markerRepository.getEnabledMarkersForSong(songId).getOrNull().orEmpty()
+                    }
+                }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+        /** Manuellen Marker anlegen (Phase 4); leeres Label ergibt "Drop". */
+        fun createMarker(
+            label: String,
+            positionMs: Long,
+        ) {
+            val songId = nowPlaying.value.songId ?: return
+            viewModelScope.launch {
+                markerRepository.createManualMarker(songId, label, positionMs)
+                markersVersion.value++
+            }
+        }
+
+        /** Marker nach Bestaetigung loeschen (Phase 4, Long-Press). */
+        fun deleteMarker(markerId: Long) {
+            viewModelScope.launch {
+                markerRepository.deleteMarker(markerId)
+                markersVersion.value++
             }
         }
 

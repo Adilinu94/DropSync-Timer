@@ -202,9 +202,88 @@ class MarkerRepositoryImpl(
             }
         }
 
+    override suspend fun createManualMarker(
+        songId: Long,
+        label: String,
+        positionMs: Long,
+    ): AppResult<SongMarker> =
+        withContext(dispatchers.io) {
+            val song =
+                songDao.getById(songId)
+                    ?: return@withContext AppResult.failure(AppError.MediaUnavailable(songId))
+            if (positionMs < 0L || (song.durationMs > 0L && positionMs > song.durationMs)) {
+                return@withContext AppResult.failure(
+                    AppError.Unknown("positionMs $positionMs ausserhalb der Songdauer ${song.durationMs}"),
+                )
+            }
+            val effectiveLabel = label.ifBlank { DEFAULT_MANUAL_LABEL }
+            // Derselbe Fingerprint, den die Bibliothek fuer den Song fuehrt
+            // (Pfad/Name/Groesse/Dauer) - Wiederverwendung statt neuer Logik.
+            val fingerprint =
+                listOf(
+                    song.relativePath,
+                    song.displayName,
+                    song.sizeBytes.toString(),
+                    song.durationMs.toString(),
+                ).joinToString(SEPARATOR.toString())
+            try {
+                val markerId =
+                    transactionRunner {
+                        val id =
+                            markerDao.insert(
+                                SongMarkerEntity(
+                                    sourceFingerprint = fingerprint,
+                                    label = effectiveLabel,
+                                    positionMs = positionMs,
+                                    source = MarkerSource.MANUAL.name,
+                                    isEnabled = true,
+                                    createdAtEpochMs = clock.epochMillis(),
+                                ),
+                            )
+                        markerDao.insertLink(
+                            MarkerSongLinkEntity(
+                                markerId = id,
+                                songId = songId,
+                                linkMethod = LinkMethod.MANUAL.name,
+                                linkedAtEpochMs = clock.epochMillis(),
+                            ),
+                        )
+                        id
+                    }
+                AppResult.success(
+                    SongMarker(
+                        id = markerId,
+                        label = effectiveLabel,
+                        positionMs = positionMs,
+                        source = MarkerSource.MANUAL,
+                        isEnabled = true,
+                        linkedSongId = songId,
+                    ),
+                )
+            } catch (e: Exception) {
+                AppResult.failure(AppError.DatabaseFailure("createManualMarker"))
+            }
+        }
+
+    override suspend fun deleteMarker(markerId: Long): AppResult<Unit> =
+        withContext(dispatchers.io) {
+            markerDao.getById(markerId)
+                ?: return@withContext AppResult.failure(AppError.MarkerUnmatched(null))
+            try {
+                // Loeschen reicht: die Linkzeile faellt per Cascade mit.
+                markerDao.deleteMarker(markerId)
+                AppResult.success(Unit)
+            } catch (e: Exception) {
+                AppResult.failure(AppError.DatabaseFailure("deleteMarker"))
+            }
+        }
+
     companion object {
         // Trennzeichen, das in Dateinamen nicht vorkommt (US, 0x1F).
         private const val SEPARATOR = '\u001F'
+
+        /** Standardlabel fuer manuelle Marker ohne eigene Eingabe (Phase 4). */
+        const val DEFAULT_MANUAL_LABEL = "Drop"
 
         /**
          * Fachliche Identitaet eines Import-Tracks ohne Hash: so bleibt der

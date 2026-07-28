@@ -3,6 +3,7 @@ package com.dropsync.data.library
 import com.dropsync.core.common.AppResult
 import com.dropsync.core.database.entity.SongEntity
 import com.dropsync.core.model.LinkMethod
+import com.dropsync.core.model.MarkerSource
 import com.dropsync.core.testing.FakeClock
 import com.dropsync.core.testing.TestDispatcherProvider
 import com.dropsync.domain.library.ImportValidator
@@ -166,5 +167,86 @@ class MarkerRepositoryImplTest {
             val link = markerDao.links.values.single()
             assertEquals(8, link.songId)
             assertEquals(LinkMethod.MANUAL.name, link.linkMethod)
+        }
+
+    @Test
+    fun `createManualMarker legt marker und link in einer transaktion an`() =
+        runTest {
+            // Marker/Waveform-Plan Phase 4: MANUAL-Marker samt Zuordnung.
+            songDao.rows[7] = songEntity(7)
+
+            val result = repository.createManualMarker(7, "Mein Drop", 42_000)
+
+            val marker = (result as AppResult.Success).value
+            assertEquals("Mein Drop", marker.label)
+            assertEquals(42_000, marker.positionMs)
+            assertEquals(MarkerSource.MANUAL, marker.source)
+            assertTrue(marker.isEnabled)
+            assertEquals(7L, marker.linkedSongId)
+            val stored = markerDao.markers.getValue(marker.id)
+            assertEquals(MarkerSource.MANUAL.name, stored.source)
+            val link = markerDao.links.values.single()
+            assertEquals(7, link.songId)
+            assertEquals(LinkMethod.MANUAL.name, link.linkMethod)
+            // Fingerprint entspricht dem Bibliotheks-Schema (Pfad/Name/Groesse/Dauer).
+            assertEquals(
+                listOf("Music/Training", "track.mp3", "1000", "200000").joinToString("\u001F"),
+                stored.sourceFingerprint,
+            )
+        }
+
+    @Test
+    fun `createManualMarker nutzt Standardlabel bei leerem Label`() =
+        runTest {
+            songDao.rows[7] = songEntity(7)
+
+            val result = repository.createManualMarker(7, "   ", 10_000)
+
+            assertEquals("Drop", (result as AppResult.Success).value.label)
+        }
+
+    @Test
+    fun `createManualMarker schlaegt bei unbekannter songId fehl`() =
+        runTest {
+            val result = repository.createManualMarker(99, "Drop", 10_000)
+
+            assertTrue(result is AppResult.Failure)
+            assertTrue(markerDao.markers.isEmpty())
+            assertTrue(markerDao.links.isEmpty())
+        }
+
+    @Test
+    fun `createManualMarker lehnt positionen ausserhalb der songdauer ab`() =
+        runTest {
+            songDao.rows[7] = songEntity(7, duration = 200_000)
+
+            val tooLate = repository.createManualMarker(7, "Drop", 300_000)
+            val negative = repository.createManualMarker(7, "Drop", -1)
+
+            assertTrue(tooLate is AppResult.Failure)
+            assertTrue(negative is AppResult.Failure)
+            assertTrue(markerDao.markers.isEmpty())
+        }
+
+    @Test
+    fun `deleteMarker entfernt marker und link ueber die cascade`() =
+        runTest {
+            songDao.rows[7] = songEntity(7)
+            val created =
+                (repository.createManualMarker(7, "Drop", 42_000) as AppResult.Success).value
+
+            val result = repository.deleteMarker(created.id)
+
+            assertTrue(result is AppResult.Success)
+            assertTrue(markerDao.markers.isEmpty())
+            assertTrue(markerDao.links.isEmpty())
+        }
+
+    @Test
+    fun `deleteMarker schlaegt bei unbekannter markerId fehl`() =
+        runTest {
+            val result = repository.deleteMarker(123)
+
+            assertTrue(result is AppResult.Failure)
         }
 }
