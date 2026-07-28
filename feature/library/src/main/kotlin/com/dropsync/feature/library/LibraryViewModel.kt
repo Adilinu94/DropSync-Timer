@@ -16,6 +16,7 @@ import com.dropsync.domain.library.LibraryFolder
 import com.dropsync.domain.library.LibraryRepository
 import com.dropsync.domain.library.LibraryViewConfig
 import com.dropsync.domain.library.LibraryViewPreferencesRepository
+import com.dropsync.domain.library.Playlist
 import com.dropsync.domain.library.SongSort
 import com.dropsync.domain.playback.PlaybackRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -48,6 +49,7 @@ enum class LibraryView {
     FAVORITES,
     RECENTLY_ADDED,
     MOST_PLAYED,
+    PLAYLISTS,
 }
 
 /** Aufgeklappte Detailliste einer Sammlung (Album/Kuenstler/Genre/Ordner). */
@@ -173,6 +175,24 @@ class LibraryViewModel
         val favorites: StateFlow<List<Song>> = browseRepository.favorites.asState(emptyList())
         val recentlyAdded: StateFlow<List<Song>> = browseRepository.recentlyAdded().asState(emptyList())
         val mostPlayed: StateFlow<List<Song>> = browseRepository.mostPlayed().asState(emptyList())
+
+        /** Nutzerplaylisten (Musik-Workout-Kopplung Phase 1); Datenschicht existiert bereits. */
+        val playlists: StateFlow<List<Playlist>> = browseRepository.playlists.asState(emptyList())
+
+        private val selectedPlaylistId = MutableStateFlow<Long?>(null)
+
+        /** Aktuell geoeffnete Playlist-Detailansicht; null = Liste. */
+        val openPlaylist: StateFlow<Playlist?> =
+            combine(selectedPlaylistId, browseRepository.playlists) { id, all ->
+                all.firstOrNull { it.id == id }
+            }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
+
+        /** Titel der geoeffneten Playlist in gespeicherter Reihenfolge. */
+        val playlistSongs: StateFlow<List<Song>> =
+            selectedPlaylistId
+                .flatMapLatest { id ->
+                    if (id == null) flowOf(emptyList()) else browseRepository.songsOfPlaylist(id)
+                }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
         /** IDs favorisierter Songs; erlaubt jedem Listeneintrag ein Herz-Toggle. */
         val favoriteIds: StateFlow<Set<Long>> =
@@ -345,6 +365,80 @@ class LibraryViewModel
          */
         fun detectDrops(song: Song) {
             viewModelScope.launch { trackAnalysisRepository.requestOnsetDetection(song) }
+        }
+
+        // --- Playlist-Aktionen (Musik-Workout-Kopplung Phase 1) ---------------
+
+        /** Oeffnet die Detailansicht einer Playlist. */
+        fun openPlaylist(playlistId: Long) {
+            selectedPlaylistId.value = playlistId
+        }
+
+        /** Schliesst die Playlist-Detailansicht. */
+        fun closePlaylist() {
+            selectedPlaylistId.value = null
+        }
+
+        /** Legt eine neue Playlist an; leerer Name wird ignoriert. */
+        fun createPlaylist(name: String) {
+            val trimmed = name.trim()
+            if (trimmed.isEmpty()) return
+            viewModelScope.launch { browseRepository.createPlaylist(trimmed) }
+        }
+
+        /** Legt eine Playlist an und fuegt [song] direkt hinzu. */
+        fun createPlaylistWithSong(
+            name: String,
+            song: Song,
+        ) {
+            val trimmed = name.trim()
+            if (trimmed.isEmpty()) return
+            viewModelScope.launch {
+                browseRepository.createPlaylist(trimmed).onSuccess { id ->
+                    browseRepository.addToPlaylist(id, listOf(song.mediaStoreId))
+                }
+            }
+        }
+
+        /** Benennt eine Playlist um; leerer Name wird ignoriert. */
+        fun renamePlaylist(
+            playlistId: Long,
+            name: String,
+        ) {
+            val trimmed = name.trim()
+            if (trimmed.isEmpty()) return
+            viewModelScope.launch { browseRepository.renamePlaylist(playlistId, trimmed) }
+        }
+
+        /** Loescht eine Playlist und schliesst ggf. deren Detailansicht. */
+        fun deletePlaylist(playlistId: Long) {
+            if (selectedPlaylistId.value == playlistId) selectedPlaylistId.value = null
+            viewModelScope.launch { browseRepository.deletePlaylist(playlistId) }
+        }
+
+        /** Fuegt [song] der Playlist [playlistId] hinzu. */
+        fun addSongToPlaylist(
+            playlistId: Long,
+            song: Song,
+        ) {
+            viewModelScope.launch { browseRepository.addToPlaylist(playlistId, listOf(song.mediaStoreId)) }
+        }
+
+        /** Entfernt den Eintrag an [position] aus der Playlist. */
+        fun removeFromPlaylist(
+            playlistId: Long,
+            position: Int,
+        ) {
+            viewModelScope.launch { browseRepository.removeFromPlaylist(playlistId, position) }
+        }
+
+        /** Verschiebt einen Playlist-Eintrag; Reihenfolge bleibt lueckenlos. */
+        fun moveInPlaylist(
+            playlistId: Long,
+            fromPosition: Int,
+            toPosition: Int,
+        ) {
+            viewModelScope.launch { browseRepository.moveInPlaylist(playlistId, fromPosition, toPosition) }
         }
 
         private fun <T> Flow<T>.asState(initial: T): StateFlow<T> =

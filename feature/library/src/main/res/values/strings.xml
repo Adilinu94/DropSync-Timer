@@ -41,4 +41,20 @@
     <string name="library_views_move_up">Move up</string>
     <string name="library_views_move_down">Move down</string>
     <string name="library_views_done">Done</string>
+    <string name="library_view_playlists">Playlists</string>
+    <string name="library_playlist_create">Create playlist</string>
+    <string name="library_playlist_new">New playlist</string>
+    <string name="library_playlist_name">Name</string>
+    <string name="library_playlist_rename">Rename</string>
+    <string name="library_playlist_delete">Delete</string>
+    <string name="library_playlist_delete_confirm">Delete the playlist \"%1$s\"? The songs stay in your library.</string>
+    <string name="library_add_to_playlist">Add to playlist</string>
+    <string name="library_playlist_empty">No playlists yet. Create one to get started.</string>
+    <string name="library_playlist_detail_empty">This playlist is empty. Add songs from the library.</string>
+    <string name="library_playlist_remove_song">Remove from playlist</string>
+    <string name="library_playlist_move_up">Move up</string>
+    <string name="library_playlist_move_down">Move down</string>
+    <string name="library_playlist_play_all">Play playlist</string>
+    <string name="library_cancel">Cancel</string>
+    <string name="library_save">Save</string>
 </resources>

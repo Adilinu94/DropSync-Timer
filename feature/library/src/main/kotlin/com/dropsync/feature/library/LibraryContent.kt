@@ -46,6 +46,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.dropsync.core.model.Song
 import com.dropsync.domain.library.SongSort
 
 /**
@@ -63,8 +64,10 @@ internal fun LibraryContent(
 ) {
     val selectedView by viewModel.selectedView.collectAsStateWithLifecycle()
     val detail by viewModel.detail.collectAsStateWithLifecycle()
+    val openPlaylist by viewModel.openPlaylist.collectAsStateWithLifecycle()
     val searchQuery by viewModel.searchQuery.collectAsStateWithLifecycle()
     val favoriteIds by viewModel.favoriteIds.collectAsStateWithLifecycle()
+    var songForPlaylist by remember { mutableStateOf<Song?>(null) }
 
     Column(modifier = modifier.fillMaxSize()) {
         if (scanFailed) {
@@ -94,7 +97,22 @@ internal fun LibraryContent(
                     onPlayNext = viewModel::playNext,
                     onAddToQueue = viewModel::addToQueue,
                     onDetectDrops = viewModel::detectDrops,
+                    onAddToPlaylist = { songForPlaylist = it },
                     showFastScroller = false,
+                )
+            }
+
+            openPlaylist != null -> {
+                val pl = openPlaylist!!
+                val playlistSongs by viewModel.playlistSongs.collectAsStateWithLifecycle()
+                PlaylistDetail(
+                    playlist = pl,
+                    songs = playlistSongs,
+                    contentPadding = contentPadding,
+                    onBack = viewModel::closePlaylist,
+                    onPlay = { index -> viewModel.play(playlistSongs, index) },
+                    onRemove = { position -> viewModel.removeFromPlaylist(pl.id, position) },
+                    onMove = { from, to -> viewModel.moveInPlaylist(pl.id, from, to) },
                 )
             }
 
@@ -111,6 +129,7 @@ internal fun LibraryContent(
                     onPlayNext = viewModel::playNext,
                     onAddToQueue = viewModel::addToQueue,
                     onDetectDrops = viewModel::detectDrops,
+                    onAddToPlaylist = { songForPlaylist = it },
                     showFastScroller = false,
                 )
             }
@@ -123,9 +142,27 @@ internal fun LibraryContent(
                     selectedView = selectedView,
                     favoriteIds = favoriteIds,
                     contentPadding = contentPadding,
+                    onAddToPlaylist = { songForPlaylist = it },
                 )
             }
         }
+    }
+
+    val song = songForPlaylist
+    if (song != null) {
+        val playlists by viewModel.playlists.collectAsStateWithLifecycle()
+        AddToPlaylistDialog(
+            playlists = playlists,
+            onDismiss = { songForPlaylist = null },
+            onPick = { id ->
+                viewModel.addSongToPlaylist(id, song)
+                songForPlaylist = null
+            },
+            onCreateNew = { name ->
+                viewModel.createPlaylistWithSong(name, song)
+                songForPlaylist = null
+            },
+        )
     }
 }
 
@@ -165,6 +202,7 @@ private fun LibraryViewsPager(
     selectedView: LibraryView,
     favoriteIds: Set<Long>,
     contentPadding: PaddingValues,
+    onAddToPlaylist: (Song) -> Unit,
 ) {
     if (visibleViews.isEmpty()) return
     var showConfig by remember { mutableStateOf(false) }
@@ -196,6 +234,7 @@ private fun LibraryViewsPager(
             view = visibleViews[page],
             favoriteIds = favoriteIds,
             contentPadding = contentPadding,
+            onAddToPlaylist = onAddToPlaylist,
         )
     }
 
@@ -335,6 +374,7 @@ private fun LibraryViewBody(
     view: LibraryView,
     favoriteIds: Set<Long>,
     contentPadding: PaddingValues,
+    onAddToPlaylist: (Song) -> Unit,
 ) {
     when (view) {
         LibraryView.SONGS -> {
@@ -350,6 +390,7 @@ private fun LibraryViewBody(
                     onPlayNext = viewModel::playNext,
                     onAddToQueue = viewModel::addToQueue,
                     onDetectDrops = viewModel::detectDrops,
+                    onAddToPlaylist = onAddToPlaylist,
                 )
             }
         }
@@ -407,6 +448,7 @@ private fun LibraryViewBody(
                 onPlayNext = viewModel::playNext,
                 onAddToQueue = viewModel::addToQueue,
                 onDetectDrops = viewModel::detectDrops,
+                onAddToPlaylist = onAddToPlaylist,
             )
         }
 
@@ -421,6 +463,7 @@ private fun LibraryViewBody(
                 onPlayNext = viewModel::playNext,
                 onAddToQueue = viewModel::addToQueue,
                 onDetectDrops = viewModel::detectDrops,
+                onAddToPlaylist = onAddToPlaylist,
                 showFastScroller = false,
             )
         }
@@ -436,7 +479,20 @@ private fun LibraryViewBody(
                 onPlayNext = viewModel::playNext,
                 onAddToQueue = viewModel::addToQueue,
                 onDetectDrops = viewModel::detectDrops,
+                onAddToPlaylist = onAddToPlaylist,
                 showFastScroller = false,
+            )
+        }
+
+        LibraryView.PLAYLISTS -> {
+            val playlists by viewModel.playlists.collectAsStateWithLifecycle()
+            PlaylistList(
+                playlists = playlists,
+                contentPadding = contentPadding,
+                onOpen = viewModel::openPlaylist,
+                onCreate = viewModel::createPlaylist,
+                onRename = viewModel::renamePlaylist,
+                onDelete = viewModel::deletePlaylist,
             )
         }
     }
@@ -536,6 +592,7 @@ private fun LibraryView.labelRes(): Int =
         LibraryView.FAVORITES -> R.string.library_view_favorites
         LibraryView.RECENTLY_ADDED -> R.string.library_view_recently_added
         LibraryView.MOST_PLAYED -> R.string.library_view_most_played
+        LibraryView.PLAYLISTS -> R.string.library_view_playlists
     }
 
 private fun SongSort.labelRes(): Int =

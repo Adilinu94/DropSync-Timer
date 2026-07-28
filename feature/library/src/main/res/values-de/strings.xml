@@ -41,4 +41,20 @@
     <string name="library_views_move_up">Nach oben</string>
     <string name="library_views_move_down">Nach unten</string>
     <string name="library_views_done">Fertig</string>
+    <string name="library_view_playlists">Playlisten</string>
+    <string name="library_playlist_create">Playlist anlegen</string>
+    <string name="library_playlist_new">Neue Playlist</string>
+    <string name="library_playlist_name">Name</string>
+    <string name="library_playlist_rename">Umbenennen</string>
+    <string name="library_playlist_delete">Loeschen</string>
+    <string name="library_playlist_delete_confirm">Playlist \"%1$s\" loeschen? Die Titel bleiben in deiner Bibliothek.</string>
+    <string name="library_add_to_playlist">Zu Playlist hinzufuegen</string>
+    <string name="library_playlist_empty">Noch keine Playlisten. Lege eine an, um zu starten.</string>
+    <string name="library_playlist_detail_empty">Diese Playlist ist leer. Fuege Titel aus der Bibliothek hinzu.</string>
+    <string name="library_playlist_remove_song">Aus Playlist entfernen</string>
+    <string name="library_playlist_move_up">Nach oben</string>
+    <string name="library_playlist_move_down">Nach unten</string>
+    <string name="library_playlist_play_all">Playlist abspielen</string>
+    <string name="library_cancel">Abbrechen</string>
+    <string name="library_save">Speichern</string>
 </resources>

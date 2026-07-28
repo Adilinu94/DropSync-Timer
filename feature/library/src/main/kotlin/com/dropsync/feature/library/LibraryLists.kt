@@ -59,6 +59,7 @@ internal fun SongColumn(
     onPlayNext: (Song) -> Unit,
     onAddToQueue: (Song) -> Unit,
     onDetectDrops: (Song) -> Unit,
+    onAddToPlaylist: (Song) -> Unit = {},
     modifier: Modifier = Modifier,
     showFastScroller: Boolean = true,
 ) {
@@ -82,6 +83,7 @@ internal fun SongColumn(
                     onPlayNext = { onPlayNext(song) },
                     onAddToQueue = { onAddToQueue(song) },
                     onDetectDrops = { onDetectDrops(song) },
+                    onAddToPlaylist = { onAddToPlaylist(song) },
                 )
             }
         }
@@ -104,6 +106,7 @@ private fun SongRow(
     onPlayNext: () -> Unit,
     onAddToQueue: () -> Unit,
     onDetectDrops: () -> Unit,
+    onAddToPlaylist: () -> Unit,
 ) {
     val playLabel = stringResource(R.string.library_play_song, songTitle(song))
     val favLabel =
@@ -150,6 +153,13 @@ private fun SongRow(
                         text = { Text(stringResource(R.string.library_detect_drops)) },
                         onClick = {
                             onDetectDrops()
+                            menuOpen = false
+                        },
+                    )
+                    DropdownMenuItem(
+                        text = { Text(stringResource(R.string.library_add_to_playlist)) },
+                        onClick = {
+                            onAddToPlaylist()
                             menuOpen = false
                         },
                     )
