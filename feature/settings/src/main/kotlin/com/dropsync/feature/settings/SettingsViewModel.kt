@@ -59,6 +59,19 @@ class SettingsViewModel
                 emptyList(),
             )
 
+        /**
+         * Unbestaetigte Onset-Kandidaten (Marker/Waveform-Plan Phase 5,
+         * source = AUTO_DETECTED, isEnabled = false) fuer die Review-Liste:
+         * Bestaetigen aktiviert den Marker, Verwerfen loescht ihn — nie
+         * Automatik.
+         */
+        val pendingAutoDetectedMarkers: StateFlow<List<SongMarker>> =
+            markerRepository.pendingAutoDetectedMarkers.stateIn(
+                viewModelScope,
+                SharingStarted.WhileSubscribed(5_000),
+                emptyList(),
+            )
+
         /** Songliste fuer den Zuordnungsdialog (6.6). */
         val songs: StateFlow<List<Song>> =
             libraryRepository.availableSongs.stateIn(
@@ -125,6 +138,16 @@ class SettingsViewModel
             songId: Long,
         ) {
             viewModelScope.launch { markerRepository.linkManually(markerId, songId) }
+        }
+
+        /** Bestaetigt einen AUTO_DETECTED-Kandidaten (Phase 5): isEnabled = true. */
+        fun confirmMarker(markerId: Long) {
+            viewModelScope.launch { markerRepository.confirmMarker(markerId) }
+        }
+
+        /** Verwirft einen Kandidaten endgueltig (Phase 5): loeschen statt behalten. */
+        fun discardMarker(markerId: Long) {
+            viewModelScope.launch { markerRepository.deleteMarker(markerId) }
         }
 
         fun dismissImportResult() {

@@ -345,11 +345,16 @@ private class FakePlaybackRepository : PlaybackRepository {
 private class FakeTrackAnalysisRepository : TrackAnalysisRepository {
     val analyses = MutableStateFlow<Map<Long, TrackAnalysis?>>(emptyMap())
     val requestedSongIds = mutableListOf<Long>()
+    val onsetRequestedSongIds = mutableListOf<Long>()
 
     override fun observeAnalysis(songId: Long): Flow<TrackAnalysis?> = analyses.map { it[songId] }
 
     override suspend fun requestAnalysis(song: Song) {
         requestedSongIds += song.mediaStoreId
+    }
+
+    override suspend fun requestOnsetDetection(song: Song) {
+        onsetRequestedSongIds += song.mediaStoreId
     }
 }
 
@@ -395,6 +400,10 @@ private class FakeMarkerRepository : MarkerRepository {
         deleteCalls += markerId
         return AppResult.success(Unit)
     }
+
+    override val pendingAutoDetectedMarkers: Flow<List<SongMarker>> = emptyFlow()
+
+    override suspend fun confirmMarker(markerId: Long): AppResult<Unit> = AppResult.success(Unit)
 }
 
 private class FakeLibraryRepository : LibraryRepository {

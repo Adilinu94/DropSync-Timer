@@ -3,6 +3,7 @@ package com.dropsync.data.library
 import com.dropsync.core.database.TransactionRunner
 import com.dropsync.core.database.dao.CueTrackDao
 import com.dropsync.core.database.dao.MarkerDao
+import com.dropsync.core.database.dao.PendingMarkerRow
 import com.dropsync.core.database.dao.SafFileDao
 import com.dropsync.core.database.dao.SongDao
 import com.dropsync.core.database.entity.CueTrackEntity
@@ -70,10 +71,12 @@ class FakeMarkerDao : MarkerDao {
     private var nextMarkerId = 1L
     private var nextLinkId = 1L
     private val unmatchedState = MutableStateFlow<List<SongMarkerEntity>>(emptyList())
+    private val pendingVersion = MutableStateFlow(0)
 
     private fun emit() {
         val linkedIds = links.values.map { it.markerId }.toSet()
         unmatchedState.value = markers.values.filter { it.id !in linkedIds }
+        pendingVersion.value++
     }
 
     override suspend fun insert(marker: SongMarkerEntity): Long {
@@ -135,6 +138,35 @@ class FakeMarkerDao : MarkerDao {
                 .map { it.markerId }
                 .toSet()
         return markers.values.filter { it.id in ids && it.isEnabled }.sortedBy { it.positionMs }
+    }
+
+    override fun observePendingBySource(source: String): Flow<List<PendingMarkerRow>> =
+        pendingVersion.map {
+            markers.values
+                .filter { it.source == source && !it.isEnabled }
+                .mapNotNull { marker ->
+                    links.values
+                        .firstOrNull { it.markerId == marker.id }
+                        ?.let { link -> PendingMarkerRow(marker, link.songId) }
+                }.sortedWith(compareBy({ it.linkedSongId }, { it.marker.positionMs }))
+        }
+
+    override suspend fun deletePendingBySourceForSong(
+        songId: Long,
+        source: String,
+    ) {
+        val ids =
+            links.values
+                .filter { it.songId == songId }
+                .map { it.markerId }
+                .toSet()
+        markers.values
+            .filter { it.id in ids && it.source == source && !it.isEnabled }
+            .forEach { marker ->
+                markers.remove(marker.id)
+                links.values.filter { it.markerId == marker.id }.forEach { links.remove(it.id) }
+            }
+        emit()
     }
 }
 

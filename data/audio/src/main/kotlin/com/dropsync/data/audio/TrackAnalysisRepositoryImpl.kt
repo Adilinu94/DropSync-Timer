@@ -9,10 +9,15 @@ import androidx.work.WorkerParameters
 import androidx.work.workDataOf
 import com.dropsync.core.common.AppResult
 import com.dropsync.core.common.Clock
+import com.dropsync.core.database.dao.MarkerDao
 import com.dropsync.core.database.dao.SongDao
 import com.dropsync.core.database.dao.TrackAnalysisDao
+import com.dropsync.core.database.entity.MarkerSongLinkEntity
 import com.dropsync.core.database.entity.SongEntity
+import com.dropsync.core.database.entity.SongMarkerEntity
 import com.dropsync.core.database.entity.TrackAnalysisEntity
+import com.dropsync.core.model.LinkMethod
+import com.dropsync.core.model.MarkerSource
 import com.dropsync.core.model.Song
 import com.dropsync.domain.audio.TrackAnalysis
 import com.dropsync.domain.audio.TrackAnalysisRepository
@@ -66,6 +71,26 @@ class TrackAnalysisRepositoryImpl(
                 request,
             )
     }
+
+    override suspend fun requestOnsetDetection(song: Song) {
+        // Immer ein frischer Lauf (der Nutzer stoesst A2 bewusst an),
+        // aber dedupliziert, solange bereits einer laeuft.
+        val request =
+            OneTimeWorkRequestBuilder<TrackAnalysisWorker>()
+                .setInputData(
+                    workDataOf(
+                        TrackAnalysisWorker.KEY_SONG_ID to song.mediaStoreId,
+                        TrackAnalysisWorker.KEY_DETECT_ONSETS to true,
+                    ),
+                ).build()
+        WorkManager
+            .getInstance(context)
+            .enqueueUniqueWork(
+                "onset_detection_${song.mediaStoreId}",
+                ExistingWorkPolicy.KEEP,
+                request,
+            )
+    }
 }
 
 /**
@@ -86,12 +111,15 @@ class TrackAnalysisWorker(
 
         fun songDao(): SongDao
 
+        fun markerDao(): MarkerDao
+
         fun clock(): Clock
     }
 
     override suspend fun doWork(): Result {
         val songId = inputData.getLong(KEY_SONG_ID, -1L)
         if (songId <= 0L) return Result.failure()
+        val detectOnsets = inputData.getBoolean(KEY_DETECT_ONSETS, false)
         val deps = EntryPointAccessors.fromApplication(applicationContext, Dependencies::class.java)
         val entity = deps.songDao().getById(songId) ?: return Result.failure()
 
@@ -107,6 +135,9 @@ class TrackAnalysisWorker(
                         analyzedAtEpochMs = deps.clock().epochMillis(),
                     ),
                 )
+                if (detectOnsets) {
+                    writeOnsetCandidates(deps, entity, result.value.onsetCandidatesMs)
+                }
                 Result.success()
             }
 
@@ -129,8 +160,57 @@ class TrackAnalysisWorker(
         }
     }
 
+    /**
+     * Schreibt Onset-Kandidaten als SongMarker(source = AUTO_DETECTED,
+     * isEnabled = false) + Link (Phase 5). Ein erneuter Lauf ersetzt die
+     * alten, noch unbestaetigten Kandidaten desselben Songs; bestaetigte
+     * Marker bleiben unberuehrt. Nie Automatik: aktiv wird ein Kandidat
+     * erst durch die bestaetigende Aktion in der Review-Liste.
+     */
+    private suspend fun writeOnsetCandidates(
+        deps: Dependencies,
+        song: SongEntity,
+        onsetCandidatesMs: List<Long>,
+    ) {
+        val markerDao = deps.markerDao()
+        markerDao.deletePendingBySourceForSong(song.mediaStoreId, MarkerSource.AUTO_DETECTED.name)
+        // Derselbe Fingerprint, den die Bibliothek fuer den Song fuehrt.
+        val fingerprint =
+            listOf(
+                song.relativePath,
+                song.displayName,
+                song.sizeBytes.toString(),
+                song.durationMs.toString(),
+            ).joinToString(FINGERPRINT_SEPARATOR)
+        onsetCandidatesMs.forEachIndexed { index, positionMs ->
+            val markerId =
+                markerDao.insert(
+                    SongMarkerEntity(
+                        sourceFingerprint = fingerprint,
+                        label = "Drop ${index + 1}",
+                        positionMs = positionMs,
+                        source = MarkerSource.AUTO_DETECTED.name,
+                        isEnabled = false,
+                        createdAtEpochMs = deps.clock().epochMillis(),
+                    ),
+                )
+            markerDao.insertLink(
+                MarkerSongLinkEntity(
+                    markerId = markerId,
+                    songId = song.mediaStoreId,
+                    linkMethod = LinkMethod.AUTO_DETECTED.name,
+                    linkedAtEpochMs = deps.clock().epochMillis(),
+                ),
+            )
+        }
+    }
+
     companion object {
         const val KEY_SONG_ID = "song_id"
+        const val KEY_DETECT_ONSETS = "detect_onsets"
+
+        /** Trennzeichen des Bibliotheks-Fingerprints (US, 0x1F). */
+        private const val FINGERPRINT_SEPARATOR = "\u001F"
     }
 }
 

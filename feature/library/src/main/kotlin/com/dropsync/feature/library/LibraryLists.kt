@@ -58,6 +58,7 @@ internal fun SongColumn(
     onToggleFavorite: (Long) -> Unit,
     onPlayNext: (Song) -> Unit,
     onAddToQueue: (Song) -> Unit,
+    onDetectDrops: (Song) -> Unit,
     modifier: Modifier = Modifier,
     showFastScroller: Boolean = true,
 ) {
@@ -80,6 +81,7 @@ internal fun SongColumn(
                     onToggleFavorite = { onToggleFavorite(song.mediaStoreId) },
                     onPlayNext = { onPlayNext(song) },
                     onAddToQueue = { onAddToQueue(song) },
+                    onDetectDrops = { onDetectDrops(song) },
                 )
             }
         }
@@ -92,7 +94,7 @@ internal fun SongColumn(
     }
 }
 
-/** Eine Titelzeile mit Favoriten-Toggle und Ueberlaufmenue (als Naechstes/Queue). */
+/** Eine Titelzeile mit Favoriten-Toggle und Ueberlaufmenue (als Naechstes/Queue/Drops). */
 @Composable
 private fun SongRow(
     song: Song,
@@ -101,6 +103,7 @@ private fun SongRow(
     onToggleFavorite: () -> Unit,
     onPlayNext: () -> Unit,
     onAddToQueue: () -> Unit,
+    onDetectDrops: () -> Unit,
 ) {
     val playLabel = stringResource(R.string.library_play_song, songTitle(song))
     val favLabel =
@@ -140,6 +143,13 @@ private fun SongRow(
                         text = { Text(stringResource(R.string.library_add_to_queue)) },
                         onClick = {
                             onAddToQueue()
+                            menuOpen = false
+                        },
+                    )
+                    DropdownMenuItem(
+                        text = { Text(stringResource(R.string.library_detect_drops)) },
+                        onClick = {
+                            onDetectDrops()
                             menuOpen = false
                         },
                     )

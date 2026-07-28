@@ -1,7 +1,9 @@
 package com.dropsync.data.library
 
 import com.dropsync.core.common.AppResult
+import com.dropsync.core.database.entity.MarkerSongLinkEntity
 import com.dropsync.core.database.entity.SongEntity
+import com.dropsync.core.database.entity.SongMarkerEntity
 import com.dropsync.core.model.LinkMethod
 import com.dropsync.core.model.MarkerSource
 import com.dropsync.core.testing.FakeClock
@@ -10,6 +12,7 @@ import com.dropsync.domain.library.ImportValidator
 import com.dropsync.domain.library.ImportedMarker
 import com.dropsync.domain.library.ImportedTrack
 import com.dropsync.domain.library.MarkerMatcher
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -248,5 +251,87 @@ class MarkerRepositoryImplTest {
             val result = repository.deleteMarker(123)
 
             assertTrue(result is AppResult.Failure)
+        }
+
+    /** Legt einen AUTO_DETECTED-Kandidaten samt Link an, wie es der Worker tut. */
+    private suspend fun insertCandidate(
+        songId: Long,
+        positionMs: Long,
+        label: String = "Drop 1",
+    ): Long {
+        val markerId =
+            markerDao.insert(
+                SongMarkerEntity(
+                    sourceFingerprint = "fp-$songId",
+                    label = label,
+                    positionMs = positionMs,
+                    source = MarkerSource.AUTO_DETECTED.name,
+                    isEnabled = false,
+                    createdAtEpochMs = 0,
+                ),
+            )
+        markerDao.insertLink(
+            MarkerSongLinkEntity(
+                markerId = markerId,
+                songId = songId,
+                linkMethod = LinkMethod.AUTO_DETECTED.name,
+                linkedAtEpochMs = 0,
+            ),
+        )
+        return markerId
+    }
+
+    @Test
+    fun `kandidaten erscheinen nur in der review-liste nie bei den aktiven markern`() =
+        runTest {
+            // Plan-Verifikation Phase 5: neu erkannte Kandidaten erscheinen
+            // in pendingAutoDetectedMarkers und nie in
+            // getEnabledMarkersForSong, bis sie bestaetigt sind.
+            songDao.rows[7] = songEntity(7)
+            insertCandidate(7, 42_000)
+
+            val pending = repository.pendingAutoDetectedMarkers.first()
+            val enabled = (repository.getEnabledMarkersForSong(7) as AppResult.Success).value
+
+            assertEquals(1, pending.size)
+            assertEquals(MarkerSource.AUTO_DETECTED, pending.single().source)
+            assertEquals(7L, pending.single().linkedSongId)
+            assertTrue(enabled.isEmpty())
+        }
+
+    @Test
+    fun `confirmMarker aktiviert den kandidaten und leert die review-liste`() =
+        runTest {
+            songDao.rows[7] = songEntity(7)
+            val markerId = insertCandidate(7, 42_000)
+
+            val result = repository.confirmMarker(markerId)
+
+            assertTrue(result is AppResult.Success)
+            assertTrue(repository.pendingAutoDetectedMarkers.first().isEmpty())
+            val enabled = (repository.getEnabledMarkersForSong(7) as AppResult.Success).value
+            assertEquals(42_000L, enabled.single().positionMs)
+        }
+
+    @Test
+    fun `confirmMarker schlaegt bei unbekannter markerId fehl`() =
+        runTest {
+            val result = repository.confirmMarker(999)
+
+            assertTrue(result is AppResult.Failure)
+        }
+
+    @Test
+    fun `verwerfen loescht den kandidaten endgueltig`() =
+        runTest {
+            songDao.rows[7] = songEntity(7)
+            val markerId = insertCandidate(7, 42_000)
+
+            val result = repository.deleteMarker(markerId)
+
+            assertTrue(result is AppResult.Success)
+            assertTrue(repository.pendingAutoDetectedMarkers.first().isEmpty())
+            assertTrue(markerDao.markers.isEmpty())
+            assertTrue(markerDao.links.isEmpty())
         }
 }

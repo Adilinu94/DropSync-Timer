@@ -32,6 +32,15 @@ interface TrackAnalysisRepository {
      * A2-Anstoss). Mehrfachaufrufe fuer denselben Song sind dedupliziert.
      */
     suspend fun requestAnalysis(song: Song)
+
+    /**
+     * Stoesst die Onset-Erkennung (A2) fuer genau diesen Song an, vom
+     * Nutzer ausgeloest ("Drops automatisch erkennen"). Kandidaten landen
+     * als SongMarker(source = AUTO_DETECTED, isEnabled = false) und
+     * brauchen eine bestaetigende Aktion — nie Automatik. Dedupliziert
+     * ueber den Work-Namen `onset_detection_<songId>`.
+     */
+    suspend fun requestOnsetDetection(song: Song)
 }
 
 /**

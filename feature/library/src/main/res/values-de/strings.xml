@@ -12,6 +12,7 @@
     <string name="library_more_actions">Weitere Aktionen</string>
     <string name="library_play_next">Als Naechstes spielen</string>
     <string name="library_add_to_queue">Zur Warteschlange hinzufuegen</string>
+    <string name="library_detect_drops">Drops automatisch erkennen</string>
     <string name="library_track_count">%1$d Titel</string>
     <string name="library_search_hint">Titel, Interpret oder Album suchen</string>
     <string name="library_search_clear">Suche loeschen</string>

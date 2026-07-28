@@ -56,4 +56,15 @@ interface MarkerRepository {
 
     /** Loescht einen Marker; die Zuordnung faellt per Cascade mit. */
     suspend fun deleteMarker(markerId: Long): AppResult<Unit>
+
+    /**
+     * Unbestaetigte Onset-Kandidaten (Phase 5: source = AUTO_DETECTED,
+     * isEnabled = false) fuer die Review-Liste in den Einstellungen —
+     * dieselbe Interaktion wie bei [unmatchedMarkers]: Bestaetigen
+     * aktiviert, Verwerfen loescht ([deleteMarker]).
+     */
+    val pendingAutoDetectedMarkers: Flow<List<SongMarker>>
+
+    /** Bestaetigt einen Kandidaten: setzt isEnabled = true. */
+    suspend fun confirmMarker(markerId: Long): AppResult<Unit>
 }

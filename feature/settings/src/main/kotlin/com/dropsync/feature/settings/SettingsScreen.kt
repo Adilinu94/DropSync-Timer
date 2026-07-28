@@ -4,6 +4,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
@@ -45,6 +46,7 @@ fun SettingsScreen(
     viewModel: SettingsViewModel = hiltViewModel(),
 ) {
     val unmatched by viewModel.unmatchedMarkers.collectAsStateWithLifecycle()
+    val pendingCandidates by viewModel.pendingAutoDetectedMarkers.collectAsStateWithLifecycle()
     val songs by viewModel.songs.collectAsStateWithLifecycle()
     val importState by viewModel.importState.collectAsStateWithLifecycle()
     var markerToLink by remember { mutableStateOf<SongMarker?>(null) }
@@ -136,6 +138,31 @@ fun SettingsScreen(
                 },
             )
         }
+        // Review-Liste der Onset-Kandidaten (Marker/Waveform-Plan Phase 5):
+        // AUTO_DETECTED + isEnabled = false; Bestaetigen aktiviert,
+        // Verwerfen loescht — Kandidaten werden nie automatisch aktiv.
+        if (pendingCandidates.isNotEmpty()) {
+            item {
+                Text(
+                    text =
+                        pluralStringResource(
+                            R.plurals.settings_pending_candidates,
+                            pendingCandidates.size,
+                            pendingCandidates.size,
+                        ),
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                )
+            }
+            items(pendingCandidates, key = { "pending-${it.id}" }) { marker ->
+                PendingCandidateItem(
+                    marker = marker,
+                    songs = songs,
+                    onConfirm = { viewModel.confirmMarker(marker.id) },
+                    onDiscard = { viewModel.discardMarker(marker.id) },
+                )
+            }
+        }
         item { HorizontalDivider(Modifier.padding(vertical = 12.dp)) }
         item {
             Text(
@@ -164,6 +191,49 @@ fun SettingsScreen(
             onDismiss = { markerToLink = null },
         )
     }
+}
+
+/**
+ * Ein unbestaetigter Onset-Kandidat (Phase 5) mit Songtitel, Position
+ * und den beiden einzigen Aktionen: Bestaetigen oder Verwerfen.
+ */
+@Composable
+private fun PendingCandidateItem(
+    marker: SongMarker,
+    songs: List<Song>,
+    onConfirm: () -> Unit,
+    onDiscard: () -> Unit,
+) {
+    val songName =
+        songs.firstOrNull { it.mediaStoreId == marker.linkedSongId }?.displayName
+            ?: stringResource(R.string.settings_candidate_unknown_song)
+    ListItem(
+        headlineContent = { Text("${marker.label} — $songName") },
+        supportingContent = {
+            Text(
+                stringResource(
+                    R.string.settings_marker_position,
+                    marker.positionMs / 1000,
+                ),
+            )
+        },
+        trailingContent = {
+            Row {
+                TextButton(
+                    onClick = onConfirm,
+                    modifier = Modifier.heightIn(min = 48.dp),
+                ) {
+                    Text(stringResource(R.string.settings_candidate_confirm))
+                }
+                TextButton(
+                    onClick = onDiscard,
+                    modifier = Modifier.heightIn(min = 48.dp),
+                ) {
+                    Text(stringResource(R.string.settings_candidate_discard))
+                }
+            }
+        },
+    )
 }
 
 /** Klartextbericht des letzten Imports (6.4); Fehler nennen den Grund. */

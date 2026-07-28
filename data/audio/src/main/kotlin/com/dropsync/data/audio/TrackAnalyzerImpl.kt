@@ -11,6 +11,7 @@ import com.dropsync.core.common.AppResult
 import com.dropsync.core.common.DispatcherProvider
 import com.dropsync.core.model.Song
 import com.dropsync.domain.audio.EnergyAccumulator
+import com.dropsync.domain.audio.OnsetDetection
 import com.dropsync.domain.audio.TrackAnalysis
 import com.dropsync.domain.audio.TrackAnalyzer
 import com.dropsync.domain.audio.WaveformAccumulator
@@ -75,20 +76,19 @@ class TrackAnalyzerImpl(
             val energyWindows = energy.finish()
             return TrackAnalysis(
                 waveformBuckets = waveform.finish(),
-                // Onset-Erkennung folgt in Phase 5; die Energie-Fenster
-                // entstehen bereits jetzt im selben Durchgang.
-                onsetCandidatesMs = detectOnsets(energyWindows, ENERGY_WINDOW_MS),
+                // Onset-Kandidaten entstehen im selben Durchgang (Phase 5);
+                // ob sie als AUTO_DETECTED-Marker landen, entscheidet der
+                // Aufrufer (nur bei explizitem Nutzeranstoss).
+                onsetCandidatesMs =
+                    OnsetDetection.detectOnsets(
+                        energyWindows = energyWindows,
+                        windowDurationMs = ENERGY_WINDOW_MS.toLong(),
+                    ),
             )
         } finally {
             extractor.release()
         }
     }
-
-    /** Naht fuer Phase 5 (Novelty + Peak-Picking); bis dahin keine Kandidaten. */
-    private fun detectOnsets(
-        energyWindows: List<Double>,
-        windowMs: Int,
-    ): List<Long> = emptyList()
 
     private fun firstAudioTrack(extractor: MediaExtractor): Int {
         for (i in 0 until extractor.trackCount) {

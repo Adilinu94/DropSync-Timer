@@ -19,6 +19,13 @@
         <item quantity="other">%1$d imported markers are not linked to a song yet.</item>
     </plurals>
     <string name="settings_marker_position">Position: %1$d s</string>
+    <plurals name="settings_pending_candidates">
+        <item quantity="one">%1$d detected drop candidate is waiting for review.</item>
+        <item quantity="other">%1$d detected drop candidates are waiting for review.</item>
+    </plurals>
+    <string name="settings_candidate_confirm">Confirm</string>
+    <string name="settings_candidate_discard">Discard</string>
+    <string name="settings_candidate_unknown_song">Unknown song</string>
     <string name="settings_audio_section">Audio</string>
     <string name="settings_audio_entry">Audio &amp; DSP</string>
     <string name="settings_audio_entry_desc">Equalizer, effects, resampler, Bit-Perfect and output profiles</string>

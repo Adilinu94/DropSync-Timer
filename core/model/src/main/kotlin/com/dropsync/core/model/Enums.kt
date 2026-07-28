@@ -22,11 +22,11 @@ enum class RestMode { NORMAL, DROPSYNC }
 /** Rolle eines Satzclusters. WARMUP qualifiziert nie fuer Volumen/PRs (5.4). */
 enum class SetRole { WARMUP, WORKING, FAILURE, TIME, DISTANCE }
 
-/** Herkunft eines Songmarkers. */
-enum class MarkerSource { IMPORT, MANUAL }
+/** Herkunft eines Songmarkers; AUTO_DETECTED = Onset-Kandidat (A2). */
+enum class MarkerSource { IMPORT, MANUAL, AUTO_DETECTED }
 
 /** Zuordnungsmethode eines Markers zu einem Song (5.1). */
-enum class LinkMethod { HASH, METADATA, MANUAL }
+enum class LinkMethod { HASH, METADATA, MANUAL, AUTO_DETECTED }
 
 /** PR-Typen gemaess der exakten Regeln in Abschnitt 5.4. */
 enum class PrType { HIGHEST_LOAD, HIGHEST_SESSION_VOLUME, MOST_REPS_AT_LOAD }

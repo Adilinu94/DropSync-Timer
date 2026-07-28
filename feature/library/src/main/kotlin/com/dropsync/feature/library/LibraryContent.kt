@@ -93,6 +93,7 @@ internal fun LibraryContent(
                     onToggleFavorite = viewModel::toggleFavorite,
                     onPlayNext = viewModel::playNext,
                     onAddToQueue = viewModel::addToQueue,
+                    onDetectDrops = viewModel::detectDrops,
                     showFastScroller = false,
                 )
             }
@@ -109,6 +110,7 @@ internal fun LibraryContent(
                     onToggleFavorite = viewModel::toggleFavorite,
                     onPlayNext = viewModel::playNext,
                     onAddToQueue = viewModel::addToQueue,
+                    onDetectDrops = viewModel::detectDrops,
                     showFastScroller = false,
                 )
             }
@@ -347,6 +349,7 @@ private fun LibraryViewBody(
                     onToggleFavorite = viewModel::toggleFavorite,
                     onPlayNext = viewModel::playNext,
                     onAddToQueue = viewModel::addToQueue,
+                    onDetectDrops = viewModel::detectDrops,
                 )
             }
         }
@@ -403,6 +406,7 @@ private fun LibraryViewBody(
                 onToggleFavorite = viewModel::toggleFavorite,
                 onPlayNext = viewModel::playNext,
                 onAddToQueue = viewModel::addToQueue,
+                onDetectDrops = viewModel::detectDrops,
             )
         }
 
@@ -416,6 +420,7 @@ private fun LibraryViewBody(
                 onToggleFavorite = viewModel::toggleFavorite,
                 onPlayNext = viewModel::playNext,
                 onAddToQueue = viewModel::addToQueue,
+                onDetectDrops = viewModel::detectDrops,
                 showFastScroller = false,
             )
         }
@@ -430,6 +435,7 @@ private fun LibraryViewBody(
                 onToggleFavorite = viewModel::toggleFavorite,
                 onPlayNext = viewModel::playNext,
                 onAddToQueue = viewModel::addToQueue,
+                onDetectDrops = viewModel::detectDrops,
                 showFastScroller = false,
             )
         }

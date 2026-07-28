@@ -50,6 +50,24 @@ class MarkerRepositoryImpl(
             entities.map { it.toDomain(linkedSongId = null) }
         }
 
+    override val pendingAutoDetectedMarkers: Flow<List<SongMarker>> =
+        markerDao.observePendingBySource(MarkerSource.AUTO_DETECTED.name).map { rows ->
+            rows.map { it.marker.toDomain(linkedSongId = it.linkedSongId) }
+        }
+
+    override suspend fun confirmMarker(markerId: Long): AppResult<Unit> =
+        withContext(dispatchers.io) {
+            val marker =
+                markerDao.getById(markerId)
+                    ?: return@withContext AppResult.failure(AppError.MarkerUnmatched(null))
+            try {
+                markerDao.update(markerId, marker.label, marker.positionMs, isEnabled = true)
+                AppResult.success(Unit)
+            } catch (e: Exception) {
+                AppResult.failure(AppError.DatabaseFailure("confirmMarker"))
+            }
+        }
+
     override suspend fun importDocument(
         schemaVersion: Int,
         tracks: List<ImportedTrack>,

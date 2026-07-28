@@ -1,6 +1,8 @@
 package com.dropsync.core.database.dao
 
+import androidx.room.ColumnInfo
 import androidx.room.Dao
+import androidx.room.Embedded
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
@@ -52,6 +54,16 @@ interface SongDao {
     )
 }
 
+/**
+ * Onset-Kandidat (Phase 5) samt Zielsong aus der Linkzeile; Grundlage der
+ * Review-Liste in den Einstellungen.
+ */
+data class PendingMarkerRow(
+    @Embedded val marker: SongMarkerEntity,
+    @ColumnInfo(name = "linked_song_id")
+    val linkedSongId: Long,
+)
+
 @Dao
 interface MarkerDao {
     @Insert
@@ -98,6 +110,27 @@ interface MarkerDao {
     /** Loescht den Marker; die Linkzeile faellt per ON DELETE CASCADE mit. */
     @Query("DELETE FROM song_markers WHERE id = :markerId")
     suspend fun deleteMarker(markerId: Long)
+
+    /** Unbestaetigte Kandidaten einer Quelle (Phase 5: AUTO_DETECTED). */
+    @Query(
+        "SELECT m.*, l.song_id AS linked_song_id FROM song_markers m " +
+            "INNER JOIN marker_song_links l ON l.marker_id = m.id " +
+            "WHERE m.source = :source AND m.is_enabled = 0 ORDER BY l.song_id, m.position_ms",
+    )
+    fun observePendingBySource(source: String): Flow<List<PendingMarkerRow>>
+
+    /**
+     * Entfernt unbestaetigte Kandidaten einer Quelle fuer einen Song:
+     * ein erneuter Erkennungslauf ersetzt seine alten Kandidaten.
+     */
+    @Query(
+        "DELETE FROM song_markers WHERE source = :source AND is_enabled = 0 AND id IN " +
+            "(SELECT marker_id FROM marker_song_links WHERE song_id = :songId)",
+    )
+    suspend fun deletePendingBySourceForSong(
+        songId: Long,
+        source: String,
+    )
 }
 
 @Dao

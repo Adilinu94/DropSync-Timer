@@ -6,6 +6,7 @@ import com.dropsync.core.common.AppError
 import com.dropsync.core.common.onFailure
 import com.dropsync.core.common.onSuccess
 import com.dropsync.core.model.Song
+import com.dropsync.domain.audio.TrackAnalysisRepository
 import com.dropsync.domain.library.Album
 import com.dropsync.domain.library.Artist
 import com.dropsync.domain.library.AudioFileFormat
@@ -75,6 +76,7 @@ class LibraryViewModel
         private val browseRepository: LibraryBrowseRepository,
         private val playbackRepository: PlaybackRepository,
         private val viewPreferences: LibraryViewPreferencesRepository,
+        private val trackAnalysisRepository: TrackAnalysisRepository,
     ) : ViewModel() {
         private val _error = MutableStateFlow(LibraryError.NONE)
         val error: StateFlow<LibraryError> = _error.asStateFlow()
@@ -333,6 +335,16 @@ class LibraryViewModel
         /** Haengt [song] ans Ende der Warteschlange an. */
         fun addToQueue(song: Song) {
             viewModelScope.launch { playbackRepository.addToQueueEnd(song) }
+        }
+
+        /**
+         * Stoesst die Onset-Erkennung (A2, Marker/Waveform-Plan Phase 5) fuer
+         * [song] an — explizit vom Nutzer ueber das Kontextmenue ("Drops
+         * automatisch erkennen"). Kandidaten erscheinen als unbestaetigte
+         * AUTO_DETECTED-Marker in der Review-Liste der Einstellungen.
+         */
+        fun detectDrops(song: Song) {
+            viewModelScope.launch { trackAnalysisRepository.requestOnsetDetection(song) }
         }
 
         private fun <T> Flow<T>.asState(initial: T): StateFlow<T> =
