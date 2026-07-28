@@ -3,6 +3,9 @@
 Lokale Android-App fuer Musikwiedergabe, markerbasierte Timer (DropSync) und
 ein Krafttrainingstagebuch — vollstaendig offline, ohne Konto, ohne Analytics.
 
+> Sichtbarer App-Name (Launcher/Store): **FlowRep**. Projekt- und Paketname
+> bleiben aus Kontinuitaetsgruenden `DropSync` bzw. `com.dropsync`.
+
 Grundlage ist der verbindliche technische Bauplan
 (`DropSync-Technischer-Bauplan.md`, Stand 27.07.2026). Abweichungen vom
 Bauplan sind nur ueber ADRs in [`docs/adr/`](docs/adr/) erlaubt.

@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name" translatable="false">DropSync</string>
+    <string name="app_name" translatable="false">FlowRep</string>
     <string name="nav_music">Music</string>
     <string name="nav_training">Training</string>
     <string name="nav_settings">Settings</string>

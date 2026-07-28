@@ -10,8 +10,8 @@ Grundsätze: offline (Raleway als gebündelte OFL-TTF, kein Netz), keine neuen F
 | --- | --- | --- |
 | 1 | FlowRep Design-Mockups (imagegen-frontend-mobile) | Zurückgestellt (Bilddienst 40500, wird nachgeholt) |
 | 2 | Design-Tokens + Raleway-Typografie + Spacing (`:core:designsystem`) | Abgeschlossen |
-| 3 | Marken-Komponenten (Buttons, BrandCard, ProgressRing) | Offen |
-| 4 | Rebrand FlowRep (app_name, Launcher-Icon) | Offen |
+| 3 | Marken-Komponenten (Buttons, BrandCard, ProgressRing) | Abgeschlossen |
+| 4 | Rebrand FlowRep (app_name, Launcher-Icon) | Abgeschlossen |
 | 5 | Screen-Redesign: Bibliothek (`:feature:library`) | Offen |
 | 6 | Screen-Redesign: Now-Playing + Mini-Player (`:feature:player`) | Offen |
 | 7 | Timer + Bottom-Nav + globaler Feinschliff | Offen |
@@ -23,7 +23,14 @@ Grundsätze: offline (Raleway als gebündelte OFL-TTF, kein Netz), keine neuen F
 - [Theme.kt](core/designsystem/src/main/kotlin/com/dropsync/core/designsystem/theme/Theme.kt): `MaterialTheme(typography = DropSyncTypography, ...)`.
 - Raleway als statische OFL-TTF (400/500/600/700/800) in `core/designsystem/src/main/res/font/` gebündelt und in `BrandFontFamily` verdrahtet (offline, kein Provider); OFL-Notice in `THIRD_PARTY_NOTICES.md`.
 
+## Phase 3 – Marken-Komponenten (Abgeschlossen)
+
+- Neu `component/Buttons.kt` (`BrandButtonPrimary/Secondary/Ghost`, Pill 56dp, Bold-Label, Press-Scale), `component/BrandCard.kt` (Radius 24, Hairline-`outline`, weiche Elevation), `component/ProgressRing.kt` (feder-animierter Lime-Ring mit zentralem Slot), `component/CountUpText.kt` (hochzählende Zahl für Peak-End).
+
+## Phase 4 – Rebrand FlowRep (Abgeschlossen)
+
+- `app_name` → „FlowRep"; Launcher-Hintergrund `#0D0D0D`; [ic_launcher_foreground.xml](app/src/main/res/drawable/ic_launcher_foreground.xml) als geometrisches Lime-„F"-Monogramm (dient auch als monochrome Variante). Projekt-/Paketname bleiben `com.dropsync`; README mit Marken-Hinweis ergänzt.
+
 ## Verifikation je Phase
 
 - `./gradlew spotlessApply` (separat) → betroffene Modul-Tests + `:app:assembleDebug` → `:core:testing:test` (Architektur-Wächter) + `spotlessCheck`.
-- Nach jeder Code-Phase: README-/Plan-Status pflegen, committen und pushen.
