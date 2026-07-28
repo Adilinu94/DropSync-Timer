@@ -59,6 +59,17 @@ Bauplan sind nur ueber ADRs in [`docs/adr/`](docs/adr/) erlaubt.
 | 4 | A1 - Manuelles Marker-Setzen: `createManualMarker`/`deleteMarker` in `MarkerRepository` (MANUAL-Marker + Link in einer Transaktion, Fingerprint aus Songfeldern wiederverwendet), Bestaetigungsdialog mit optionalem Label (Standard "Drop"), Marker-Ticks auf der Waveform; Long-Press auf freier Flaeche setzt, Long-Press nahe einem Tick loescht nach Bestaetigung (Tap bleibt der Sprung aus Phase 3) | Abgeschlossen |
 | 5 | A2 - On-Device-Drop-/Onset-Erkennung: `OnsetDetection` (`:domain:audio`, Novelty = positive RMS-Differenz, Peak-Picking ueber gleitendem Schwellwert Mittel + k*Stdabw plus absolutem Mindestsprung, Mindestabstand 5 s, Top 5), Trigger "Drops automatisch erkennen" im Song-Kontextmenue (Worker `onset_detection_<songId>`), Kandidaten `AUTO_DETECTED`/`isEnabled=false` (nie Automatik; erneuter Lauf ersetzt nur unbestaetigte), Review-Liste in den Einstellungen mit Bestaetigen (`confirmMarker`) und Verwerfen (loeschen) | Abgeschlossen |
 
+### Musik-Workout-Kopplung (Plan `MUSIK_WORKOUT_KOPPLUNG_AUSBAU_PLAN.md`, ADR-0012)
+
+| Phase | Inhalt | Status |
+| ----- | ------ | ------ |
+| 1 | Playlist-Oberflaeche (F1): anlegen/umbenennen/loeschen, Titel hinzufuegen/entfernen, Reihenfolge (Auf/Ab), "Zu Playlist hinzufuegen" im Songmenue | Abgeschlossen |
+| 2 | Playlist-Labels "Rest/Pause" und "Work" (F2): additive Spalte `label`, DB v3->v4 (`MIGRATION_3_4`, `4.json`), Label-Auswahl + Badge in der UI | Abgeschlossen |
+| 3 | Rest-Musik-Domain + Einstellungen: `RestMusicBehavior`, reiner `DropLandingPlanner` (`:domain:timer`), `RestMusicSettingsRepository`/-`Store` (DataStore), Abschnitt "Musik in Pausen" in den Einstellungen | Abgeschlossen |
+| 4 | Rest-Musik-Orchestrierung + Drop-Landung (F3): `RestMusicCoordinator` (`:feature:player`) beobachtet `TimerEngine`+Einstellung, setzt Rest-Queue bei Pausenbeginn, terminiert die Drop-Landung und wechselt per `crossfadeTo` (MediaSession-Custom-Kommando -> erweiterter `CrossfadeController`), Fallback-Kette + Nutzer-Vorrang; ADR-0012 | Abgeschlossen |
+| 5 | Hardware-/Touch-Control (F4): Verifikation MediaSession-Standardbefehle, Override-Absicherung, Doku `docs/hardware-control.md` | Offen |
+| 6 | Extras: Intelligentes Shuffle (A5), Rest-Timer-Presets (B8), Get-Ready-Countdown 3-2-1 (B9) | Offen |
+
 ## Build
 
 Voraussetzungen:

@@ -340,6 +340,11 @@ private class FakePlaybackRepository : PlaybackRepository {
     override suspend fun lastPersistedState(): PersistedPlayerState? = null
 
     override suspend fun snapshotNow(): AppResult<PlaybackState> = snapshot
+
+    override suspend fun crossfadeTo(
+        song: Song,
+        startPositionMs: Long,
+    ): AppResult<Unit> = AppResult.success(Unit)
 }
 
 private class FakeTrackAnalysisRepository : TrackAnalysisRepository {

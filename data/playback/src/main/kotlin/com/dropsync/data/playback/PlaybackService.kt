@@ -5,6 +5,7 @@ import android.media.AudioDeviceCallback
 import android.media.AudioDeviceInfo
 import android.media.AudioManager
 import android.media.audiofx.AudioEffect
+import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import androidx.annotation.OptIn
@@ -22,6 +23,8 @@ import androidx.media3.session.LibraryResult
 import androidx.media3.session.MediaLibraryService
 import androidx.media3.session.MediaLibraryService.LibraryParams
 import androidx.media3.session.MediaSession
+import androidx.media3.session.SessionCommand
+import androidx.media3.session.SessionResult
 import com.dropsync.core.common.AppResult
 import com.dropsync.core.model.Song
 import com.dropsync.data.audio.AudioPipeline
@@ -129,6 +132,7 @@ class PlaybackService : MediaLibraryService() {
                         libraryRepository = libraryRepository,
                         browseRepository = browseRepository,
                         labels = browseLabels(),
+                        onCrossfade = ::handleCrossfadeTo,
                     ),
                 ).build()
         // MusicFX (Plan Phase 4): Systemequalizer erhaelt die Session-ID;
@@ -242,6 +246,23 @@ class PlaybackService : MediaLibraryService() {
         )
     }
 
+    /**
+     * Empfaengt das Drop-Landungs-Kommando (Musik-Workout-Plan Phase 4):
+     * loest den Song auf und uebergibt ihn dem [CrossfadeController]. Der
+     * eigentliche Crossfade laeuft auf dem Main-Thread, weil er Player
+     * beruehrt.
+     */
+    private fun handleCrossfadeTo(
+        songId: Long,
+        startPositionMs: Long,
+    ) {
+        serviceScope.launch {
+            val song = (libraryRepository.getSong(songId) as? AppResult.Success)?.value ?: return@launch
+            val item = MediaItemFactory.fromSong(song)
+            mainScope.launch { crossfadeController?.crossfadeTo(item, startPositionMs) }
+        }
+    }
+
     /** Kategorienamen des Browse-Baums (Plan Phase 6.5). */
     private data class BrowseLabels(
         val root: String,
@@ -264,7 +285,39 @@ class PlaybackService : MediaLibraryService() {
         private val libraryRepository: LibraryRepository,
         private val browseRepository: LibraryBrowseRepository,
         private val labels: BrowseLabels,
+        private val onCrossfade: (Long, Long) -> Unit,
     ) : MediaLibrarySession.Callback {
+        /** Meldet das eigene Drop-Landungs-Kommando als verfuegbar an. */
+        override fun onConnect(
+            session: MediaSession,
+            controller: MediaSession.ControllerInfo,
+        ): MediaSession.ConnectionResult {
+            val sessionCommands =
+                MediaSession.ConnectionResult.DEFAULT_SESSION_AND_LIBRARY_COMMANDS
+                    .buildUpon()
+                    .add(SessionCommand(PlaybackCommands.ACTION_CROSSFADE_TO, Bundle.EMPTY))
+                    .build()
+            return MediaSession.ConnectionResult
+                .AcceptedResultBuilder(session)
+                .setAvailableSessionCommands(sessionCommands)
+                .build()
+        }
+
+        override fun onCustomCommand(
+            session: MediaSession,
+            controller: MediaSession.ControllerInfo,
+            customCommand: SessionCommand,
+            args: Bundle,
+        ): ListenableFuture<SessionResult> {
+            if (customCommand.customAction == PlaybackCommands.ACTION_CROSSFADE_TO) {
+                val songId = args.getLong(PlaybackCommands.ARG_SONG_ID, -1L)
+                val startPositionMs = args.getLong(PlaybackCommands.ARG_START_POSITION_MS, 0L)
+                if (songId >= 0) onCrossfade(songId, startPositionMs)
+                return Futures.immediateFuture(SessionResult(SessionResult.RESULT_SUCCESS))
+            }
+            return super.onCustomCommand(session, controller, customCommand, args)
+        }
+
         override fun onAddMediaItems(
             mediaSession: MediaSession,
             controller: MediaSession.ControllerInfo,

@@ -65,6 +65,68 @@ class CrossfadeController(
         cancelFade(restoreVolume = false)
     }
 
+    /**
+     * Aktiver Wechsel auf [next], vorgespult auf [startPositionMs], per
+     * Equal-Power-Crossfade (Drop-Landung, Musik-Workout-Plan Phase 4).
+     * Anders als [maybeBeginFade] wartet dies nicht auf das Titelende und
+     * startet den Zweitspieler an einer beliebigen Position. Ist der
+     * Crossfade deaktiviert, laeuft gerade eine Rampe oder pausiert die
+     * Wiedergabe, erfolgt ein harter Uebergang auf dem Hauptspieler.
+     * Muss auf dem Main-Thread laufen (Player-Vertrag).
+     */
+    fun crossfadeTo(
+        next: MediaItem,
+        startPositionMs: Long,
+    ) {
+        cancelFade(restoreVolume = true)
+        val startPos = startPositionMs.coerceAtLeast(0)
+        val secondary =
+            if (crossfadeSeconds <= 0 || !mainPlayer.isPlaying) {
+                null
+            } else {
+                runCatching(secondaryPlayerFactory).getOrNull()
+            }
+        if (secondary == null) {
+            // Fallback (Crossfade aus, pausiert oder kein Zweitspieler):
+            // harter, aber vorgespulter Uebergang auf dem einen Player.
+            mainPlayer.setMediaItem(next, startPos)
+            mainPlayer.prepare()
+            mainPlayer.play()
+            return
+        }
+        secondaryPlayer = secondary
+        secondary.volume = 0f
+        secondary.setMediaItem(next, startPos)
+        secondary.prepare()
+        secondary.play()
+        val fadeMs = crossfadeSeconds * 1000L
+        fadeJob =
+            scope.launch {
+                try {
+                    var elapsed = 0L
+                    while (isActive && elapsed < fadeMs) {
+                        // Nutzer hat pausiert: Rampe abbrechen, Uebergabe folgt.
+                        if (!mainPlayer.isPlaying) break
+                        val t = elapsed.toDouble() / fadeMs
+                        mainPlayer.volume = CrossfadeCurves.fadeOutGain(t).toFloat()
+                        secondary.volume = CrossfadeCurves.fadeInGain(t).toFloat()
+                        delay(STEP_MS)
+                        elapsed += STEP_MS
+                    }
+                    // Uebergabe: Hauptspieler uebernimmt [next] an der bereits
+                    // gespielten Position des Zweitspielers.
+                    mainPlayer.setMediaItem(next, secondary.currentPosition)
+                    mainPlayer.prepare()
+                    mainPlayer.play()
+                } finally {
+                    mainPlayer.volume = 1f
+                    secondary.release()
+                    secondaryPlayer = null
+                    fadeJob = null
+                }
+            }
+    }
+
     private fun maybeBeginFade() {
         if (crossfadeSeconds <= 0 || fadeJob != null) return
         if (!mainPlayer.isPlaying) return

@@ -1,6 +1,9 @@
 package com.dropsync.data.playback
 
+import android.os.Bundle
 import androidx.media3.common.Player
+import androidx.media3.session.MediaController
+import androidx.media3.session.SessionCommand
 import com.dropsync.core.common.AppError
 import com.dropsync.core.common.AppResult
 import com.dropsync.core.common.DispatcherProvider
@@ -116,6 +119,46 @@ class PlaybackRepositoryImpl(
             withContext(dispatchers.main) {
                 AppResult.success(connection.requirePlayer().toPlaybackState())
             }
+        } catch (e: Exception) {
+            AppResult.failure(AppError.Unknown(e.message))
+        }
+
+    override suspend fun crossfadeTo(
+        song: Song,
+        startPositionMs: Long,
+    ): AppResult<Unit> =
+        try {
+            withContext(dispatchers.main) {
+                val player = connection.requirePlayer()
+                attachListener(player)
+                val controller = player as? MediaController
+                if (controller != null) {
+                    // Nur der Service haelt den Zweitspieler: den echten
+                    // Crossfade per Custom-Kommando dort ausloesen (ADR-0012).
+                    val args =
+                        Bundle().apply {
+                            putLong(PlaybackCommands.ARG_SONG_ID, song.mediaStoreId)
+                            putLong(
+                                PlaybackCommands.ARG_START_POSITION_MS,
+                                startPositionMs.coerceAtLeast(0),
+                            )
+                        }
+                    controller.sendCustomCommand(
+                        SessionCommand(PlaybackCommands.ACTION_CROSSFADE_TO, Bundle.EMPTY),
+                        args,
+                    )
+                } else {
+                    // Fallback ohne MediaController: vorgespulter harter Wechsel.
+                    player.setMediaItem(
+                        MediaItemFactory.fromSong(song),
+                        startPositionMs.coerceAtLeast(0),
+                    )
+                    player.prepare()
+                    player.play()
+                }
+                publishAndPersist(player)
+            }
+            AppResult.success(Unit)
         } catch (e: Exception) {
             AppResult.failure(AppError.Unknown(e.message))
         }

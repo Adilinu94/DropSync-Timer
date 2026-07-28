@@ -71,6 +71,29 @@ private class FakePlaybackRepository : PlaybackRepository {
         com.dropsync.core.common.AppResult
             .success(Unit)
 
+    override suspend fun skipToQueueIndex(index: Int): com.dropsync.core.common.AppResult<Unit> =
+        com.dropsync.core.common.AppResult
+            .success(Unit)
+
+    override suspend fun moveInQueue(
+        fromIndex: Int,
+        toIndex: Int,
+    ): com.dropsync.core.common.AppResult<Unit> =
+        com.dropsync.core.common.AppResult
+            .success(Unit)
+
+    override suspend fun removeFromQueue(index: Int): com.dropsync.core.common.AppResult<Unit> =
+        com.dropsync.core.common.AppResult
+            .success(Unit)
+
+    override suspend fun playNext(song: Song): com.dropsync.core.common.AppResult<Unit> =
+        com.dropsync.core.common.AppResult
+            .success(Unit)
+
+    override suspend fun addToQueueEnd(song: Song): com.dropsync.core.common.AppResult<Unit> =
+        com.dropsync.core.common.AppResult
+            .success(Unit)
+
     override suspend fun setShuffle(enabled: Boolean): com.dropsync.core.common.AppResult<Unit> =
         com.dropsync.core.common.AppResult
             .success(Unit)
@@ -84,6 +107,13 @@ private class FakePlaybackRepository : PlaybackRepository {
     override suspend fun snapshotNow(): com.dropsync.core.common.AppResult<PlaybackState> =
         com.dropsync.core.common.AppResult
             .success(snapshot)
+
+    override suspend fun crossfadeTo(
+        song: Song,
+        startPositionMs: Long,
+    ): com.dropsync.core.common.AppResult<Unit> =
+        com.dropsync.core.common.AppResult
+            .success(Unit)
 }
 
 /**

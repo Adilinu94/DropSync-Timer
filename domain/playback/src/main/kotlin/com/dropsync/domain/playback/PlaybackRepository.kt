@@ -75,4 +75,17 @@ interface PlaybackRepository {
      * weil [state] die Position nur bei Player-Ereignissen aktualisiert.
      */
     suspend fun snapshotNow(): AppResult<PlaybackState>
+
+    /**
+     * Wechselt aktiv auf [song], vorgespult auf [startPositionMs], per
+     * Equal-Power-Crossfade (Musik-Workout-Plan Phase 4, "Drop-Landung").
+     * Der Wechsel laeuft dienstseitig ueber den vorhandenen
+     * Dual-Player-Crossfade (ADR-0007/0012); ist der Crossfade aus oder
+     * die Wiedergabe pausiert, erfolgt ein harter Uebergang auf dem einen
+     * sessionfuehrenden Player. Die App uebernimmt damit die Queue.
+     */
+    suspend fun crossfadeTo(
+        song: Song,
+        startPositionMs: Long,
+    ): AppResult<Unit>
 }
