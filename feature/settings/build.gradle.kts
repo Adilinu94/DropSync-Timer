@@ -37,6 +37,7 @@ dependencies {
     implementation(project(":core:model"))
     implementation(project(":core:designsystem"))
     implementation(project(":domain:library"))
+    implementation(project(":domain:playback"))
 
     val composeBom = platform(libs.androidx.compose.bom)
     implementation(composeBom)

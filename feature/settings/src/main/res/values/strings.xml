@@ -31,4 +31,12 @@
     <string name="settings_audio_entry_desc">Equalizer, effects, resampler, Bit-Perfect and output profiles</string>
     <string name="settings_privacy_section">Privacy</string>
     <string name="settings_privacy_body">DropSync works completely offline. There are no analytics, no ads and no network transfers. Song hashes come only from marker files you import yourself.</string>
+    <string name="settings_rest_music_section">Music during rest</string>
+    <string name="settings_rest_music_desc">Choose how music behaves during workout rest periods. Off keeps your normal playback (e.g. shuffle) running.</string>
+    <string name="settings_rest_music_normal">Off</string>
+    <string name="settings_rest_music_normal_desc">Do not interfere. Your queue and shuffle keep playing as usual.</string>
+    <string name="settings_rest_music_rest_playlist">Rest playlist</string>
+    <string name="settings_rest_music_rest_playlist_desc">During a rest, play a playlist labelled \"Rest / break\"; when the rest ends, start a track from a \"Work\" playlist.</string>
+    <string name="settings_rest_music_drop_landing">Drop landing</string>
+    <string name="settings_rest_music_drop_landing_desc">Like the rest playlist, plus timing a \"Work\" track so its drop lands exactly at the end of the rest.</string>
 </resources>

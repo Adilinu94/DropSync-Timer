@@ -11,8 +11,10 @@ import com.dropsync.data.playback.PlaybackRepositoryImpl
 import com.dropsync.data.playback.PlayerConnection
 import com.dropsync.data.playback.PlayerStateStore
 import com.dropsync.data.playback.PlayerVolumeGateImpl
+import com.dropsync.data.playback.RestMusicSettingsStore
 import com.dropsync.domain.playback.PlaybackRepository
 import com.dropsync.domain.playback.PlayerVolumeGate
+import com.dropsync.domain.playback.RestMusicSettingsRepository
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -55,4 +57,10 @@ object PlaybackDataModule {
     @Provides
     @Singleton
     fun providePlayerVolumeGate(pipeline: AudioPipeline): PlayerVolumeGate = PlayerVolumeGateImpl(pipeline)
+
+    @Provides
+    @Singleton
+    fun provideRestMusicSettingsRepository(
+        @ApplicationContext context: Context,
+    ): RestMusicSettingsRepository = RestMusicSettingsStore(context)
 }

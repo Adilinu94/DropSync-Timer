@@ -16,6 +16,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -29,6 +30,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.dropsync.core.model.RestMusicBehavior
 import com.dropsync.core.model.Song
 import com.dropsync.core.model.SongMarker
 
@@ -48,6 +50,7 @@ fun SettingsScreen(
     val unmatched by viewModel.unmatchedMarkers.collectAsStateWithLifecycle()
     val pendingCandidates by viewModel.pendingAutoDetectedMarkers.collectAsStateWithLifecycle()
     val songs by viewModel.songs.collectAsStateWithLifecycle()
+    val restMusicBehavior by viewModel.restMusicBehavior.collectAsStateWithLifecycle()
     val importState by viewModel.importState.collectAsStateWithLifecycle()
     var markerToLink by remember { mutableStateOf<SongMarker?>(null) }
 
@@ -78,6 +81,28 @@ fun SettingsScreen(
                         .fillMaxWidth()
                         .heightIn(min = 48.dp)
                         .clickable(onClick = onOpenAudioSettings),
+            )
+        }
+        item { HorizontalDivider(Modifier.padding(vertical = 12.dp)) }
+        item {
+            Text(
+                text = stringResource(R.string.settings_rest_music_section),
+                style = MaterialTheme.typography.titleMedium,
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+            )
+        }
+        item {
+            Text(
+                text = stringResource(R.string.settings_rest_music_desc),
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.padding(horizontal = 16.dp),
+            )
+        }
+        items(RestMusicBehavior.entries, key = { it.name }) { option ->
+            RestMusicOption(
+                option = option,
+                selected = option == restMusicBehavior,
+                onSelect = { viewModel.setRestMusicBehavior(option) },
             )
         }
         item { HorizontalDivider(Modifier.padding(vertical = 12.dp)) }
@@ -337,3 +362,39 @@ private fun LinkMarkerDialog(
         },
     )
 }
+
+/**
+ * Eine Auswahl des Pausen-Musik-Verhaltens (Musik-Workout-Plan Phase 3):
+ * Radio-Knopf, Titel und Erklaertext. NORMAL = Aus (Shuffle laeuft weiter).
+ */
+@Composable
+private fun RestMusicOption(
+    option: RestMusicBehavior,
+    selected: Boolean,
+    onSelect: () -> Unit,
+) {
+    ListItem(
+        headlineContent = { Text(stringResource(option.titleRes())) },
+        supportingContent = { Text(stringResource(option.descRes())) },
+        leadingContent = { RadioButton(selected = selected, onClick = onSelect) },
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .heightIn(min = 48.dp)
+                .clickable(onClick = onSelect),
+    )
+}
+
+private fun RestMusicBehavior.titleRes(): Int =
+    when (this) {
+        RestMusicBehavior.NORMAL -> R.string.settings_rest_music_normal
+        RestMusicBehavior.REST_PLAYLIST -> R.string.settings_rest_music_rest_playlist
+        RestMusicBehavior.DROP_LANDING -> R.string.settings_rest_music_drop_landing
+    }
+
+private fun RestMusicBehavior.descRes(): Int =
+    when (this) {
+        RestMusicBehavior.NORMAL -> R.string.settings_rest_music_normal_desc
+        RestMusicBehavior.REST_PLAYLIST -> R.string.settings_rest_music_rest_playlist_desc
+        RestMusicBehavior.DROP_LANDING -> R.string.settings_rest_music_drop_landing_desc
+    }

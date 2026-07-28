@@ -31,4 +31,12 @@
     <string name="settings_audio_entry_desc">Equalizer, Effekte, Resampler, Bit-Perfect und Ausgabeprofile</string>
     <string name="settings_privacy_section">Datenschutz</string>
     <string name="settings_privacy_body">DropSync arbeitet vollstaendig offline. Es gibt keine Analytics, keine Werbung und keine Netzwerkuebertragung. Song-Hashes stammen nur aus Markerdateien, die du selbst importierst.</string>
+    <string name="settings_rest_music_section">Musik in Pausen</string>
+    <string name="settings_rest_music_desc">Waehle, wie sich die Musik in Trainingspausen verhaelt. Aus laesst deine normale Wiedergabe (z. B. Shuffle) unveraendert weiterlaufen.</string>
+    <string name="settings_rest_music_normal">Aus</string>
+    <string name="settings_rest_music_normal_desc">Nicht eingreifen. Warteschlange und Shuffle laufen wie gewohnt weiter.</string>
+    <string name="settings_rest_music_rest_playlist">Pausen-Playlist</string>
+    <string name="settings_rest_music_rest_playlist_desc">In der Pause laeuft eine Playlist mit dem Label \"Pause\"; am Pausenende startet ein Titel aus einer \"Training\"-Playlist.</string>
+    <string name="settings_rest_music_drop_landing">Drop-Landung</string>
+    <string name="settings_rest_music_drop_landing_desc">Wie die Pausen-Playlist, zusaetzlich wird ein \"Training\"-Titel so getimt, dass sein Drop genau das Pausenende trifft.</string>
 </resources>

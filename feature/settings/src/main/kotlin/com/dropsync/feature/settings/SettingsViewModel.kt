@@ -6,6 +6,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.dropsync.core.common.AppResult
 import com.dropsync.core.common.DispatcherProvider
+import com.dropsync.core.model.RestMusicBehavior
 import com.dropsync.core.model.Song
 import com.dropsync.core.model.SongMarker
 import com.dropsync.domain.library.ImportReport
@@ -13,6 +14,7 @@ import com.dropsync.domain.library.LibraryRepository
 import com.dropsync.domain.library.MarkerDocumentParser
 import com.dropsync.domain.library.MarkerRepository
 import com.dropsync.domain.library.ParsedMarkerDocument
+import com.dropsync.domain.playback.RestMusicSettingsRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -49,6 +51,7 @@ class SettingsViewModel
         @ApplicationContext private val context: Context,
         private val markerRepository: MarkerRepository,
         libraryRepository: LibraryRepository,
+        private val restMusicSettings: RestMusicSettingsRepository,
         private val dispatchers: DispatcherProvider,
     ) : ViewModel() {
         /** Nicht zugeordnete Marker fuer die manuelle Zuordnung (Schritt 6.6). */
@@ -78,6 +81,14 @@ class SettingsViewModel
                 viewModelScope,
                 SharingStarted.WhileSubscribed(5_000),
                 emptyList(),
+            )
+
+        /** Verhalten der Musik in Trainingspausen (Musik-Workout-Plan Phase 3). */
+        val restMusicBehavior: StateFlow<RestMusicBehavior> =
+            restMusicSettings.behavior.stateIn(
+                viewModelScope,
+                SharingStarted.WhileSubscribed(5_000),
+                RestMusicBehavior.NORMAL,
             )
 
         private val mutableImportState = MutableStateFlow<ImportUiState>(ImportUiState.Idle)
@@ -148,6 +159,11 @@ class SettingsViewModel
         /** Verwirft einen Kandidaten endgueltig (Phase 5): loeschen statt behalten. */
         fun discardMarker(markerId: Long) {
             viewModelScope.launch { markerRepository.deleteMarker(markerId) }
+        }
+
+        /** Setzt das Pausen-Musik-Verhalten (Musik-Workout-Plan Phase 3). */
+        fun setRestMusicBehavior(behavior: RestMusicBehavior) {
+            viewModelScope.launch { restMusicSettings.setBehavior(behavior) }
         }
 
         fun dismissImportResult() {
