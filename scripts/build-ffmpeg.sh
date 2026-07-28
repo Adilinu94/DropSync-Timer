@@ -6,8 +6,9 @@
 # LGPL-konformer FFmpeg-Build genutzt (keine Encoder, kein GPL/nonfree).
 #
 # Dieses Skript laeuft NICHT in der CI-Sandbox (kein NDK). Es ist fuer
-# einen Entwickler-Host mit Android NDK r27, make/clang/bash gedacht
-# (Windows: WSL). Ausfuehrliche Erklaerung: docs/ffmpeg-build.md.
+# einen Entwickler-Host mit Android NDK r28+ (16-KB-Page-Alignment ist
+# dort Default; r27 braeuchte -Wl,-z,max-page-size=16384), make/clang/bash
+# gedacht (Windows: WSL). Ausfuehrliche Erklaerung: docs/ffmpeg-build.md.
 #
 # Nutzung:
 #   ANDROID_NDK_HOME=/pfad/zum/ndk \
@@ -42,7 +43,7 @@ log() { printf '\n\033[1;34m==>\033[0m %s\n' "$*"; }
 die() { printf '\n\033[1;31mFehler:\033[0m %s\n' "$*" >&2; exit 1; }
 
 # --- Voraussetzungen pruefen ------------------------------------------------
-[ -n "${ANDROID_NDK_HOME:-}" ] || die "ANDROID_NDK_HOME ist nicht gesetzt (NDK r27 erwartet)."
+[ -n "${ANDROID_NDK_HOME:-}" ] || die "ANDROID_NDK_HOME ist nicht gesetzt (NDK r28+ erwartet)."
 [ -d "${ANDROID_NDK_HOME}" ] || die "ANDROID_NDK_HOME zeigt nicht auf ein Verzeichnis: ${ANDROID_NDK_HOME}"
 for tool in git make clang; do
   command -v "${tool}" >/dev/null 2>&1 || die "Benoetigtes Werkzeug fehlt: ${tool}"
@@ -141,6 +142,36 @@ dependencies {
     implementation(libs.androidx.media3.exoplayer)
 }
 GRADLE
+fi
+
+# --- 8. 16-KB-Page-Alignment verifizieren (Play-Pflicht ab targetSdk 35) --
+# Jede LOAD-Zeile der .so muss auf 0x4000 aligned sein; mit NDK r28+ ist
+# das Default. Details: docs/ffmpeg-build.md.
+READELF="$(find "${ANDROID_NDK_HOME}/toolchains/llvm/prebuilt" -name llvm-readelf -type f 2>/dev/null | head -n1 || true)"
+if [ -n "${READELF}" ]; then
+  log "Pruefe 16-KB-Page-Alignment der nativen Libraries ..."
+  CHECK_DIR="${WORK_DIR}/.page-size-check"
+  rm -rf "${CHECK_DIR}" && mkdir -p "${CHECK_DIR}"
+  # .so-Kandidaten einsammeln (direkt oder aus den AARs entpackt).
+  cp -R "${DEST_DIR}/src/main/jniLibs/." "${CHECK_DIR}/" 2>/dev/null || true
+  for aar in "${DEST_DIR}/libs/"*.aar; do
+    [ -f "${aar}" ] && unzip -qo "${aar}" 'jni/*' -d "${CHECK_DIR}" 2>/dev/null || true
+  done
+  BAD=0
+  while IFS= read -r -d '' so; do
+    # POSIX-awk: Alignment steht als Hexwert am Zeilenende der LOAD-Zeilen;
+    # 0x1000/0x2000 (< 16 KB) sind die Verletzungen.
+    if "${READELF}" -l "${so}" | awk '$1=="LOAD" && ($NF=="0x1000" || $NF=="0x2000") { bad=1 } END { exit bad }'; then
+      log "OK (16 KB): ${so#${CHECK_DIR}/}"
+    else
+      printf '\033[1;31mNICHT 16-KB-aligned:\033[0m %s\n' "${so#${CHECK_DIR}/}" >&2
+      BAD=1
+    fi
+  done < <(find "${CHECK_DIR}" -name '*.so' -print0)
+  rm -rf "${CHECK_DIR}"
+  [ "${BAD}" -eq 0 ] || die "Mind. eine .so ist nicht 16-KB-aligned — NDK r28+ verwenden (siehe docs/ffmpeg-build.md)."
+else
+  log "Warnung: llvm-readelf nicht gefunden — 16-KB-Pruefung uebersprungen."
 fi
 
 log "Fertig. Aktivierung:"
