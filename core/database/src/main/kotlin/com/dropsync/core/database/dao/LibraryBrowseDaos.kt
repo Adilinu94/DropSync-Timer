@@ -42,6 +42,7 @@ data class FolderRow(
 data class PlaylistRow(
     @ColumnInfo(name = "id") val id: Long,
     @ColumnInfo(name = "name") val name: String,
+    @ColumnInfo(name = "label") val label: String?,
     @ColumnInfo(name = "track_count") val trackCount: Int,
 )
 
@@ -189,15 +190,31 @@ interface PlaylistDao {
     @Query("DELETE FROM playlists WHERE id = :id")
     suspend fun deletePlaylist(id: Long)
 
+    /** Setzt oder loescht (null) das Label einer Playlist (Musik-Workout-Plan Phase 2). */
+    @Query("UPDATE playlists SET label = :label WHERE id = :id")
+    suspend fun setLabel(
+        id: Long,
+        label: String?,
+    )
+
     @Query("SELECT id FROM playlists WHERE name = :name")
     suspend fun getPlaylistIdByName(name: String): Long?
 
     @Query(
-        "SELECT p.id AS id, p.name AS name, COUNT(pi.id) AS track_count FROM playlists p " +
+        "SELECT p.id AS id, p.name AS name, p.label AS label, COUNT(pi.id) AS track_count FROM playlists p " +
             "LEFT JOIN playlist_items pi ON pi.playlist_id = p.id " +
-            "GROUP BY p.id, p.name ORDER BY p.name COLLATE NOCASE",
+            "GROUP BY p.id, p.name, p.label ORDER BY p.name COLLATE NOCASE",
     )
     fun observePlaylists(): Flow<List<PlaylistRow>>
+
+    /** Playlisten mit einem bestimmten Label (Musik-Workout-Plan Phase 2). */
+    @Query(
+        "SELECT p.id AS id, p.name AS name, p.label AS label, COUNT(pi.id) AS track_count FROM playlists p " +
+            "LEFT JOIN playlist_items pi ON pi.playlist_id = p.id " +
+            "WHERE p.label = :label " +
+            "GROUP BY p.id, p.name, p.label ORDER BY p.name COLLATE NOCASE",
+    )
+    fun observePlaylistsByLabel(label: String): Flow<List<PlaylistRow>>
 
     @Insert
     suspend fun insertItem(item: PlaylistItemEntity): Long

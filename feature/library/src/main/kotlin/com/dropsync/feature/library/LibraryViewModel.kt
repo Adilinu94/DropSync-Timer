@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.dropsync.core.common.AppError
 import com.dropsync.core.common.onFailure
 import com.dropsync.core.common.onSuccess
+import com.dropsync.core.model.PlaylistLabel
 import com.dropsync.core.model.Song
 import com.dropsync.domain.audio.TrackAnalysisRepository
 import com.dropsync.domain.library.Album
@@ -439,6 +440,14 @@ class LibraryViewModel
             toPosition: Int,
         ) {
             viewModelScope.launch { browseRepository.moveInPlaylist(playlistId, fromPosition, toPosition) }
+        }
+
+        /** Setzt oder entfernt (null) das Workout-Label einer Playlist (Phase 2). */
+        fun setPlaylistLabel(
+            playlistId: Long,
+            label: PlaylistLabel?,
+        ) {
+            viewModelScope.launch { browseRepository.setPlaylistLabel(playlistId, label) }
         }
 
         private fun <T> Flow<T>.asState(initial: T): StateFlow<T> =

@@ -5,6 +5,7 @@ import com.dropsync.core.database.dao.ArtistRow
 import com.dropsync.core.database.dao.FolderRow
 import com.dropsync.core.database.dao.GenreRow
 import com.dropsync.core.database.dao.PlaylistRow
+import com.dropsync.core.model.PlaylistLabel
 import com.dropsync.domain.library.Album
 import com.dropsync.domain.library.Artist
 import com.dropsync.domain.library.Genre
@@ -21,4 +22,10 @@ internal fun GenreRow.toDomain(): Genre = Genre(name = genre, trackCount = track
 
 internal fun FolderRow.toDomain(): LibraryFolder = LibraryFolder(relativePath = relativePath, trackCount = trackCount)
 
-internal fun PlaylistRow.toDomain(): Playlist = Playlist(id = id, name = name, trackCount = trackCount)
+internal fun PlaylistRow.toDomain(): Playlist =
+    Playlist(
+        id = id,
+        name = name,
+        trackCount = trackCount,
+        label = label?.let { runCatching { PlaylistLabel.valueOf(it) }.getOrNull() },
+    )

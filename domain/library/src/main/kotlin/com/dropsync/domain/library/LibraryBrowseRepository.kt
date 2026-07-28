@@ -1,6 +1,7 @@
 package com.dropsync.domain.library
 
 import com.dropsync.core.common.AppResult
+import com.dropsync.core.model.PlaylistLabel
 import com.dropsync.core.model.Song
 import kotlinx.coroutines.flow.Flow
 
@@ -30,11 +31,12 @@ data class LibraryFolder(
     val trackCount: Int,
 )
 
-/** Nutzerplaylist mit Eintragszahl. */
+/** Nutzerplaylist mit Eintragszahl und optionalem Workout-Label. */
 data class Playlist(
     val id: Long,
     val name: String,
     val trackCount: Int,
+    val label: PlaylistLabel? = null,
 )
 
 /** Sortierschluessel der Titellisten (Plan Phase 6, Punkt 2). */
@@ -103,7 +105,16 @@ interface LibraryBrowseRepository {
 
     val playlists: Flow<List<Playlist>>
 
+    /** Playlisten mit dem gegebenen Label (Musik-Workout-Plan Phase 2). */
+    fun playlistsByLabel(label: PlaylistLabel): Flow<List<Playlist>>
+
     fun songsOfPlaylist(playlistId: Long): Flow<List<Song>>
+
+    /** Setzt oder entfernt (null) das Workout-Label einer Playlist. */
+    suspend fun setPlaylistLabel(
+        playlistId: Long,
+        label: PlaylistLabel?,
+    ): AppResult<Unit>
 
     suspend fun createPlaylist(name: String): AppResult<Long>
 

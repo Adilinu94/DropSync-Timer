@@ -8,6 +8,7 @@ import com.dropsync.core.common.AppResult
 import com.dropsync.core.database.DropSyncDatabase
 import com.dropsync.core.database.RoomTransactionRunner
 import com.dropsync.core.database.entity.SongEntity
+import com.dropsync.core.model.PlaylistLabel
 import com.dropsync.core.testing.TestDispatcherProvider
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
@@ -166,6 +167,33 @@ class LibraryBrowseRepositoryTest {
 
             // Doppelter Name wird abgelehnt.
             assertTrue(repository.createPlaylist("Meine Liste") is AppResult.Failure)
+        }
+
+    @Test
+    fun `playlist label laesst sich setzen entfernen und filtern`() =
+        runTest {
+            db.songDao().upsertAll((1L..2L).map { song(it, "T$it", "X", "Al") })
+            val restId = (repository.createPlaylist("Pause") as AppResult.Success).value
+            val workId = (repository.createPlaylist("Training") as AppResult.Success).value
+
+            repository.setPlaylistLabel(restId, PlaylistLabel.REST)
+            repository.setPlaylistLabel(workId, PlaylistLabel.WORK)
+
+            assertEquals(
+                listOf(restId),
+                repository.playlistsByLabel(PlaylistLabel.REST).first().map { it.id },
+            )
+            assertEquals(
+                PlaylistLabel.WORK,
+                repository.playlists
+                    .first()
+                    .first { it.id == workId }
+                    .label,
+            )
+
+            // Label wieder entfernen -> nicht mehr im Label-Filter.
+            repository.setPlaylistLabel(restId, null)
+            assertTrue(repository.playlistsByLabel(PlaylistLabel.REST).first().isEmpty())
         }
 
     @Test

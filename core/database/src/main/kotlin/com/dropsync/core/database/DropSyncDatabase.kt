@@ -87,7 +87,7 @@ import com.dropsync.core.database.entity.WorkoutSessionEntity
         SongFtsEntity::class,
         TrackAnalysisEntity::class,
     ],
-    version = 3,
+    version = 4,
     exportSchema = true,
 )
 abstract class DropSyncDatabase : RoomDatabase() {

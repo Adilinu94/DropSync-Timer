@@ -68,6 +68,8 @@ data class PlaylistEntity(
     val name: String,
     @ColumnInfo(name = "created_at_epoch_ms")
     val createdAtEpochMs: Long,
+    @ColumnInfo(name = "label")
+    val label: String? = null,
 )
 
 /**

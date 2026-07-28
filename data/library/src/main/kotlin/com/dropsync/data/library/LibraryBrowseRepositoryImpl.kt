@@ -13,6 +13,7 @@ import com.dropsync.core.database.entity.FavoriteEntity
 import com.dropsync.core.database.entity.PlayStatEntity
 import com.dropsync.core.database.entity.PlaylistEntity
 import com.dropsync.core.database.entity.PlaylistItemEntity
+import com.dropsync.core.model.PlaylistLabel
 import com.dropsync.core.model.Song
 import com.dropsync.domain.library.Album
 import com.dropsync.domain.library.Artist
@@ -133,8 +134,24 @@ class LibraryBrowseRepositoryImpl(
     override val playlists: Flow<List<Playlist>> =
         playlistDao.observePlaylists().map { rows -> rows.map { it.toDomain() } }
 
+    override fun playlistsByLabel(label: PlaylistLabel): Flow<List<Playlist>> =
+        playlistDao.observePlaylistsByLabel(label.name).map { rows -> rows.map { it.toDomain() } }
+
     override fun songsOfPlaylist(playlistId: Long): Flow<List<Song>> =
         playlistDao.observeSongsOfPlaylist(playlistId).map { it.map { row -> row.toDomain() } }
+
+    override suspend fun setPlaylistLabel(
+        playlistId: Long,
+        label: PlaylistLabel?,
+    ): AppResult<Unit> =
+        withContext(dispatchers.io) {
+            try {
+                playlistDao.setLabel(playlistId, label?.name)
+                AppResult.success(Unit)
+            } catch (e: Exception) {
+                AppResult.failure(AppError.DatabaseFailure("setPlaylistLabel"))
+            }
+        }
 
     override suspend fun createPlaylist(name: String): AppResult<Long> =
         withContext(dispatchers.io) {

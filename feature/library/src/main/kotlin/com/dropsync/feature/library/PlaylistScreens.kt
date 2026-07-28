@@ -1,6 +1,7 @@
 package com.dropsync.feature.library
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -24,6 +25,7 @@ import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -42,6 +44,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.dropsync.core.model.PlaylistLabel
 import com.dropsync.core.model.Song
 import com.dropsync.domain.library.Playlist
 
@@ -146,7 +149,9 @@ private fun PlaylistRow(
     ListItem(
         headlineContent = { Text(playlist.name, maxLines = 1, overflow = TextOverflow.Ellipsis) },
         supportingContent = {
-            Text(stringResource(R.string.library_track_count, playlist.trackCount))
+            val labelText = playlist.label?.let { stringResource(it.labelRes()) }
+            val count = stringResource(R.string.library_track_count, playlist.trackCount)
+            Text(if (labelText == null) count else "$labelText \u00b7 $count")
         },
         trailingContent = {
             IconButton(onClick = { menuOpen = true }) {
@@ -191,6 +196,7 @@ internal fun PlaylistDetail(
     onPlay: (Int) -> Unit,
     onRemove: (Int) -> Unit,
     onMove: (Int, Int) -> Unit,
+    onSetLabel: (PlaylistLabel?) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(modifier = modifier.fillMaxSize()) {
@@ -220,6 +226,7 @@ internal fun PlaylistDetail(
                 }
             }
         }
+        LabelChips(selected = playlist.label, onSelect = onSetLabel)
         if (songs.isEmpty()) {
             Text(
                 text = stringResource(R.string.library_playlist_detail_empty),
@@ -330,6 +337,40 @@ internal fun AddToPlaylistDialog(
         },
     )
 }
+
+/** Auswahl des Workout-Labels (kein Label / Rest / Work) einer Playlist. */
+@Composable
+private fun LabelChips(
+    selected: PlaylistLabel?,
+    onSelect: (PlaylistLabel?) -> Unit,
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 4.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        FilterChip(
+            selected = selected == null,
+            onClick = { onSelect(null) },
+            label = { Text(stringResource(R.string.library_playlist_label_none)) },
+        )
+        FilterChip(
+            selected = selected == PlaylistLabel.REST,
+            onClick = { onSelect(PlaylistLabel.REST) },
+            label = { Text(stringResource(R.string.library_playlist_label_rest)) },
+        )
+        FilterChip(
+            selected = selected == PlaylistLabel.WORK,
+            onClick = { onSelect(PlaylistLabel.WORK) },
+            label = { Text(stringResource(R.string.library_playlist_label_work)) },
+        )
+    }
+}
+
+private fun PlaylistLabel.labelRes(): Int =
+    when (this) {
+        PlaylistLabel.REST -> R.string.library_playlist_label_rest
+        PlaylistLabel.WORK -> R.string.library_playlist_label_work
+    }
 
 /** Gemeinsamer Namensdialog fuer Anlegen und Umbenennen. */
 @Composable

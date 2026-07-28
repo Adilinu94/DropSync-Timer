@@ -57,4 +57,7 @@
     <string name="library_playlist_play_all">Playlist abspielen</string>
     <string name="library_cancel">Abbrechen</string>
     <string name="library_save">Speichern</string>
+    <string name="library_playlist_label_none">Kein Label</string>
+    <string name="library_playlist_label_rest">Pause</string>
+    <string name="library_playlist_label_work">Training</string>
 </resources>

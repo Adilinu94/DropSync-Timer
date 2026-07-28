@@ -57,9 +57,21 @@ class MigrationTest {
         helper.runMigrationsAndValidate(dbPath, 3, true, *DROPSYNC_MIGRATIONS).close()
     }
 
+    @Test
+    fun `migration 3 auf 4 ergaenzt playlist label`() {
+        // Kette v1 -> v4 (neue Spalte playlists.label fuer die Workout-
+        // Kopplung, Musik-Workout-Plan Phase 2); validiert gegen 4.json.
+        val context = ApplicationProvider.getApplicationContext<android.content.Context>()
+        val dbPath = context.getDatabasePath(TEST_DB_V4).absolutePath
+
+        helper.createDatabase(dbPath, 1).close()
+        helper.runMigrationsAndValidate(dbPath, 4, true, *DROPSYNC_MIGRATIONS).close()
+    }
+
     private companion object {
         const val TEST_DB = "migration-test.db"
         const val TEST_DB_V2 = "migration-test-v2.db"
         const val TEST_DB_V3 = "migration-test-v3.db"
+        const val TEST_DB_V4 = "migration-test-v4.db"
     }
 }

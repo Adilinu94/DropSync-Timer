@@ -124,7 +124,7 @@ In beiden Faellen trifft der Drop exakt das Pausenende. Fallbacks: keine
 | ----- | ------ | ------ |
 | 0 | Plan + ADR-0012 | Plan committet (ADR-0012 in Phase 4) |
 | 1 | Playlist-Oberflaeche (F1) auf vorhandener Repo-Schicht | Abgeschlossen |
-| 2 | Playlist-Labels + DB v3->v4 (F2) | Offen |
+| 2 | Playlist-Labels + DB v3->v4 (F2) | Abgeschlossen |
 | 3 | Rest-Musik-Domain + Einstellungen (RestMusicBehavior, DropLandingPlanner, Settings-UI) | Offen |
 | 4 | Rest-Musik-Orchestrierung (F3): Coordinator, Rest-Playlist, Drop-Landung, gapless | Offen |
 | 5 | Hardware-/Touch-Control (F4): Verifikation, Override-Absicherung, Doku | Offen |

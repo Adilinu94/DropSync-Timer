@@ -48,5 +48,18 @@ val MIGRATION_2_3 =
         }
     }
 
+/**
+ * v3 -> v4: fuegt der Tabelle `playlists` die Spalte `label` hinzu
+ * (Playlist-Label Rest/Work fuer die Workout-Kopplung, Musik-Workout-Plan
+ * Phase 2). Rein additiv (nullable, kein Default); bestehende Playlisten
+ * bleiben ohne Label.
+ */
+val MIGRATION_3_4 =
+    object : Migration(3, 4) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("ALTER TABLE `playlists` ADD COLUMN `label` TEXT")
+        }
+    }
+
 /** Vollstaendige Migrationskette der Datenbank (Reihenfolge egal). */
-val DROPSYNC_MIGRATIONS: Array<Migration> = arrayOf(MIGRATION_1_2, MIGRATION_2_3)
+val DROPSYNC_MIGRATIONS: Array<Migration> = arrayOf(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)

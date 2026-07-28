@@ -113,6 +113,7 @@ internal fun LibraryContent(
                     onPlay = { index -> viewModel.play(playlistSongs, index) },
                     onRemove = { position -> viewModel.removeFromPlaylist(pl.id, position) },
                     onMove = { from, to -> viewModel.moveInPlaylist(pl.id, from, to) },
+                    onSetLabel = { label -> viewModel.setPlaylistLabel(pl.id, label) },
                 )
             }
 

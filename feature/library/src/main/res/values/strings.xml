@@ -57,4 +57,7 @@
     <string name="library_playlist_play_all">Play playlist</string>
     <string name="library_cancel">Cancel</string>
     <string name="library_save">Save</string>
+    <string name="library_playlist_label_none">No label</string>
+    <string name="library_playlist_label_rest">Rest / break</string>
+    <string name="library_playlist_label_work">Work</string>
 </resources>

@@ -28,6 +28,24 @@ enum class MarkerSource { IMPORT, MANUAL, AUTO_DETECTED }
 /** Zuordnungsmethode eines Markers zu einem Song (5.1). */
 enum class LinkMethod { HASH, METADATA, MANUAL, AUTO_DETECTED }
 
+/**
+ * Label einer Playlist fuer die Workout-Kopplung (Musik-Workout-Plan
+ * Phase 2): REST = "Rest/Pause"-Playlist waehrend der Pause, WORK =
+ * "Work"-Playlist am Satzstart. In der Datenbank als stabiler String
+ * gespeichert; kein Label (null) bedeutet eine normale Playlist.
+ */
+enum class PlaylistLabel { REST, WORK }
+
+/**
+ * Verhalten der Musik in Trainingspausen (Musik-Workout-Plan Phase 3),
+ * in den Einstellungen waehlbar. NORMAL = App greift nicht ein
+ * (Shuffle/Queue laeuft weiter, Aus-Zustand); REST_PLAYLIST = in der
+ * Pause laeuft die REST-Playlist, am Pausenende ein WORK-Titel;
+ * DROP_LANDING = zusaetzlich wird ein WORK-Titel so vorgezogen, dass sein
+ * Drop das Pausenende trifft. Als stabiler String gespeichert.
+ */
+enum class RestMusicBehavior { NORMAL, REST_PLAYLIST, DROP_LANDING }
+
 /** PR-Typen gemaess der exakten Regeln in Abschnitt 5.4. */
 enum class PrType { HIGHEST_LOAD, HIGHEST_SESSION_VOLUME, MOST_REPS_AT_LOAD }
 
