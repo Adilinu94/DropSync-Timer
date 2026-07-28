@@ -18,6 +18,7 @@ import com.dropsync.domain.library.LibraryRepository
 import com.dropsync.domain.library.LibraryViewConfig
 import com.dropsync.domain.library.LibraryViewPreferencesRepository
 import com.dropsync.domain.library.Playlist
+import com.dropsync.domain.library.SmartShuffle
 import com.dropsync.domain.library.SongSort
 import com.dropsync.domain.playback.PlaybackRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -176,6 +177,9 @@ class LibraryViewModel
         val favorites: StateFlow<List<Song>> = browseRepository.favorites.asState(emptyList())
         val recentlyAdded: StateFlow<List<Song>> = browseRepository.recentlyAdded().asState(emptyList())
         val mostPlayed: StateFlow<List<Song>> = browseRepository.mostPlayed().asState(emptyList())
+
+        /** Intelligentes Shuffle aktiv (A5)? Steuert [shufflePlay]; Schalter in den Einstellungen. */
+        val smartShuffleEnabled: StateFlow<Boolean> = viewPreferences.smartShuffleEnabled.asState(false)
 
         /** Nutzerplaylisten (Musik-Workout-Kopplung Phase 1); Datenschicht existiert bereits. */
         val playlists: StateFlow<List<Playlist>> = browseRepository.playlists.asState(emptyList())
@@ -345,6 +349,30 @@ class LibraryViewModel
             viewModelScope.launch {
                 browseRepository.recordPlayback(list[index].mediaStoreId)
                 playbackRepository.setQueue(list, index, playWhenReady = true)
+            }
+        }
+
+        /**
+         * Spielt [list] zufaellig ab (A5). Ist das intelligente Shuffle aktiv,
+         * ordnet [SmartShuffle] ueber play_stats/Favoriten und meidet zuletzt
+         * Gespielte; sonst dient die einfache Zufallsreihenfolge als Fallback.
+         */
+        fun shufflePlay(list: List<Song>) {
+            if (list.isEmpty()) return
+            viewModelScope.launch {
+                val ordered =
+                    if (smartShuffleEnabled.value) {
+                        val byId = list.associateBy { it.mediaStoreId }
+                        var ids = emptyList<Long>()
+                        browseRepository
+                            .shuffleCandidates(list.map { it.mediaStoreId })
+                            .onSuccess { ids = SmartShuffle.order(it, System.currentTimeMillis()) }
+                        ids.mapNotNull { byId[it] }.ifEmpty { list.shuffled() }
+                    } else {
+                        list.shuffled()
+                    }
+                browseRepository.recordPlayback(ordered.first().mediaStoreId)
+                playbackRepository.setQueue(ordered, 0, playWhenReady = true)
             }
         }
 

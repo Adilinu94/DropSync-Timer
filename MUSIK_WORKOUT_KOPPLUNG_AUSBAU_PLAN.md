@@ -128,7 +128,7 @@ In beiden Faellen trifft der Drop exakt das Pausenende. Fallbacks: keine
 | 3 | Rest-Musik-Domain + Einstellungen (RestMusicBehavior, DropLandingPlanner, Settings-UI) | Abgeschlossen |
 | 4 | Rest-Musik-Orchestrierung (F3): Coordinator, Rest-Playlist, Drop-Landung, gapless | Abgeschlossen |
 | 5 | Hardware-/Touch-Control (F4): Verifikation, Override-Absicherung, Doku | Abgeschlossen (Geraeteabnahme offen) |
-| 6 | Extras: Intelligentes Shuffle (A5), Rest-Presets (B8), Get-Ready 3-2-1 (B9) | Offen |
+| 6 | Extras: Intelligentes Shuffle (A5), Rest-Presets (B8), Get-Ready 3-2-1 (B9) | Abgeschlossen |
 
 ### Phase 1 — Playlist-Oberflaeche (F1)
 

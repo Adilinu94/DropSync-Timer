@@ -19,6 +19,7 @@ import com.dropsync.domain.library.LibraryFolder
 import com.dropsync.domain.library.MarkerRepository
 import com.dropsync.domain.library.Playlist
 import com.dropsync.domain.library.PlaylistImportResult
+import com.dropsync.domain.library.ShuffleCandidate
 import com.dropsync.domain.playback.PersistedPlayerState
 import com.dropsync.domain.playback.PlaybackRepository
 import com.dropsync.domain.playback.PlaybackState
@@ -299,6 +300,9 @@ private class CoordinatorBrowseRepository : LibraryBrowseRepository {
     override fun isFavorite(songId: Long): Flow<Boolean> = flowOf(false)
 
     override suspend fun recordPlayback(songId: Long): AppResult<Unit> = AppResult.success(Unit)
+
+    override suspend fun shuffleCandidates(songIds: List<Long>): AppResult<List<ShuffleCandidate>> =
+        AppResult.success(emptyList())
 
     override suspend fun setFavorite(
         songId: Long,

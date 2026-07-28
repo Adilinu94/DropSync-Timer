@@ -39,4 +39,13 @@
     <string name="settings_rest_music_rest_playlist_desc">In der Pause laeuft eine Playlist mit dem Label \"Pause\"; am Pausenende startet ein Titel aus einer \"Training\"-Playlist.</string>
     <string name="settings_rest_music_drop_landing">Drop-Landung</string>
     <string name="settings_rest_music_drop_landing_desc">Wie die Pausen-Playlist, zusaetzlich wird ein \"Training\"-Titel so getimt, dass sein Drop genau das Pausenende trifft.</string>
+    <string name="settings_extras_section">Trainings-Extras</string>
+    <string name="settings_get_ready_title">Get-Ready-Countdown</string>
+    <string name="settings_get_ready_desc">Spielt vor dem Start eines Pausen-Timers einen kurzen 3-2-1-Vorlauf (Haptik + Ton).</string>
+    <string name="settings_get_ready_seconds">Vorlauf: %1$d s</string>
+    <string name="settings_presets_title">Pausen-Schnellwahl</string>
+    <string name="settings_presets_desc">Waehle, welche Dauern als Chips im Pausen-Dialog erscheinen.</string>
+    <string name="settings_seconds_format">%1$d s</string>
+    <string name="settings_smart_shuffle_title">Intelligentes Shuffle</string>
+    <string name="settings_smart_shuffle_desc">Gewichtet das Shuffle nach Wiedergaben und Favoriten und meidet zuletzt Gespielte.</string>
 </resources>

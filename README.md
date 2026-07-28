@@ -68,7 +68,7 @@ Bauplan sind nur ueber ADRs in [`docs/adr/`](docs/adr/) erlaubt.
 | 3 | Rest-Musik-Domain + Einstellungen: `RestMusicBehavior`, reiner `DropLandingPlanner` (`:domain:timer`), `RestMusicSettingsRepository`/-`Store` (DataStore), Abschnitt "Musik in Pausen" in den Einstellungen | Abgeschlossen |
 | 4 | Rest-Musik-Orchestrierung + Drop-Landung (F3): `RestMusicCoordinator` (`:feature:player`) beobachtet `TimerEngine`+Einstellung, setzt Rest-Queue bei Pausenbeginn, terminiert die Drop-Landung und wechselt per `crossfadeTo` (MediaSession-Custom-Kommando -> erweiterter `CrossfadeController`), Fallback-Kette + Nutzer-Vorrang; ADR-0012 | Abgeschlossen |
 | 5 | Hardware-/Touch-Control (F4): Verifikation MediaSession-Standardbefehle, Override-Absicherung, Doku `docs/hardware-control.md` | Abgeschlossen (codeseitig: Standardkommandos + Notification-Aktionen ueber `MediaLibrarySession`, Nutzer-Vorrang der Automatik getestet, Doku; Geraeteabnahme wie Schritt 13 offen) |
-| 6 | Extras: Intelligentes Shuffle (A5), Rest-Timer-Presets (B8), Get-Ready-Countdown 3-2-1 (B9) | Offen |
+| 6 | Extras: Intelligentes Shuffle (A5, reiner `SmartShuffle` in `:domain:library` ueber play_stats/Favoriten, Schalter in den Einstellungen, `shufflePlay` in der Titelliste), Rest-Timer-Presets (B8, `RestTimerPreferencesRepository`/-`Store` (DataStore), Schnellwahl-Chips im Rest-Dialog + Editor in den Einstellungen), Get-Ready-Countdown 3-2-1 (B9, `prepMs`/`PREPARING` in `TimerEngine`, Schalter+Dauer in den Einstellungen) | Abgeschlossen |
 
 ## Build
 

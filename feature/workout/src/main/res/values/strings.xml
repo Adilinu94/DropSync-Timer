@@ -32,6 +32,7 @@
     <string name="workout_rest_dialog_title">Rest timer</string>
     <string name="workout_rest_seconds">Rest (seconds)</string>
     <string name="workout_rest_seconds_label">Rest: %1$d s</string>
+    <string name="workout_rest_presets_label">Quick picks</string>
     <string name="workout_rest_edit">Edit</string>
     <string name="workout_rest_start">Start rest</string>
     <string name="workout_rest_mode_normal">Normal</string>

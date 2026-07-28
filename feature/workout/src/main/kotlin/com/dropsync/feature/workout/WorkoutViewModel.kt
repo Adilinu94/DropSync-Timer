@@ -6,6 +6,7 @@ import com.dropsync.core.common.AppResult
 import com.dropsync.core.model.RestMode
 import com.dropsync.core.model.SetRole
 import com.dropsync.domain.timer.DropRestRequestBus
+import com.dropsync.domain.timer.RestTimerPreferencesRepository
 import com.dropsync.domain.timer.TimerEngine
 import com.dropsync.domain.timer.TimerMode
 import com.dropsync.domain.workout.ExerciseInfo
@@ -23,6 +24,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.stateIn
@@ -43,6 +45,12 @@ data class PrefillUi(
     val perHand: Boolean,
 )
 
+/** Get-Ready-Vorlauf (Musik-Workout-Plan B9): an/aus + Dauer in Sekunden. */
+data class GetReadyUi(
+    val enabled: Boolean,
+    val seconds: Int,
+)
+
 @HiltViewModel
 class WorkoutViewModel
     @Inject
@@ -50,8 +58,28 @@ class WorkoutViewModel
         private val workoutRepository: WorkoutRepository,
         private val timerEngine: TimerEngine,
         private val dropRestRequestBus: DropRestRequestBus,
+        restTimerPreferences: RestTimerPreferencesRepository,
     ) : ViewModel() {
         private val locale: String = Locale.getDefault().language
+
+        /** Bearbeitbare Rest-Schnellwahl in Sekunden (B8); Chips im Rest-Dialog. */
+        val restPresetsSeconds: StateFlow<List<Int>> =
+            restTimerPreferences.restPresetsSeconds.stateIn(
+                viewModelScope,
+                SharingStarted.WhileSubscribed(5_000),
+                RestTimerPreferencesRepository.DEFAULT_PRESETS_SECONDS,
+            )
+
+        /** Get-Ready-Vorlauf (B9); startRest zieht ihn als prepMs heran. */
+        private val getReady: StateFlow<GetReadyUi> =
+            combine(
+                restTimerPreferences.getReadyEnabled,
+                restTimerPreferences.getReadySeconds,
+            ) { enabled, seconds -> GetReadyUi(enabled, seconds) }.stateIn(
+                viewModelScope,
+                SharingStarted.WhileSubscribed(5_000),
+                GetReadyUi(false, RestTimerPreferencesRepository.DEFAULT_GET_READY_SECONDS),
+            )
 
         /** Hoechstens eine aktive Session (Bauplan 9.8). */
         val activeSession: StateFlow<WorkoutSessionInfo?> =
@@ -232,7 +260,10 @@ class WorkoutViewModel
             if (pref.restMode == RestMode.DROPSYNC) {
                 dropRestRequestBus.request()
             } else {
-                timerEngine.start(TimerMode.REST, pref.restSeconds * 1_000L)
+                // Get-Ready (B9): optionaler 3-2-1-Vorlauf vor dem Rest-Countdown.
+                val prep = getReady.value
+                val prepMs = if (prep.enabled) prep.seconds * 1_000L else 0L
+                timerEngine.start(TimerMode.REST, pref.restSeconds * 1_000L, prepMs)
             }
         }
 

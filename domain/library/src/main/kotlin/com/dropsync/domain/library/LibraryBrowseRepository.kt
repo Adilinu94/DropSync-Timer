@@ -91,6 +91,13 @@ interface LibraryBrowseRepository {
     /** Zaehlt eine Wiedergabe und aktualisiert den letzten Zeitpunkt. */
     suspend fun recordPlayback(songId: Long): AppResult<Unit>
 
+    /**
+     * Sammelt die Gewichtungsdaten (play_stats/Favoriten) fuer [songIds]
+     * fuer das intelligente Shuffle (Musik-Workout-Plan A5). Fehlende
+     * Statistik zaehlt als nie gespielt (playCount 0, kein Zeitpunkt).
+     */
+    suspend fun shuffleCandidates(songIds: List<Long>): AppResult<List<ShuffleCandidate>>
+
     val favorites: Flow<List<Song>>
 
     fun isFavorite(songId: Long): Flow<Boolean>

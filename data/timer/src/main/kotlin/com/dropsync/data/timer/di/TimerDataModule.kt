@@ -12,11 +12,13 @@ import com.dropsync.data.timer.DefaultDropRestRequestBus
 import com.dropsync.data.timer.DuckingController
 import com.dropsync.data.timer.HapticsAdapter
 import com.dropsync.data.timer.MonotonicStateStore
+import com.dropsync.data.timer.RestTimerPreferencesStore
 import com.dropsync.data.timer.SpeechTextFormatter
 import com.dropsync.data.timer.TtsSpeaker
 import com.dropsync.domain.playback.PlayerVolumeGate
 import com.dropsync.domain.timer.CueOutput
 import com.dropsync.domain.timer.DropRestRequestBus
+import com.dropsync.domain.timer.RestTimerPreferencesRepository
 import com.dropsync.domain.timer.TimerEngine
 import dagger.Module
 import dagger.Provides
@@ -76,6 +78,13 @@ object TimerDataModule {
     @Provides
     @Singleton
     fun provideDropRestRequestBus(): DropRestRequestBus = DefaultDropRestRequestBus()
+
+    /** Resttimer-Presets (B8) und Get-Ready-Vorlauf (B9), Musik-Workout-Plan Phase 6. */
+    @Provides
+    @Singleton
+    fun provideRestTimerPreferences(
+        @ApplicationContext context: Context,
+    ): RestTimerPreferencesRepository = RestTimerPreferencesStore(context)
 
     @Provides
     @Singleton

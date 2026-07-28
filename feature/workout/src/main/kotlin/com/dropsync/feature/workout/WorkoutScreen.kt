@@ -75,6 +75,7 @@ fun SessionScreen(
     val lastCompleted by viewModel.lastCompleted.collectAsStateWithLifecycle()
     val prefills by viewModel.prefills.collectAsStateWithLifecycle()
     val restPrefs by viewModel.restPrefs.collectAsStateWithLifecycle()
+    val restPresets by viewModel.restPresetsSeconds.collectAsStateWithLifecycle()
     val lastPlayedTrack by viewModel.lastPlayedTrack.collectAsStateWithLifecycle()
 
     val snackbarHostState = remember { SnackbarHostState() }
@@ -120,6 +121,7 @@ fun SessionScreen(
                 sessionExercises = sessionExercises,
                 prefills = prefills,
                 restPrefs = restPrefs,
+                restPresets = restPresets,
                 lastPlayedTrackLabel =
                     lastPlayedTrack?.let { track ->
                         listOfNotNull(track.artist, track.title).joinToString(" - ")
@@ -196,6 +198,7 @@ private fun ActiveSessionContent(
     sessionExercises: List<SessionExerciseInfo>,
     prefills: Map<Long, PrefillUi>,
     restPrefs: Map<Long, RestPref>,
+    restPresets: List<Int>,
     lastPlayedTrackLabel: String?,
     contentPadding: PaddingValues,
     onAddExercise: (Long) -> Unit,
@@ -275,6 +278,7 @@ private fun ActiveSessionContent(
                 sessionExercise = sessionExercise,
                 prefill = prefills[sessionExercise.id],
                 restPref = restPrefs[sessionExercise.exerciseId],
+                restPresets = restPresets,
                 exercises = exercises,
                 onCompleteSet = onCompleteSet,
                 onStartRest = onStartRest,
@@ -363,6 +367,7 @@ private fun SetEntryCard(
     sessionExercise: SessionExerciseInfo,
     prefill: PrefillUi?,
     restPref: RestPref?,
+    restPresets: List<Int>,
     exercises: List<ExerciseInfo>,
     onCompleteSet: (Long, String, String, Boolean, String) -> Unit,
     onStartRest: (Long) -> Unit,
@@ -386,6 +391,7 @@ private fun SetEntryCard(
     if (showRestDialog) {
         RestPrefDialog(
             initial = restPref,
+            presets = restPresets,
             onConfirm = { seconds, mode ->
                 onSetRestPref(sessionExercise.exerciseId, seconds, mode)
                 showRestDialog = false
@@ -479,6 +485,7 @@ private fun SetEntryCard(
 @Composable
 private fun RestPrefDialog(
     initial: RestPref?,
+    presets: List<Int>,
     onConfirm: (Int, RestMode) -> Unit,
     onDismiss: () -> Unit,
 ) {
@@ -497,6 +504,26 @@ private fun RestPrefDialog(
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     singleLine = true,
                 )
+                // Bearbeitbare Schnellwahl (B8): Tippen fuellt das Sekundenfeld.
+                if (presets.isNotEmpty()) {
+                    Spacer(Modifier.height(8.dp))
+                    Text(
+                        text = stringResource(R.string.workout_rest_presets_label),
+                        style = MaterialTheme.typography.labelMedium,
+                    )
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        val current = secondsText.trim().toIntOrNull()
+                        presets.forEach { preset ->
+                            FilterChip(
+                                selected = current == preset,
+                                onClick = { secondsText = preset.toString() },
+                                label = {
+                                    Text(stringResource(R.string.workout_rest_seconds_label, preset))
+                                },
+                            )
+                        }
+                    }
+                }
                 Spacer(Modifier.height(8.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     FilterChip(

@@ -11,10 +11,12 @@ import com.dropsync.core.model.Song
 import com.dropsync.core.model.SongMarker
 import com.dropsync.domain.library.ImportReport
 import com.dropsync.domain.library.LibraryRepository
+import com.dropsync.domain.library.LibraryViewPreferencesRepository
 import com.dropsync.domain.library.MarkerDocumentParser
 import com.dropsync.domain.library.MarkerRepository
 import com.dropsync.domain.library.ParsedMarkerDocument
 import com.dropsync.domain.playback.RestMusicSettingsRepository
+import com.dropsync.domain.timer.RestTimerPreferencesRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -52,6 +54,8 @@ class SettingsViewModel
         private val markerRepository: MarkerRepository,
         libraryRepository: LibraryRepository,
         private val restMusicSettings: RestMusicSettingsRepository,
+        private val restTimerPreferences: RestTimerPreferencesRepository,
+        private val libraryViewPreferences: LibraryViewPreferencesRepository,
         private val dispatchers: DispatcherProvider,
     ) : ViewModel() {
         /** Nicht zugeordnete Marker fuer die manuelle Zuordnung (Schritt 6.6). */
@@ -89,6 +93,38 @@ class SettingsViewModel
                 viewModelScope,
                 SharingStarted.WhileSubscribed(5_000),
                 RestMusicBehavior.NORMAL,
+            )
+
+        /** Get-Ready-Vorlauf an/aus (B9). */
+        val getReadyEnabled: StateFlow<Boolean> =
+            restTimerPreferences.getReadyEnabled.stateIn(
+                viewModelScope,
+                SharingStarted.WhileSubscribed(5_000),
+                false,
+            )
+
+        /** Dauer des Get-Ready-Vorlaufs in Sekunden (B9). */
+        val getReadySeconds: StateFlow<Int> =
+            restTimerPreferences.getReadySeconds.stateIn(
+                viewModelScope,
+                SharingStarted.WhileSubscribed(5_000),
+                RestTimerPreferencesRepository.DEFAULT_GET_READY_SECONDS,
+            )
+
+        /** Bearbeitbare Rest-Schnellwahl in Sekunden (B8). */
+        val restPresets: StateFlow<List<Int>> =
+            restTimerPreferences.restPresetsSeconds.stateIn(
+                viewModelScope,
+                SharingStarted.WhileSubscribed(5_000),
+                RestTimerPreferencesRepository.DEFAULT_PRESETS_SECONDS,
+            )
+
+        /** Intelligentes Shuffle an/aus (A5). */
+        val smartShuffleEnabled: StateFlow<Boolean> =
+            libraryViewPreferences.smartShuffleEnabled.stateIn(
+                viewModelScope,
+                SharingStarted.WhileSubscribed(5_000),
+                false,
             )
 
         private val mutableImportState = MutableStateFlow<ImportUiState>(ImportUiState.Idle)
@@ -164,6 +200,24 @@ class SettingsViewModel
         /** Setzt das Pausen-Musik-Verhalten (Musik-Workout-Plan Phase 3). */
         fun setRestMusicBehavior(behavior: RestMusicBehavior) {
             viewModelScope.launch { restMusicSettings.setBehavior(behavior) }
+        }
+
+        /** Get-Ready-Vorlauf an/aus + Dauer (B9). */
+        fun setGetReady(
+            enabled: Boolean,
+            seconds: Int,
+        ) {
+            viewModelScope.launch { restTimerPreferences.setGetReady(enabled, seconds) }
+        }
+
+        /** Speichert die bearbeitete Rest-Schnellwahl (B8). */
+        fun setRestPresets(seconds: List<Int>) {
+            viewModelScope.launch { restTimerPreferences.setRestPresetsSeconds(seconds) }
+        }
+
+        /** Intelligentes Shuffle an/aus (A5). */
+        fun setSmartShuffleEnabled(enabled: Boolean) {
+            viewModelScope.launch { libraryViewPreferences.setSmartShuffleEnabled(enabled) }
         }
 
         fun dismissImportResult() {

@@ -23,7 +23,9 @@ import com.dropsync.domain.library.LibraryFolder
 import com.dropsync.domain.library.M3uPlaylistParser
 import com.dropsync.domain.library.Playlist
 import com.dropsync.domain.library.PlaylistImportResult
+import com.dropsync.domain.library.ShuffleCandidate
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
 
@@ -89,6 +91,33 @@ class LibraryBrowseRepositoryImpl(
                 AppResult.success(Unit)
             } catch (e: Exception) {
                 AppResult.failure(AppError.DatabaseFailure("recordPlayback"))
+            }
+        }
+
+    override suspend fun shuffleCandidates(songIds: List<Long>): AppResult<List<ShuffleCandidate>> =
+        withContext(dispatchers.io) {
+            if (songIds.isEmpty()) return@withContext AppResult.success(emptyList())
+            try {
+                // Favoriten einmal als Momentaufnahme; play_stats pro Titel.
+                val favoriteIds =
+                    favoriteDao
+                        .observeFavorites()
+                        .first()
+                        .map { it.mediaStoreId }
+                        .toSet()
+                val candidates =
+                    songIds.map { songId ->
+                        val stat = playStatDao.getStat(songId)
+                        ShuffleCandidate(
+                            songId = songId,
+                            playCount = stat?.playCount ?: 0,
+                            lastPlayedAtEpochMs = stat?.lastPlayedAtEpochMs,
+                            isFavorite = songId in favoriteIds,
+                        )
+                    }
+                AppResult.success(candidates)
+            } catch (e: Exception) {
+                AppResult.failure(AppError.DatabaseFailure("shuffleCandidates"))
             }
         }
 

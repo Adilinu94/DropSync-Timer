@@ -369,6 +369,32 @@ private fun DetailHeader(
     }
 }
 
+/**
+ * Zufallswiedergabe der aktuellen Titelliste (Musik-Workout-Plan A5).
+ * Ist das intelligente Shuffle in den Einstellungen aktiv, gewichtet
+ * [LibraryViewModel.shufflePlay] ueber play_stats/Favoriten.
+ */
+@Composable
+private fun ShuffleBar(
+    enabled: Boolean,
+    onShuffle: () -> Unit,
+) {
+    Row(
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp),
+    ) {
+        TextButton(
+            onClick = onShuffle,
+            enabled = enabled,
+            modifier = Modifier.heightIn(min = 48.dp),
+        ) {
+            Text(stringResource(R.string.library_shuffle))
+        }
+    }
+}
+
 @Composable
 private fun LibraryViewBody(
     viewModel: LibraryViewModel,
@@ -382,6 +408,7 @@ private fun LibraryViewBody(
             val songs by viewModel.songs.collectAsStateWithLifecycle()
             Column(modifier = Modifier.fillMaxSize()) {
                 SortFilterBar(viewModel)
+                ShuffleBar(enabled = songs.isNotEmpty(), onShuffle = { viewModel.shufflePlay(songs) })
                 SongColumn(
                     songs = songs,
                     favoriteIds = favoriteIds,

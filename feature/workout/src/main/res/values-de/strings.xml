@@ -32,6 +32,7 @@
     <string name="workout_rest_dialog_title">Pausen-Timer</string>
     <string name="workout_rest_seconds">Pause (Sekunden)</string>
     <string name="workout_rest_seconds_label">Pause: %1$d s</string>
+    <string name="workout_rest_presets_label">Schnellwahl</string>
     <string name="workout_rest_edit">Aendern</string>
     <string name="workout_rest_start">Pause starten</string>
     <string name="workout_rest_mode_normal">Normal</string>

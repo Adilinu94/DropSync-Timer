@@ -36,20 +36,39 @@ class TimerEngine(
     /** Monotones Fristende (nur NORMAL/REST). */
     private var endElapsedRealtimeMs: Long? = null
 
+    /** Monotones Ende der optionalen Get-Ready-Vorbereitungsphase (B9). */
+    private var prepEndElapsedRealtimeMs: Long? = null
+
+    /** Cues der Vorbereitungsphase (3-2-1); getrennt von den Laufcues. */
+    private var prepCues: List<PlannedCue> = emptyList()
+
     /** Eingefrorene Restzeit waehrend PAUSED. */
     private var pausedRemainingMs: Long? = null
 
-    /** Startet einen NORMAL- oder REST-Timer und wechselt sofort auf RUNNING. */
+    /**
+     * Startet einen NORMAL- oder REST-Timer. Ohne Vorbereitungszeit
+     * ([prepMs] <= 0) geht er sofort auf RUNNING; mit [prepMs] > 0 laeuft
+     * zuerst eine Get-Ready-Phase (PREPARING, 3-2-1 mit Haptik/Ton, B9),
+     * die `evaluate()` monoton herunterzaehlt und danach auf RUNNING
+     * schaltet.
+     */
     fun start(
         mode: TimerMode,
         durationMs: Long,
+        prepMs: Long = 0,
     ): AppResult<TimerSession> {
         require(mode != TimerMode.DROPSYNC) { "DropSync startet ueber startDropSync" }
-        return beginSession(mode, durationMs, markerPositionMs = null) { session ->
-            endElapsedRealtimeMs = clock.elapsedRealtimeMs() + durationMs
-            transitionTo(TimerStatus.RUNNING)
-            mutableState.value =
-                TimerState(TimerStatus.RUNNING, session, remainingMs = durationMs)
+        return beginSession(mode, durationMs, markerPositionMs = null, prepMs = prepMs) { session ->
+            if (prepMs > 0) {
+                prepEndElapsedRealtimeMs = clock.elapsedRealtimeMs() + prepMs
+                mutableState.value =
+                    TimerState(TimerStatus.PREPARING, session, remainingMs = prepMs)
+            } else {
+                endElapsedRealtimeMs = clock.elapsedRealtimeMs() + durationMs
+                transitionTo(TimerStatus.RUNNING)
+                mutableState.value =
+                    TimerState(TimerStatus.RUNNING, session, remainingMs = durationMs)
+            }
         }
     }
 
@@ -90,14 +109,55 @@ class TimerEngine(
     fun evaluate() {
         val current = mutableState.value
         val session = current.session ?: return
-        if (current.status != TimerStatus.RUNNING || session.mode == TimerMode.DROPSYNC) return
-        val end = endElapsedRealtimeMs ?: return
+        if (session.mode == TimerMode.DROPSYNC) return
+        when (current.status) {
+            TimerStatus.PREPARING -> evaluatePreparing(current, session)
+            TimerStatus.RUNNING -> evaluateRunning(current, session)
+            else -> Unit
+        }
+    }
 
+    /** RUNNING-Neubewertung (NORMAL/REST): faellige Cues + Abschluss. */
+    private fun evaluateRunning(
+        current: TimerState,
+        session: TimerSession,
+    ) {
+        val end = endElapsedRealtimeMs ?: return
         val remaining = maxOf(0, end - clock.elapsedRealtimeMs())
-        deliverDueCues(session, remaining)
+        deliverDue(session, remaining, session.plannedCues)
         if (remaining <= 0) {
             transitionTo(TimerStatus.COMPLETED)
             mutableState.value = current.copy(status = TimerStatus.COMPLETED, remainingMs = 0)
+        } else {
+            mutableState.value = current.copy(remainingMs = remaining)
+        }
+    }
+
+    /**
+     * Get-Ready-Countdown (B9): zaehlt die Vorbereitungsphase monoton
+     * herunter (3-2-1) und schaltet bei Ablauf auf RUNNING. Eine
+     * DropSync-PREPARING (ohne [prepEndElapsedRealtimeMs]) bleibt
+     * unberuehrt — sie wird ueber [markRunning] freigegeben.
+     */
+    private fun evaluatePreparing(
+        current: TimerState,
+        session: TimerSession,
+    ) {
+        val prepEnd = prepEndElapsedRealtimeMs ?: return
+        val remaining = maxOf(0, prepEnd - clock.elapsedRealtimeMs())
+        deliverDue(session, remaining, prepCues)
+        if (remaining <= 0) {
+            // Vorbereitung vorbei: Laufphase beginnt jetzt. Cue-Merker
+            // leeren (Vorlaufcues 3/2/1 teilen Grenzwerte mit dem Lauf)
+            // und die monotone Startzeit auf jetzt setzen.
+            deliveredCueIds.clear()
+            prepEndElapsedRealtimeMs = null
+            val now = clock.elapsedRealtimeMs()
+            endElapsedRealtimeMs = now + session.durationMs
+            val running = session.copy(startedElapsedRealtimeMs = now)
+            transitionTo(TimerStatus.RUNNING)
+            mutableState.value =
+                TimerState(TimerStatus.RUNNING, running, remainingMs = session.durationMs)
         } else {
             mutableState.value = current.copy(remainingMs = remaining)
         }
@@ -189,6 +249,8 @@ class TimerEngine(
         if (!TimerTransitions.isResettable(mutableState.value.status)) return false
         deliveredCueIds.clear()
         endElapsedRealtimeMs = null
+        prepEndElapsedRealtimeMs = null
+        prepCues = emptyList()
         pausedRemainingMs = null
         mutableState.value = TimerState()
         return true
@@ -198,6 +260,7 @@ class TimerEngine(
         mode: TimerMode,
         durationMs: Long,
         markerPositionMs: Long?,
+        prepMs: Long = 0,
         onPrepared: (TimerSession) -> Unit,
     ): AppResult<TimerSession> {
         when (mutableState.value.status) {
@@ -222,6 +285,8 @@ class TimerEngine(
         deliveredCueIds.clear()
         pausedRemainingMs = null
         endElapsedRealtimeMs = null
+        prepEndElapsedRealtimeMs = null
+        prepCues = if (prepMs > 0) CuePlanner.planPrep(prepMs) else emptyList()
         val session =
             TimerSession(
                 id = idGenerator(),
@@ -244,12 +309,13 @@ class TimerEngine(
      * wird nur der juengste (kleinste) ausgegeben; aeltere werden ohne
      * Ausgabe entwertet, damit nach Doze keine Ansageflut entsteht.
      */
-    private fun deliverDueCues(
+    private fun deliverDue(
         session: TimerSession,
         remainingMs: Long,
+        cues: List<PlannedCue>,
     ) {
         val due =
-            session.plannedCues.filter {
+            cues.filter {
                 remainingMs <= it.thresholdMs && it.cueId(session.id) !in deliveredCueIds
             }
         if (due.isEmpty()) return

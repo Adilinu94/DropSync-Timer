@@ -5,6 +5,7 @@
     <string name="library_permission_button">Zugriff erlauben</string>
     <string name="library_scan_failed">Die Bibliothek konnte nicht aktualisiert werden. Ziehe nach unten oder oeffne den Tab erneut.</string>
     <string name="library_empty">Keine abspielbaren Songs auf diesem Geraet gefunden.</string>
+    <string name="library_shuffle">Zufaellig abspielen</string>
     <string name="library_play_song">%1$s abspielen</string>
     <string name="library_unknown_artist">Unbekannter Interpret</string>
     <string name="library_favorite">Zu Favoriten hinzufuegen</string>

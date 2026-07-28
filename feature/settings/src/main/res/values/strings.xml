@@ -39,4 +39,13 @@
     <string name="settings_rest_music_rest_playlist_desc">During a rest, play a playlist labelled \"Rest / break\"; when the rest ends, start a track from a \"Work\" playlist.</string>
     <string name="settings_rest_music_drop_landing">Drop landing</string>
     <string name="settings_rest_music_drop_landing_desc">Like the rest playlist, plus timing a \"Work\" track so its drop lands exactly at the end of the rest.</string>
+    <string name="settings_extras_section">Workout extras</string>
+    <string name="settings_get_ready_title">Get-ready countdown</string>
+    <string name="settings_get_ready_desc">Play a short 3-2-1 lead-in (haptics + tone) before a rest timer starts.</string>
+    <string name="settings_get_ready_seconds">Lead-in: %1$d s</string>
+    <string name="settings_presets_title">Rest quick picks</string>
+    <string name="settings_presets_desc">Choose which durations appear as chips in the rest dialog.</string>
+    <string name="settings_seconds_format">%1$d s</string>
+    <string name="settings_smart_shuffle_title">Smart shuffle</string>
+    <string name="settings_smart_shuffle_desc">Weight shuffle by play count and favorites and avoid recently played tracks.</string>
 </resources>

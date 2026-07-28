@@ -2,6 +2,7 @@ package com.dropsync.data.library
 
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import com.dropsync.domain.library.LibraryViewConfig
@@ -41,10 +42,18 @@ class LibraryViewPreferencesStore(
         }
     }
 
+    override val smartShuffleEnabled: Flow<Boolean> =
+        dataStore.data.map { prefs -> prefs[KEY_SMART_SHUFFLE] ?: false }
+
+    override suspend fun setSmartShuffleEnabled(enabled: Boolean) {
+        dataStore.edit { prefs -> prefs[KEY_SMART_SHUFFLE] = enabled }
+    }
+
     companion object {
         const val DATA_STORE_NAME = "library_view_prefs"
         private const val SEP = ","
         private val KEY_ORDER = stringPreferencesKey("view_order")
         private val KEY_HIDDEN = stringPreferencesKey("view_hidden")
+        private val KEY_SMART_SHUFFLE = booleanPreferencesKey("smart_shuffle_enabled")
     }
 }

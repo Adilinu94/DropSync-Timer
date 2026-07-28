@@ -25,4 +25,9 @@ interface LibraryViewPreferencesRepository {
 
     /** Persistiert Reihenfolge und ausgeblendete Ansichten. */
     suspend fun setConfig(config: LibraryViewConfig)
+
+    /** Intelligentes Shuffle (Musik-Workout-Plan A5) an/aus; Default aus. */
+    val smartShuffleEnabled: Flow<Boolean>
+
+    suspend fun setSmartShuffleEnabled(enabled: Boolean)
 }

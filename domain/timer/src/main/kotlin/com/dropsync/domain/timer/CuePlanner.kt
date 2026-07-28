@@ -8,6 +8,7 @@ package com.dropsync.domain.timer
 object CuePlanner {
     private val SPOKEN_MAJORS_MS: List<Long> = listOf(180_000, 120_000, 60_000, 30_000)
     private val FINAL_COUNTDOWN_MS: List<Long> = (10 downTo 1).map { it * 1_000L }
+    private val PREP_COUNTDOWN_MS: List<Long> = listOf(3_000, 2_000, 1_000)
 
     fun plan(
         mode: TimerMode,
@@ -40,5 +41,18 @@ object CuePlanner {
                 tone = true,
             )
         return cues.sortedByDescending { it.thresholdMs }
+    }
+
+    /**
+     * Cues der Get-Ready-Vorbereitungsphase (Musik-Workout-Plan B9):
+     * 3-2-1 als Haptik + Ton (keine Sprache, kein Ducking). Nur
+     * Grenzwerte bis zur Vorlaufdauer werden geplant.
+     */
+    fun planPrep(prepMs: Long): List<PlannedCue> {
+        if (prepMs <= 0) return emptyList()
+        return PREP_COUNTDOWN_MS
+            .filter { it <= prepMs }
+            .map { PlannedCue(it, speak = false, haptic = true, tone = true) }
+            .sortedByDescending { it.thresholdMs }
     }
 }

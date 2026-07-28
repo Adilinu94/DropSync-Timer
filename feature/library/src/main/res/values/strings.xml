@@ -5,6 +5,7 @@
     <string name="library_permission_button">Grant access</string>
     <string name="library_scan_failed">The library could not be refreshed. Pull down or reopen the tab to try again.</string>
     <string name="library_empty">No playable songs found on this device.</string>
+    <string name="library_shuffle">Shuffle play</string>
     <string name="library_play_song">Play %1$s</string>
     <string name="library_unknown_artist">Unknown artist</string>
     <string name="library_favorite">Add to favorites</string>

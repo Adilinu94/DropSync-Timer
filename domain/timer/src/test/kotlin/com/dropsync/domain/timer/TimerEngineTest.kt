@@ -198,4 +198,45 @@ class TimerEngineTest {
         assertFalse(engine.reset())
         assertEquals(TimerStatus.RUNNING, engine.state.value.status)
     }
+
+    @Test
+    fun `get-ready-vorlauf startet in preparing und zaehlt herunter`() {
+        engine.start(TimerMode.REST, durationMs = 60_000, prepMs = 3_000)
+        assertEquals(TimerStatus.PREPARING, engine.state.value.status)
+        assertEquals(3_000, engine.state.value.remainingMs)
+
+        clock.advanceBy(1_000)
+        engine.evaluate()
+        assertEquals(TimerStatus.PREPARING, engine.state.value.status)
+        assertEquals(2_000, engine.state.value.remainingMs)
+    }
+
+    @Test
+    fun `get-ready-vorlauf wechselt nach ablauf auf running mit voller dauer`() {
+        engine.start(TimerMode.REST, durationMs = 60_000, prepMs = 3_000)
+        clock.advanceBy(3_000)
+        engine.evaluate()
+
+        assertEquals(TimerStatus.RUNNING, engine.state.value.status)
+        assertEquals(60_000, engine.state.value.remainingMs)
+        // 3-2-1 gab Haptik + Ton (kein Sprechen der Vorbereitung).
+        assertTrue(cues.haptics.isNotEmpty())
+        assertTrue(cues.tones.isNotEmpty())
+        assertTrue(cues.spoken.isEmpty())
+    }
+
+    @Test
+    fun `laufcues feuern trotz gleicher vorlauf-grenzwerte`() {
+        // 3/2/1 s existieren in Vorlauf und Lauf: nach dem Uebergang
+        // duerfen die Laufcues bei 3/2/1 s erneut feuern (Merker geleert).
+        engine.start(TimerMode.REST, durationMs = 8_000, prepMs = 3_000)
+        clock.advanceBy(3_000)
+        engine.evaluate() // Vorlauf -> RUNNING (Rest 8 s)
+        val prepHaptics = cues.haptics.size
+
+        clock.advanceBy(6_000) // Rest 2 s -> Laufgrenzwert 2 s
+        engine.evaluate()
+        assertEquals(TimerStatus.RUNNING, engine.state.value.status)
+        assertTrue(cues.haptics.size > prepHaptics)
+    }
 }

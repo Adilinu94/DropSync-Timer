@@ -3,20 +3,29 @@ package com.dropsync.feature.settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
+import androidx.compose.material3.Slider
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -33,6 +42,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.dropsync.core.model.RestMusicBehavior
 import com.dropsync.core.model.Song
 import com.dropsync.core.model.SongMarker
+import kotlin.math.roundToInt
 
 /**
  * Einstellungen (Schritt 12.2/12.3): Markerimport ueber den
@@ -51,6 +61,10 @@ fun SettingsScreen(
     val pendingCandidates by viewModel.pendingAutoDetectedMarkers.collectAsStateWithLifecycle()
     val songs by viewModel.songs.collectAsStateWithLifecycle()
     val restMusicBehavior by viewModel.restMusicBehavior.collectAsStateWithLifecycle()
+    val getReadyEnabled by viewModel.getReadyEnabled.collectAsStateWithLifecycle()
+    val getReadySeconds by viewModel.getReadySeconds.collectAsStateWithLifecycle()
+    val restPresets by viewModel.restPresets.collectAsStateWithLifecycle()
+    val smartShuffleEnabled by viewModel.smartShuffleEnabled.collectAsStateWithLifecycle()
     val importState by viewModel.importState.collectAsStateWithLifecycle()
     var markerToLink by remember { mutableStateOf<SongMarker?>(null) }
 
@@ -103,6 +117,18 @@ fun SettingsScreen(
                 option = option,
                 selected = option == restMusicBehavior,
                 onSelect = { viewModel.setRestMusicBehavior(option) },
+            )
+        }
+        item { HorizontalDivider(Modifier.padding(vertical = 12.dp)) }
+        item {
+            WorkoutExtrasSection(
+                getReadyEnabled = getReadyEnabled,
+                getReadySeconds = getReadySeconds,
+                onSetGetReady = viewModel::setGetReady,
+                presets = restPresets,
+                onSetPresets = viewModel::setRestPresets,
+                smartShuffleEnabled = smartShuffleEnabled,
+                onSetSmartShuffle = viewModel::setSmartShuffleEnabled,
             )
         }
         item { HorizontalDivider(Modifier.padding(vertical = 12.dp)) }
@@ -362,6 +388,95 @@ private fun LinkMarkerDialog(
         },
     )
 }
+
+/**
+ * Trainings-Extras (Musik-Workout-Plan Phase 6): Get-Ready-Vorlauf (B9),
+ * bearbeitbare Rest-Schnellwahl (B8) und intelligentes Shuffle (A5).
+ */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun WorkoutExtrasSection(
+    getReadyEnabled: Boolean,
+    getReadySeconds: Int,
+    onSetGetReady: (Boolean, Int) -> Unit,
+    presets: List<Int>,
+    onSetPresets: (List<Int>) -> Unit,
+    smartShuffleEnabled: Boolean,
+    onSetSmartShuffle: (Boolean) -> Unit,
+) {
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Text(
+            text = stringResource(R.string.settings_extras_section),
+            style = MaterialTheme.typography.titleMedium,
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+        )
+        // Get-Ready 3-2-1 (B9): optionaler Vorlauf vor dem Rest-Countdown.
+        ListItem(
+            headlineContent = { Text(stringResource(R.string.settings_get_ready_title)) },
+            supportingContent = { Text(stringResource(R.string.settings_get_ready_desc)) },
+            trailingContent = {
+                Switch(
+                    checked = getReadyEnabled,
+                    onCheckedChange = { onSetGetReady(it, getReadySeconds) },
+                )
+            },
+        )
+        if (getReadyEnabled) {
+            Text(
+                text = stringResource(R.string.settings_get_ready_seconds, getReadySeconds),
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.padding(horizontal = 16.dp),
+            )
+            Slider(
+                value = getReadySeconds.toFloat(),
+                onValueChange = { onSetGetReady(true, it.roundToInt()) },
+                valueRange = 1f..10f,
+                steps = 8,
+                modifier = Modifier.padding(horizontal = 16.dp),
+            )
+        }
+        Spacer(Modifier.height(8.dp))
+        // Bearbeitbare Rest-Schnellwahl (B8): waehlbare Sekunden-Chips.
+        Text(
+            text = stringResource(R.string.settings_presets_title),
+            style = MaterialTheme.typography.titleSmall,
+            modifier = Modifier.padding(horizontal = 16.dp),
+        )
+        Text(
+            text = stringResource(R.string.settings_presets_desc),
+            style = MaterialTheme.typography.bodyMedium,
+            modifier = Modifier.padding(horizontal = 16.dp),
+        )
+        FlowRow(
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            PRESET_CHOICES.forEach { choice ->
+                val selected = choice in presets
+                FilterChip(
+                    selected = selected,
+                    onClick = {
+                        val next = if (selected) presets - choice else presets + choice
+                        onSetPresets(next.distinct().sorted())
+                    },
+                    label = { Text(stringResource(R.string.settings_seconds_format, choice)) },
+                )
+            }
+        }
+        Spacer(Modifier.height(8.dp))
+        // Intelligentes Shuffle (A5): gewichtet ueber play_stats/Favoriten.
+        ListItem(
+            headlineContent = { Text(stringResource(R.string.settings_smart_shuffle_title)) },
+            supportingContent = { Text(stringResource(R.string.settings_smart_shuffle_desc)) },
+            trailingContent = {
+                Switch(checked = smartShuffleEnabled, onCheckedChange = onSetSmartShuffle)
+            },
+        )
+    }
+}
+
+/** Waehlbare Sekundenwerte fuer die Rest-Schnellwahl (B8). */
+private val PRESET_CHOICES: List<Int> = listOf(30, 45, 60, 75, 90, 120, 150, 180, 240, 300)
 
 /**
  * Eine Auswahl des Pausen-Musik-Verhaltens (Musik-Workout-Plan Phase 3):
