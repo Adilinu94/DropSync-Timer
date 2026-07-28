@@ -54,6 +54,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.dropsync.core.designsystem.chart.Waveform
+import com.dropsync.core.designsystem.chart.WaveformPlaceholder
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
@@ -76,6 +78,12 @@ fun NowPlayingScreen(
 ) {
     val state by viewModel.nowPlaying.collectAsStateWithLifecycle()
     val livePosition by viewModel.livePositionMs.collectAsStateWithLifecycle()
+    val waveformState by viewModel.waveform.collectAsStateWithLifecycle()
+
+    // Cache-Miss stoesst die aufschiebbare Analyse an (Plan Phase 2/3).
+    LaunchedEffect(state.songId) {
+        viewModel.requestAnalysis(state.songId)
+    }
 
     // Ticker nur, solange dieser Screen in der Composition ist: `state`
     // aktualisiert die Position nur bei Player-Ereignissen (Plan Phase 1).
@@ -145,6 +153,7 @@ fun NowPlayingScreen(
             ProgressSection(
                 positionMs = livePosition ?: state.positionMs,
                 durationMs = state.durationMs,
+                waveformState = waveformState,
                 onSeek = viewModel::seekTo,
             )
 
@@ -161,13 +170,17 @@ fun NowPlayingScreen(
 }
 
 /**
- * Fortschrittsleiste mit Zeitlabels. Drag zeigt die Zielposition live an;
- * der Sprung erfolgt erst beim Loslassen (Vorstufe zur Waveform, Phase 3).
+ * Fortschrittsbereich (Plan Phase 3): die Waveform ersetzt die klassische
+ * Zeitleiste als Bedienflaeche, sobald die Analyse vorliegt. Waehrend der
+ * Analyse pulsiert ein Platzhalter ueber der weiterhin bedienbaren
+ * Zeitleiste; schlaegt die Analyse fehl, bleibt dauerhaft die Zeitleiste.
+ * Drag zeigt die Zielposition live an; der Sprung erfolgt beim Loslassen.
  */
 @Composable
 private fun ProgressSection(
     positionMs: Long,
     durationMs: Long,
+    waveformState: WaveformUiState,
     onSeek: (Long) -> Unit,
 ) {
     var scrubPositionMs by remember { mutableStateOf<Long?>(null) }
@@ -175,17 +188,54 @@ private fun ProgressSection(
     val safeDuration = durationMs.coerceAtLeast(1L)
 
     Column(modifier = Modifier.fillMaxWidth()) {
-        Slider(
-            value = (shownPositionMs.toFloat() / safeDuration).coerceIn(0f, 1f),
-            onValueChange = { fraction ->
-                scrubPositionMs = (fraction * safeDuration).toLong()
-            },
-            onValueChangeFinished = {
-                scrubPositionMs?.let(onSeek)
-                scrubPositionMs = null
-            },
-            modifier = Modifier.fillMaxWidth(),
-        )
+        when (waveformState) {
+            is WaveformUiState.Ready -> {
+                Waveform(
+                    buckets = waveformState.buckets,
+                    progressFraction = (shownPositionMs.toFloat() / safeDuration).coerceIn(0f, 1f),
+                    onSeek = { fraction -> onSeek((fraction * safeDuration).toLong()) },
+                    onScrubPreview = { fraction ->
+                        scrubPositionMs = fraction?.let { (it * safeDuration).toLong() }
+                    },
+                    contentDescription = stringResource(R.string.now_playing_waveform),
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .height(72.dp),
+                )
+            }
+
+            WaveformUiState.Loading -> {
+                WaveformPlaceholder(
+                    contentDescription = stringResource(R.string.now_playing_waveform_loading),
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .height(40.dp),
+                )
+                SeekSlider(
+                    shownPositionMs = shownPositionMs,
+                    safeDuration = safeDuration,
+                    onScrub = { scrubPositionMs = it },
+                    onSeek = {
+                        scrubPositionMs?.let(onSeek)
+                        scrubPositionMs = null
+                    },
+                )
+            }
+
+            WaveformUiState.Unavailable, WaveformUiState.Hidden -> {
+                SeekSlider(
+                    shownPositionMs = shownPositionMs,
+                    safeDuration = safeDuration,
+                    onScrub = { scrubPositionMs = it },
+                    onSeek = {
+                        scrubPositionMs?.let(onSeek)
+                        scrubPositionMs = null
+                    },
+                )
+            }
+        }
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -200,6 +250,22 @@ private fun ProgressSection(
             )
         }
     }
+}
+
+/** Klassische Zeitleiste als Fallback und waehrend der Analyse. */
+@Composable
+private fun SeekSlider(
+    shownPositionMs: Long,
+    safeDuration: Long,
+    onScrub: (Long) -> Unit,
+    onSeek: () -> Unit,
+) {
+    Slider(
+        value = (shownPositionMs.toFloat() / safeDuration).coerceIn(0f, 1f),
+        onValueChange = { fraction -> onScrub((fraction * safeDuration).toLong()) },
+        onValueChangeFinished = onSeek,
+        modifier = Modifier.fillMaxWidth(),
+    )
 }
 
 @Composable

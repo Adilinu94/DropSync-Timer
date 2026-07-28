@@ -55,7 +55,7 @@ Bauplan sind nur ueber ADRs in [`docs/adr/`](docs/adr/) erlaubt.
 | ----- | ------ | ------ |
 | 1 | Now-Playing-Screen-Fundament: `NowPlayingScreen` (Cover via `MediaMetadataRetriever.embeddedPicture`, da minSdk 26 < API 29 fuer `loadThumbnail()`), `NowPlayingUiState` + Positions-Ticker (200 ms `snapshotNow()`, nur bei sichtbarem Screen), `skipToPrevious`/`seekTo`, Route `now_playing` per Tap auf den Mini-Player | Abgeschlossen |
 | 2 | Geteilte Analyse-Grundlage: `TrackAnalyzer`/`TrackAnalysisRepository` (`:domain:audio`), Streaming-Akkumulatoren (Min/Max-Buckets + RMS-Energie in einem Durchgang), `track_analysis`-Cache (DB v3, `MIGRATION_2_3`, `analyzer_version` zur Invalidierung), `TrackAnalyzerImpl` per MediaExtractor/MediaCodec (ADR-0011), aufschiebbarer `OneTimeWorkRequest` dedupliziert ueber `track_analysis_<songId>` | Abgeschlossen |
-| 3 | Waveform-Anzeige mit Scrubbing (`:core:designsystem`, Compose-Canvas) | Offen |
+| 3 | Waveform-Anzeige mit Scrubbing: `Waveform`/`WaveformPlaceholder` (`:core:designsystem`, Compose-Canvas, Lime fuer gespielten Anteil), Tap = Sprung, Drag = Live-Vorschau mit Sprung beim Loslassen; Ladezustand pulsiert, Fehlerfall (persistiert als `bucket_count = 0`) faellt dauerhaft auf die Zeitleiste zurueck | Abgeschlossen |
 | 4 | A1 - Manuelles Marker-Setzen (`createManualMarker`/`deleteMarker`, Bestaetigungs-Sheet, Marker-Ticks) | Offen |
 | 5 | A2 - On-Device-Drop-/Onset-Erkennung (Novelty + Peak-Picking, Kandidaten `AUTO_DETECTED`/`isEnabled=false`, Review-Liste) | Offen |
 

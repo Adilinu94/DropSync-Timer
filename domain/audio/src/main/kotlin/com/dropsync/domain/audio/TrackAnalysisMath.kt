@@ -8,9 +8,7 @@ import kotlin.math.sqrt
  * Phase 2): ein Durchgang ueber den Mono-Downmix liefert Waveform-Peaks
  * und Kurzzeit-Energie zugleich. Reine JVM-Mathematik, deterministisch
  * testbar gegen synthetische PCM-Fixtures.
- */
-
-/**
+ *
  * Bildet Min/Max-Buckets ueber [totalSamples] Mono-Samples. Weicht die
  * tatsaechliche Samplezahl vom Schaetzwert ab (Decoder runden Dauer),
  * landen Ueberzaehlige im letzten Bucket; fehlende Buckets bleiben still

@@ -41,6 +41,9 @@ class TrackAnalysisRepositoryImpl(
             entity
                 ?.takeIf { it.analyzerVersion == WaveformCodec.ANALYZER_VERSION }
                 ?.let {
+                    // bucket_count = 0 ist der persistierte Fehlerfall
+                    // (Format ohne Plattformdecoder): leere Buckets melden,
+                    // damit die UI auf die Zeitleiste zurueckfaellt.
                     TrackAnalysis(
                         waveformBuckets = WaveformCodec.unpack(it.waveformData),
                         onsetCandidatesMs = emptyList(),
@@ -106,9 +109,23 @@ class TrackAnalysisWorker(
                 )
                 Result.success()
             }
-            // Kein Retry: ein Format ohne Plattformdecoder scheitert auch
-            // beim naechsten Versuch; die UI faellt auf die Zeitleiste zurueck.
-            is AppResult.Failure -> Result.failure()
+
+            is AppResult.Failure -> {
+                // Fehlerfall persistieren (bucket_count = 0): ein Format ohne
+                // Plattformdecoder scheitert auch beim naechsten Versuch; die
+                // UI faellt dauerhaft auf die Zeitleiste zurueck statt endlos
+                // zu laden oder neu anzustossen.
+                deps.trackAnalysisDao().upsert(
+                    TrackAnalysisEntity(
+                        songId = songId,
+                        waveformData = ByteArray(0),
+                        bucketCount = 0,
+                        analyzerVersion = WaveformCodec.ANALYZER_VERSION,
+                        analyzedAtEpochMs = deps.clock().epochMillis(),
+                    ),
+                )
+                Result.failure()
+            }
         }
     }
 

@@ -3,6 +3,7 @@ package com.dropsync.feature.player
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.dropsync.core.common.getOrNull
+import com.dropsync.domain.audio.TrackAnalysisRepository
 import com.dropsync.domain.library.LibraryRepository
 import com.dropsync.domain.playback.PlaybackRepository
 import com.dropsync.domain.playback.QueueItem
@@ -12,6 +13,9 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapLatest
 import kotlinx.coroutines.flow.stateIn
@@ -50,12 +54,34 @@ data class QueueUiState(
     val currentIndex: Int = -1,
 )
 
+/**
+ * Zustand der Waveform-Anzeige (Marker/Waveform-Plan Phase 3). Die
+ * Grundfunktion (Abspielen, Springen per Zeit) haengt nie an der Analyse:
+ * [Unavailable] faellt auf die klassische Zeitleiste zurueck.
+ */
+sealed interface WaveformUiState {
+    /** Kein laufender Song. */
+    data object Hidden : WaveformUiState
+
+    /** Analyse angestossen, Ergebnis noch nicht im Cache. */
+    data object Loading : WaveformUiState
+
+    /** Analyse fehlgeschlagen (z. B. Format ohne Plattformdecoder). */
+    data object Unavailable : WaveformUiState
+
+    /** Min/Max-Paare normalisiert auf [-1..1] in Trackreihenfolge. */
+    data class Ready(
+        val buckets: List<Pair<Float, Float>>,
+    ) : WaveformUiState
+}
+
 @HiltViewModel
 class PlayerViewModel
     @Inject
     constructor(
         private val playbackRepository: PlaybackRepository,
         private val libraryRepository: LibraryRepository,
+        private val trackAnalysisRepository: TrackAnalysisRepository,
     ) : ViewModel() {
         @OptIn(ExperimentalCoroutinesApi::class)
         val miniPlayer: StateFlow<MiniPlayerState> =
@@ -137,6 +163,55 @@ class PlayerViewModel
             viewModelScope.launch {
                 playbackRepository.snapshotNow().getOrNull()?.let {
                     tickedPositionMs.value = it.positionMs
+                }
+            }
+        }
+
+        /**
+         * Waveform des laufenden Songs aus dem Analyse-Cache (Phase 3).
+         * Bytes werden auf [-1..1] normalisiert; leere Buckets sind der
+         * persistierte Fehlerfall.
+         */
+        @OptIn(ExperimentalCoroutinesApi::class)
+        val waveform: StateFlow<WaveformUiState> =
+            playbackRepository.state
+                .map { it.currentSongId }
+                .distinctUntilChanged()
+                .flatMapLatest { songId ->
+                    if (songId == null) {
+                        flowOf<WaveformUiState>(WaveformUiState.Hidden)
+                    } else {
+                        trackAnalysisRepository.observeAnalysis(songId).map { analysis ->
+                            when {
+                                analysis == null -> {
+                                    WaveformUiState.Loading
+                                }
+
+                                analysis.waveformBuckets.isEmpty() -> {
+                                    WaveformUiState.Unavailable
+                                }
+
+                                else -> {
+                                    WaveformUiState.Ready(
+                                        analysis.waveformBuckets.map { bucket ->
+                                            bucket.min / 127f to bucket.max / 127f
+                                        },
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), WaveformUiState.Hidden)
+
+        /**
+         * Stoesst die aufschiebbare Analyse fuer den Song an (Cache-Miss
+         * beim Oeffnen des Now-Playing-Screens, Plan Phase 2/3).
+         */
+        fun requestAnalysis(songId: Long?) {
+            if (songId == null) return
+            viewModelScope.launch {
+                libraryRepository.getSong(songId).getOrNull()?.let {
+                    trackAnalysisRepository.requestAnalysis(it)
                 }
             }
         }

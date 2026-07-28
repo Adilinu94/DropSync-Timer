@@ -8,6 +8,8 @@
     <string name="now_playing_back">Zurueck</string>
     <string name="now_playing_empty">Gerade laeuft nichts.</string>
     <string name="now_playing_cover">Albumcover</string>
+    <string name="now_playing_waveform">Wellenform: Tippen springt, Ziehen zeigt Vorschau</string>
+    <string name="now_playing_waveform_loading">Wellenform wird analysiert</string>
     <string name="player_queue_open">Warteschlange oeffnen</string>
     <string name="player_queue_title">Warteschlange</string>
     <string name="player_queue_empty">Die Warteschlange ist leer.</string>

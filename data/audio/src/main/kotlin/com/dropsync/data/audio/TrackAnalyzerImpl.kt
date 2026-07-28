@@ -34,9 +34,10 @@ class TrackAnalyzerImpl(
                 .fold(
                     onSuccess = { AppResult.success(it) },
                     onFailure = { failure ->
-                        AppResult.failure(
-                            AppError.MediaUnavailable(mediaStoreId = song.mediaStoreId),
-                        ).also { failure.printStackTrace() }
+                        AppResult
+                            .failure(
+                                AppError.MediaUnavailable(mediaStoreId = song.mediaStoreId),
+                            ).also { failure.printStackTrace() }
                     },
                 )
         }
@@ -133,8 +134,12 @@ class TrackAnalyzerImpl(
                         outputFormat.containsKey(MediaFormat.KEY_PCM_ENCODING) &&
                         outputFormat.getInteger(MediaFormat.KEY_PCM_ENCODING) == AudioFormat.ENCODING_PCM_FLOAT
                 }
-                MediaCodec.INFO_TRY_AGAIN_LATER -> Unit
-                else ->
+
+                MediaCodec.INFO_TRY_AGAIN_LATER -> {
+                    Unit
+                }
+
+                else -> {
                     if (outputIndex >= 0) {
                         val outputBuffer = requireNotNull(codec.getOutputBuffer(outputIndex))
                         outputBuffer.position(bufferInfo.offset)
@@ -166,6 +171,7 @@ class TrackAnalyzerImpl(
                             outputDone = true
                         }
                     }
+                }
             }
         }
     }

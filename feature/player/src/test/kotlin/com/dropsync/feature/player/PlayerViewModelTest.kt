@@ -4,6 +4,9 @@ import app.cash.turbine.test
 import com.dropsync.core.common.AppError
 import com.dropsync.core.common.AppResult
 import com.dropsync.core.model.Song
+import com.dropsync.domain.audio.TrackAnalysis
+import com.dropsync.domain.audio.TrackAnalysisRepository
+import com.dropsync.domain.audio.WaveformBucket
 import com.dropsync.domain.library.CueVirtualTrack
 import com.dropsync.domain.library.FolderScanResult
 import com.dropsync.domain.library.LibraryRepository
@@ -18,6 +21,7 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.emptyFlow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
@@ -40,12 +44,14 @@ class PlayerViewModelTest {
     private val dispatcher = StandardTestDispatcher()
     private lateinit var playbackRepository: FakePlaybackRepository
     private lateinit var libraryRepository: FakeLibraryRepository
+    private lateinit var trackAnalysisRepository: FakeTrackAnalysisRepository
 
     @Before
     fun setUp() {
         Dispatchers.setMain(dispatcher)
         playbackRepository = FakePlaybackRepository()
         libraryRepository = FakeLibraryRepository()
+        trackAnalysisRepository = FakeTrackAnalysisRepository()
     }
 
     @After
@@ -53,7 +59,7 @@ class PlayerViewModelTest {
         Dispatchers.resetMain()
     }
 
-    private fun viewModel() = PlayerViewModel(playbackRepository, libraryRepository)
+    private fun viewModel() = PlayerViewModel(playbackRepository, libraryRepository, trackAnalysisRepository)
 
     @Test
     fun `nowPlaying ist unsichtbar bei leerer Queue`() =
@@ -140,9 +146,75 @@ class PlayerViewModelTest {
             assertEquals(1, playbackRepository.skipToPreviousCalls)
         }
 
+    @Test
+    fun `waveform ist Hidden ohne laufenden Song`() =
+        runTest(dispatcher) {
+            viewModel().waveform.test {
+                assertEquals(WaveformUiState.Hidden, awaitItem())
+            }
+        }
+
+    @Test
+    fun `waveform laedt bis der Cache gefuellt ist und liefert dann normalisierte Buckets`() =
+        runTest(dispatcher) {
+            playbackRepository.stateFlow.value = PlaybackState(currentSongId = 7L)
+
+            viewModel().waveform.test {
+                awaitItemUntilWaveform { it == WaveformUiState.Loading }
+
+                trackAnalysisRepository.analyses.value =
+                    mapOf(
+                        7L to
+                            TrackAnalysis(
+                                waveformBuckets = listOf(WaveformBucket(min = -127, max = 127)),
+                                onsetCandidatesMs = emptyList(),
+                            ),
+                    )
+
+                val ready = awaitItemUntilWaveform { it is WaveformUiState.Ready } as WaveformUiState.Ready
+                assertEquals(1, ready.buckets.size)
+                assertEquals(-1f, ready.buckets[0].first, 1e-6f)
+                assertEquals(1f, ready.buckets[0].second, 1e-6f)
+            }
+        }
+
+    @Test
+    fun `waveform faellt bei persistiertem Fehlerfall auf Unavailable zurueck`() =
+        runTest(dispatcher) {
+            playbackRepository.stateFlow.value = PlaybackState(currentSongId = 9L)
+            trackAnalysisRepository.analyses.value =
+                mapOf(9L to TrackAnalysis(waveformBuckets = emptyList(), onsetCandidatesMs = emptyList()))
+
+            viewModel().waveform.test {
+                awaitItemUntilWaveform { it == WaveformUiState.Unavailable }
+            }
+        }
+
+    @Test
+    fun `requestAnalysis reicht den geladenen Song an das Analyse-Repository durch`() =
+        runTest(dispatcher) {
+            libraryRepository.songById[5L] = songFixture(id = 5L, title = "Peak")
+            val vm = viewModel()
+
+            vm.requestAnalysis(5L)
+            vm.requestAnalysis(null)
+            dispatcher.scheduler.advanceUntilIdle()
+
+            assertEquals(listOf(5L), trackAnalysisRepository.requestedSongIds)
+        }
+
     private suspend fun app.cash.turbine.TurbineTestContext<NowPlayingUiState>.awaitItemUntil(
         predicate: (NowPlayingUiState) -> Boolean,
     ): NowPlayingUiState {
+        while (true) {
+            val item = awaitItem()
+            if (predicate(item)) return item
+        }
+    }
+
+    private suspend fun app.cash.turbine.TurbineTestContext<WaveformUiState>.awaitItemUntilWaveform(
+        predicate: (WaveformUiState) -> Boolean,
+    ): WaveformUiState {
         while (true) {
             val item = awaitItem()
             if (predicate(item)) return item
@@ -218,6 +290,17 @@ private class FakePlaybackRepository : PlaybackRepository {
     override suspend fun lastPersistedState(): PersistedPlayerState? = null
 
     override suspend fun snapshotNow(): AppResult<PlaybackState> = snapshot
+}
+
+private class FakeTrackAnalysisRepository : TrackAnalysisRepository {
+    val analyses = MutableStateFlow<Map<Long, TrackAnalysis?>>(emptyMap())
+    val requestedSongIds = mutableListOf<Long>()
+
+    override fun observeAnalysis(songId: Long): Flow<TrackAnalysis?> = analyses.map { it[songId] }
+
+    override suspend fun requestAnalysis(song: Song) {
+        requestedSongIds += song.mediaStoreId
+    }
 }
 
 private class FakeLibraryRepository : LibraryRepository {
