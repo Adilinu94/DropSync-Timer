@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
@@ -33,7 +34,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.dropsync.core.designsystem.icon.BrandIcons
 import com.dropsync.domain.library.SongSort
@@ -304,7 +307,7 @@ internal fun ListOptionsSheet(
 /**
  * Untere Aktionsleiste im Auswahlmodus (Poweramp Selection menu): Kopf mit
  * "Alle" und Zaehler, darunter Playlist / Warteschlange / Als Naechstes /
- * Teilen / Info / Loeschen.
+ * Info / Loeschen.
  */
 @Composable
 internal fun SelectionBar(
@@ -315,17 +318,18 @@ internal fun SelectionBar(
     onAddToPlaylist: () -> Unit,
     onAddToQueue: () -> Unit,
     onPlayNext: () -> Unit,
-    onShare: () -> Unit,
     onInfo: () -> Unit,
     onDelete: () -> Unit,
     modifier: Modifier = Modifier,
+    bottomInset: Dp = 0.dp,
 ) {
     Column(
         modifier =
             modifier
                 .fillMaxWidth()
                 .background(MaterialTheme.colorScheme.surfaceContainerHigh)
-                .padding(horizontal = 12.dp, vertical = 8.dp),
+                .padding(horizontal = 12.dp, vertical = 8.dp)
+                .padding(bottom = bottomInset),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             TextButton(onClick = onSelectAll) { Text(stringResource(R.string.library_selection_all)) }
@@ -343,9 +347,9 @@ internal fun SelectionBar(
             modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
             horizontalArrangement = Arrangement.SpaceEvenly,
         ) {
-            SelectionAction(BrandIcons.PlaylistAdd, R.string.library_add_to_playlist, onAddToPlaylist)
-            SelectionAction(BrandIcons.Queue, R.string.library_add_to_queue, onAddToQueue)
-            SelectionAction(BrandIcons.PlayNext, R.string.library_play_next, onPlayNext)
+            SelectionAction(BrandIcons.PlaylistAdd, R.string.library_action_playlist, onAddToPlaylist)
+            SelectionAction(BrandIcons.Queue, R.string.library_action_queue, onAddToQueue)
+            SelectionAction(BrandIcons.PlayNext, R.string.library_action_play_next, onPlayNext)
             SelectionAction(BrandIcons.Info, R.string.library_action_info, onInfo)
             SelectionAction(BrandIcons.Delete, R.string.library_action_delete, onDelete)
         }
@@ -353,7 +357,7 @@ internal fun SelectionBar(
 }
 
 @Composable
-private fun SelectionAction(
+private fun RowScope.SelectionAction(
     iconRes: Int,
     labelRes: Int,
     onClick: () -> Unit,
@@ -362,16 +366,23 @@ private fun SelectionAction(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier =
             Modifier
+                .weight(1f)
                 .clip(MaterialTheme.shapes.small)
                 .clickable(onClick = onClick)
-                .padding(horizontal = 8.dp, vertical = 4.dp),
+                .padding(horizontal = 2.dp, vertical = 4.dp),
     ) {
         Icon(
             painterResource(iconRes),
             contentDescription = null,
             tint = MaterialTheme.colorScheme.primary,
         )
-        Text(stringResource(labelRes), style = MaterialTheme.typography.labelSmall)
+        Text(
+            text = stringResource(labelRes),
+            style = MaterialTheme.typography.labelSmall,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
+            textAlign = TextAlign.Center,
+        )
     }
 }
 

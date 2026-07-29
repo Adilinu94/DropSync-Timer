@@ -39,7 +39,6 @@ internal fun SongCategoryScreen(
     contentPadding: PaddingValues,
     onBack: () -> Unit,
     onAddToPlaylist: (Song) -> Unit,
-    onRequestShare: (List<Song>) -> Unit,
     onRequestDelete: (List<Song>) -> Unit,
 ) {
     val config by viewModel.listConfigs.getValue(category).collectAsStateWithLifecycle()
@@ -133,8 +132,8 @@ internal fun SongCategoryScreen(
         SelectionActionsBar(
             viewModel = viewModel,
             pool = sorted,
+            contentPadding = contentPadding,
             onShowInfo = { infoSong = it },
-            onRequestShare = onRequestShare,
             onRequestDelete = onRequestDelete,
         )
     }
@@ -170,8 +169,8 @@ internal fun SongCategoryScreen(
 internal fun SelectionActionsBar(
     viewModel: LibraryViewModel,
     pool: List<Song>,
+    contentPadding: PaddingValues,
     onShowInfo: (Song) -> Unit,
-    onRequestShare: (List<Song>) -> Unit,
     onRequestDelete: (List<Song>) -> Unit,
 ) {
     val selectionActive by viewModel.selectionActive.collectAsStateWithLifecycle()
@@ -188,9 +187,9 @@ internal fun SelectionActionsBar(
         onAddToPlaylist = { if (selectedSongs.isNotEmpty()) pickPlaylist = true },
         onAddToQueue = { viewModel.addSelectionToQueue(pool) },
         onPlayNext = { viewModel.playSelectionNext(pool) },
-        onShare = { onRequestShare(selectedSongs) },
         onInfo = { selectedSongs.firstOrNull()?.let(onShowInfo) },
         onDelete = { if (selectedSongs.isNotEmpty()) onRequestDelete(selectedSongs) },
+        bottomInset = contentPadding.calculateBottomPadding(),
     )
     if (pickPlaylist) {
         AddToPlaylistDialog(

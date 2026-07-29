@@ -1,7 +1,6 @@
 package com.dropsync.feature.library
 
 import android.app.Activity
-import android.content.Intent
 import android.net.Uri
 import android.os.Build
 import android.provider.MediaStore
@@ -114,18 +113,6 @@ internal fun LibraryContent(
         }
     }
 
-    fun share(songs: List<Song>) {
-        if (songs.isEmpty()) return
-        val uris = ArrayList(songs.map { Uri.parse(it.contentUri) })
-        val intent =
-            Intent(Intent.ACTION_SEND_MULTIPLE).apply {
-                type = "audio/*"
-                putParcelableArrayListExtra(Intent.EXTRA_STREAM, uris)
-                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-            }
-        context.startActivity(Intent.createChooser(intent, null))
-    }
-
     BackHandler(enabled = selectionActive || stack.size > 1) {
         when {
             selectionActive -> viewModel.clearSelection()
@@ -158,7 +145,6 @@ internal fun LibraryContent(
                     onOpenFolderTree = { push(LibraryRoute.FolderTree(it)) },
                     onOpenPlaylist = { push(LibraryRoute.PlaylistDetailRoute(it)) },
                     onAddToPlaylist = { songForPlaylist = it },
-                    onShare = ::share,
                     onDelete = ::requestDelete,
                 )
             }
@@ -170,7 +156,6 @@ internal fun LibraryContent(
                     contentPadding = contentPadding,
                     onBack = ::pop,
                     onAddToPlaylist = { songForPlaylist = it },
-                    onShare = ::share,
                     onDelete = ::requestDelete,
                 )
             }
@@ -250,7 +235,6 @@ private fun CategoryRoute(
     onOpenFolderTree: (String) -> Unit,
     onOpenPlaylist: (Long) -> Unit,
     onAddToPlaylist: (Song) -> Unit,
-    onShare: (List<Song>) -> Unit,
     onDelete: (List<Song>) -> Unit,
 ) {
     when (category) {
@@ -265,7 +249,6 @@ private fun CategoryRoute(
                 contentPadding = contentPadding,
                 onBack = onBack,
                 onAddToPlaylist = onAddToPlaylist,
-                onRequestShare = onShare,
                 onRequestDelete = onDelete,
             )
         }
@@ -417,7 +400,6 @@ private fun CollectionRoute(
     contentPadding: PaddingValues,
     onBack: () -> Unit,
     onAddToPlaylist: (Song) -> Unit,
-    onShare: (List<Song>) -> Unit,
     onDelete: (List<Song>) -> Unit,
 ) {
     LaunchedEffect(route.kind, route.key) {
@@ -442,7 +424,6 @@ private fun CollectionRoute(
         contentPadding = contentPadding,
         onBack = onBack,
         onAddToPlaylist = onAddToPlaylist,
-        onRequestShare = onShare,
         onRequestDelete = onDelete,
     )
 }

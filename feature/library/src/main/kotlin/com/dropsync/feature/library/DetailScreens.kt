@@ -54,7 +54,6 @@ internal fun CollectionSongScreen(
     contentPadding: PaddingValues,
     onBack: () -> Unit,
     onAddToPlaylist: (Song) -> Unit,
-    onRequestShare: (List<Song>) -> Unit,
     onRequestDelete: (List<Song>) -> Unit,
 ) {
     val config by viewModel.listConfigs.getValue(configCategory).collectAsStateWithLifecycle()
@@ -123,8 +122,8 @@ internal fun CollectionSongScreen(
         SelectionActionsBar(
             viewModel = viewModel,
             pool = sorted,
+            contentPadding = contentPadding,
             onShowInfo = { infoSong = it },
-            onRequestShare = onRequestShare,
             onRequestDelete = onRequestDelete,
         )
     }

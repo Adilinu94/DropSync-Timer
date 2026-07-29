@@ -105,7 +105,9 @@
     <string name="library_header_meta">%1$s  |  %2$s</string>
     <string name="library_selection_count">%1$d / %2$d</string>
     <string name="library_selection_all">Alle</string>
-    <string name="library_action_share">Teilen</string>
+    <string name="library_action_playlist">Playlist</string>
+    <string name="library_action_queue">Warteschlange</string>
+    <string name="library_action_play_next">Als Naechstes</string>
     <string name="library_action_info">Info</string>
     <string name="library_action_delete">Loeschen</string>
     <string name="library_delete_confirm">%1$d ausgewaehlte(n) Titel von diesem Geraet loeschen? Das laesst sich nicht rueckgaengig machen.</string>
