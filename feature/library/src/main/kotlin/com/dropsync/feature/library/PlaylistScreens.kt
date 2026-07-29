@@ -37,6 +37,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -150,7 +151,12 @@ private fun PlaylistRow(
         },
         supportingContent = {
             val labelText = playlist.label?.let { stringResource(it.labelRes()) }
-            val count = stringResource(R.string.library_track_count, playlist.trackCount)
+            val count =
+                pluralStringResource(
+                    R.plurals.library_track_count,
+                    playlist.trackCount,
+                    playlist.trackCount,
+                )
             Text(if (labelText == null) count else "$labelText \u00b7 $count")
         },
         trailingContent = {
@@ -324,7 +330,13 @@ internal fun AddToPlaylistDialog(
                             Text(playlist.name, maxLines = 1, overflow = TextOverflow.Ellipsis)
                         },
                         supportingContent = {
-                            Text(stringResource(R.string.library_track_count, playlist.trackCount))
+                            Text(
+                                pluralStringResource(
+                                    R.plurals.library_track_count,
+                                    playlist.trackCount,
+                                    playlist.trackCount,
+                                ),
+                            )
                         },
                         modifier = Modifier.clickable { onPick(playlist.id) },
                     )

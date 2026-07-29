@@ -24,6 +24,7 @@ import com.dropsync.domain.library.M3uPlaylistParser
 import com.dropsync.domain.library.Playlist
 import com.dropsync.domain.library.PlaylistImportResult
 import com.dropsync.domain.library.ShuffleCandidate
+import com.dropsync.domain.library.SongPlayStat
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
@@ -55,6 +56,17 @@ class LibraryBrowseRepositoryImpl(
 
     override val folders: Flow<List<LibraryFolder>> =
         browseDao.observeFolders().map { rows -> rows.map { it.toDomain() } }
+
+    override val playStats: Flow<List<SongPlayStat>> =
+        playStatDao.observeAll().map { rows ->
+            rows.map {
+                SongPlayStat(
+                    songId = it.songId,
+                    playCount = it.playCount,
+                    lastPlayedAtEpochMs = it.lastPlayedAtEpochMs,
+                )
+            }
+        }
 
     override fun songsByAlbum(album: String): Flow<List<Song>> =
         browseDao.observeSongsByAlbum(album).map { it.map { row -> row.toDomain() } }

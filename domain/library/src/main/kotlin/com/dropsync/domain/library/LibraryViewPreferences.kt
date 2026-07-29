@@ -30,4 +30,27 @@ interface LibraryViewPreferencesRepository {
     val smartShuffleEnabled: Flow<Boolean>
 
     suspend fun setSmartShuffleEnabled(enabled: Boolean)
+
+    /**
+     * Listen-Optionen einer Bibliothekskategorie (Poweramp-Umbau):
+     * Sortierung, Richtung und Ansichtsmodus, gespeichert pro
+     * Kategorie-Schluessel; null = noch nie angepasst.
+     */
+    fun listConfig(categoryKey: String): Flow<LibraryListConfig?>
+
+    suspend fun setListConfig(
+        categoryKey: String,
+        config: LibraryListConfig,
+    )
 }
+
+/**
+ * Persistierte Listen-Optionen einer Kategorie (Poweramp "List Options").
+ * Sortier- und Ansichts-Schluessel sind bewusst neutrale Strings
+ * (Enum-Namen des Features), analog zu [LibraryViewConfig].
+ */
+data class LibraryListConfig(
+    val sortKey: String,
+    val descending: Boolean,
+    val viewModeKey: String,
+)

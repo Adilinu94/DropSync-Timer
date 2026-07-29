@@ -17,6 +17,7 @@ data class AlbumRow(
     @ColumnInfo(name = "album") val album: String,
     @ColumnInfo(name = "artist") val artist: String?,
     @ColumnInfo(name = "track_count") val trackCount: Int,
+    @ColumnInfo(name = "total_duration_ms") val totalDurationMs: Long = 0,
 )
 
 /** Aggregierte Kuenstlerzeile (Ansicht "Kuenstler"). */
@@ -24,18 +25,21 @@ data class ArtistRow(
     @ColumnInfo(name = "artist") val artist: String,
     @ColumnInfo(name = "track_count") val trackCount: Int,
     @ColumnInfo(name = "album_count") val albumCount: Int,
+    @ColumnInfo(name = "total_duration_ms") val totalDurationMs: Long = 0,
 )
 
 /** Aggregierte Genrezeile (Ansicht "Genres"). */
 data class GenreRow(
     @ColumnInfo(name = "genre") val genre: String,
     @ColumnInfo(name = "track_count") val trackCount: Int,
+    @ColumnInfo(name = "total_duration_ms") val totalDurationMs: Long = 0,
 )
 
 /** Aggregierte Ordnerzeile aus relative_path (Ordneransicht). */
 data class FolderRow(
     @ColumnInfo(name = "relative_path") val relativePath: String,
     @ColumnInfo(name = "track_count") val trackCount: Int,
+    @ColumnInfo(name = "total_duration_ms") val totalDurationMs: Long = 0,
 )
 
 /** Playlist samt Eintragszahl (Ansicht "Playlisten"). */
@@ -55,28 +59,31 @@ data class PlaylistRow(
 @Dao
 interface LibraryBrowseDao {
     @Query(
-        "SELECT album AS album, MAX(artist) AS artist, COUNT(*) AS track_count FROM songs " +
+        "SELECT album AS album, MAX(artist) AS artist, COUNT(*) AS track_count, " +
+            "SUM(duration_ms) AS total_duration_ms FROM songs " +
             "WHERE is_available = 1 AND album IS NOT NULL AND album != '' " +
             "GROUP BY album ORDER BY album COLLATE NOCASE",
     )
     fun observeAlbums(): Flow<List<AlbumRow>>
 
     @Query(
-        "SELECT artist AS artist, COUNT(*) AS track_count, COUNT(DISTINCT album) AS album_count " +
+        "SELECT artist AS artist, COUNT(*) AS track_count, COUNT(DISTINCT album) AS album_count, " +
+            "SUM(duration_ms) AS total_duration_ms " +
             "FROM songs WHERE is_available = 1 AND artist IS NOT NULL AND artist != '' " +
             "GROUP BY artist ORDER BY artist COLLATE NOCASE",
     )
     fun observeArtists(): Flow<List<ArtistRow>>
 
     @Query(
-        "SELECT genre AS genre, COUNT(*) AS track_count FROM songs " +
+        "SELECT genre AS genre, COUNT(*) AS track_count, SUM(duration_ms) AS total_duration_ms FROM songs " +
             "WHERE is_available = 1 AND genre IS NOT NULL AND genre != '' " +
             "GROUP BY genre ORDER BY genre COLLATE NOCASE",
     )
     fun observeGenres(): Flow<List<GenreRow>>
 
     @Query(
-        "SELECT relative_path AS relative_path, COUNT(*) AS track_count FROM songs " +
+        "SELECT relative_path AS relative_path, COUNT(*) AS track_count, " +
+            "SUM(duration_ms) AS total_duration_ms FROM songs " +
             "WHERE is_available = 1 GROUP BY relative_path ORDER BY relative_path COLLATE NOCASE",
     )
     fun observeFolders(): Flow<List<FolderRow>>
@@ -154,6 +161,10 @@ interface PlayStatDao {
 
     @Query("SELECT * FROM play_stats WHERE song_id = :songId")
     suspend fun getStat(songId: Long): PlayStatEntity?
+
+    /** Alle Statistiken; Grundlage der Sortierung nach Zaehler/zuletzt gespielt. */
+    @Query("SELECT * FROM play_stats")
+    fun observeAll(): Flow<List<PlayStatEntity>>
 }
 
 /** Favoriten (Plan Phase 6). */

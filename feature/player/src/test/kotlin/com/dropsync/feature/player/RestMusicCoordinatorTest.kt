@@ -280,6 +280,7 @@ private class CoordinatorBrowseRepository : LibraryBrowseRepository {
     override val artists: Flow<List<Artist>> = emptyFlow()
     override val genres: Flow<List<Genre>> = emptyFlow()
     override val folders: Flow<List<LibraryFolder>> = emptyFlow()
+    override val playStats: Flow<List<com.dropsync.domain.library.SongPlayStat>> = emptyFlow()
     override val favorites: Flow<List<Song>> = emptyFlow()
     override val playlists: Flow<List<Playlist>> = emptyFlow()
 

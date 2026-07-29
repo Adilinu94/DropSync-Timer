@@ -1,66 +1,76 @@
 package com.dropsync.feature.library
 
-import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.background
-import androidx.compose.foundation.horizontalScroll
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
+import android.app.Activity
+import android.content.Intent
+import android.net.Uri
+import android.os.Build
+import android.provider.MediaStore
+import androidx.activity.compose.BackHandler
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.IntentSenderRequest
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.pager.HorizontalPager
-import androidx.compose.foundation.pager.rememberPagerState
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.KeyboardArrowDown
-import androidx.compose.material.icons.outlined.KeyboardArrowUp
-import androidx.compose.material.icons.outlined.Shuffle
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.AssistChip
-import androidx.compose.material3.Checkbox
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.dropsync.core.designsystem.icon.BrandIcons
 import com.dropsync.core.model.Song
-import com.dropsync.domain.library.SongSort
+
+/** Ziel im internen Bibliotheks-Backstack (Poweramp-Umbau). */
+private sealed interface LibraryRoute {
+    data object Home : LibraryRoute
+
+    data class Category(
+        val category: LibraryCategory,
+    ) : LibraryRoute
+
+    data class Collection(
+        val kind: CollectionKind,
+        val key: String,
+        val label: String,
+        val artist: String?,
+    ) : LibraryRoute
+
+    data class FolderTree(
+        val path: String,
+    ) : LibraryRoute
+
+    data class PlaylistDetailRoute(
+        val id: Long,
+    ) : LibraryRoute
+}
+
+/** Art der aufgeklappten Sammlung; bildet auf die vorhandene Detailabfrage ab. */
+internal enum class CollectionKind { ALBUM, ARTIST, GENRE, FOLDER }
+
+private fun CollectionKind.toView(): LibraryView =
+    when (this) {
+        CollectionKind.ALBUM -> LibraryView.ALBUMS
+        CollectionKind.ARTIST -> LibraryView.ARTISTS
+        CollectionKind.GENRE -> LibraryView.GENRES
+        CollectionKind.FOLDER -> LibraryView.FOLDERS
+    }
 
 /**
- * Bibliotheksinhalt nach erteilter Berechtigung (Plan Phase 6):
- * Ansichtswahl (Titel/Kuenstler/Alben/Genres/Ordner/Favoriten/zuletzt/
- * meistgespielt), Volltextsuche, Sortierung und Hi-Res-Filter fuer die
- * Titelliste sowie Drill-down in Sammlungen.
+ * Bibliotheksinhalt im Poweramp-Aufbau (Umbau): Startseite mit Kategorien,
+ * Drill-down in Kategorie-Screens und Sammlungs-Details ueber einen internen
+ * Backstack. Der globale Mini-Player der App-Shell bleibt darunter sichtbar.
  */
 @Composable
 internal fun LibraryContent(
@@ -69,12 +79,59 @@ internal fun LibraryContent(
     scanFailed: Boolean,
     modifier: Modifier = Modifier,
 ) {
-    val selectedView by viewModel.selectedView.collectAsStateWithLifecycle()
-    val detail by viewModel.detail.collectAsStateWithLifecycle()
-    val openPlaylist by viewModel.openPlaylist.collectAsStateWithLifecycle()
-    val searchQuery by viewModel.searchQuery.collectAsStateWithLifecycle()
-    val favoriteIds by viewModel.favoriteIds.collectAsStateWithLifecycle()
+    val stack = remember { mutableStateListOf<LibraryRoute>(LibraryRoute.Home) }
+    val current = stack.last()
+    val selectionActive by viewModel.selectionActive.collectAsStateWithLifecycle()
+    val context = LocalContext.current
+
     var songForPlaylist by remember { mutableStateOf<Song?>(null) }
+    var pendingDelete by remember { mutableStateOf<List<Song>>(emptyList()) }
+    val deleteLauncher =
+        rememberLauncherForActivityResult(ActivityResultContracts.StartIntentSenderForResult()) { result ->
+            if (result.resultCode == Activity.RESULT_OK) {
+                viewModel.clearSelection()
+                viewModel.refresh(force = true)
+            }
+            pendingDelete = emptyList()
+        }
+
+    fun push(route: LibraryRoute) {
+        viewModel.clearSelection()
+        stack.add(route)
+    }
+
+    fun pop() {
+        if (stack.size > 1) stack.removeAt(stack.lastIndex)
+    }
+
+    fun requestDelete(songs: List<Song>) {
+        if (songs.isEmpty()) return
+        val uris = songs.map { Uri.parse(it.contentUri) }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            pendingDelete = songs
+            val pending = MediaStore.createDeleteRequest(context.contentResolver, uris)
+            deleteLauncher.launch(IntentSenderRequest.Builder(pending.intentSender).build())
+        }
+    }
+
+    fun share(songs: List<Song>) {
+        if (songs.isEmpty()) return
+        val uris = ArrayList(songs.map { Uri.parse(it.contentUri) })
+        val intent =
+            Intent(Intent.ACTION_SEND_MULTIPLE).apply {
+                type = "audio/*"
+                putParcelableArrayListExtra(Intent.EXTRA_STREAM, uris)
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            }
+        context.startActivity(Intent.createChooser(intent, null))
+    }
+
+    BackHandler(enabled = selectionActive || stack.size > 1) {
+        when {
+            selectionActive -> viewModel.clearSelection()
+            else -> pop()
+        }
+    }
 
     Column(modifier = modifier.fillMaxSize()) {
         if (scanFailed) {
@@ -86,71 +143,64 @@ internal fun LibraryContent(
                 )
             }
         }
-
-        SearchField(
-            query = searchQuery,
-            onQueryChange = viewModel::setSearchQuery,
-        )
-
-        when {
-            searchQuery.isNotBlank() -> {
-                val results by viewModel.searchResults.collectAsStateWithLifecycle()
-                SongColumn(
-                    songs = results,
-                    favoriteIds = favoriteIds,
-                    contentPadding = contentPadding,
-                    onPlay = { index -> viewModel.play(results, index) },
-                    onToggleFavorite = viewModel::toggleFavorite,
-                    onPlayNext = viewModel::playNext,
-                    onAddToQueue = viewModel::addToQueue,
-                    onDetectDrops = viewModel::detectDrops,
-                    onAddToPlaylist = { songForPlaylist = it },
-                    showFastScroller = false,
-                )
+        when (val route = current) {
+            LibraryRoute.Home -> {
+                HomeRoute(viewModel, contentPadding, onOpen = { push(LibraryRoute.Category(it)) })
             }
 
-            openPlaylist != null -> {
-                val pl = openPlaylist!!
-                val playlistSongs by viewModel.playlistSongs.collectAsStateWithLifecycle()
-                PlaylistDetail(
-                    playlist = pl,
-                    songs = playlistSongs,
-                    contentPadding = contentPadding,
-                    onBack = viewModel::closePlaylist,
-                    onPlay = { index -> viewModel.play(playlistSongs, index) },
-                    onRemove = { position -> viewModel.removeFromPlaylist(pl.id, position) },
-                    onMove = { from, to -> viewModel.moveInPlaylist(pl.id, from, to) },
-                    onSetLabel = { label -> viewModel.setPlaylistLabel(pl.id, label) },
-                )
-            }
-
-            detail != null -> {
-                val bucket = detail!!
-                val detailSongs by viewModel.detailSongs.collectAsStateWithLifecycle()
-                DetailHeader(title = bucket.label, onBack = viewModel::closeDetail)
-                SongColumn(
-                    songs = detailSongs,
-                    favoriteIds = favoriteIds,
-                    contentPadding = contentPadding,
-                    onPlay = { index -> viewModel.play(detailSongs, index) },
-                    onToggleFavorite = viewModel::toggleFavorite,
-                    onPlayNext = viewModel::playNext,
-                    onAddToQueue = viewModel::addToQueue,
-                    onDetectDrops = viewModel::detectDrops,
-                    onAddToPlaylist = { songForPlaylist = it },
-                    showFastScroller = false,
-                )
-            }
-
-            else -> {
-                val visibleViews by viewModel.visibleViews.collectAsStateWithLifecycle()
-                LibraryViewsPager(
+            is LibraryRoute.Category -> {
+                CategoryRoute(
                     viewModel = viewModel,
-                    visibleViews = visibleViews,
-                    selectedView = selectedView,
-                    favoriteIds = favoriteIds,
+                    category = route.category,
                     contentPadding = contentPadding,
+                    onBack = ::pop,
+                    onOpenCollection = { push(it) },
+                    onOpenFolderTree = { push(LibraryRoute.FolderTree(it)) },
+                    onOpenPlaylist = { push(LibraryRoute.PlaylistDetailRoute(it)) },
                     onAddToPlaylist = { songForPlaylist = it },
+                    onShare = ::share,
+                    onDelete = ::requestDelete,
+                )
+            }
+
+            is LibraryRoute.Collection -> {
+                CollectionRoute(
+                    viewModel = viewModel,
+                    route = route,
+                    contentPadding = contentPadding,
+                    onBack = ::pop,
+                    onAddToPlaylist = { songForPlaylist = it },
+                    onShare = ::share,
+                    onDelete = ::requestDelete,
+                )
+            }
+
+            is LibraryRoute.FolderTree -> {
+                FolderTreeRoute(
+                    viewModel = viewModel,
+                    path = route.path,
+                    contentPadding = contentPadding,
+                    onBack = ::pop,
+                    onOpenFolder = { push(LibraryRoute.FolderTree(it.path)) },
+                    onOpenLeaf = { node ->
+                        push(
+                            LibraryRoute.Collection(
+                                kind = CollectionKind.FOLDER,
+                                key = node.path,
+                                label = node.name,
+                                artist = null,
+                            ),
+                        )
+                    },
+                )
+            }
+
+            is LibraryRoute.PlaylistDetailRoute -> {
+                PlaylistDetailRoute(
+                    viewModel = viewModel,
+                    playlistId = route.id,
+                    contentPadding = contentPadding,
+                    onBack = ::pop,
                 )
             }
         }
@@ -175,506 +225,290 @@ internal fun LibraryContent(
 }
 
 @Composable
-private fun SearchField(
-    query: String,
-    onQueryChange: (String) -> Unit,
-) {
-    OutlinedTextField(
-        value = query,
-        onValueChange = onQueryChange,
-        singleLine = true,
-        leadingIcon = { Icon(painterResource(BrandIcons.Search), contentDescription = null) },
-        trailingIcon = {
-            if (query.isNotEmpty()) {
-                IconButton(onClick = { onQueryChange("") }) {
-                    Icon(
-                        painterResource(BrandIcons.Close),
-                        contentDescription = stringResource(R.string.library_search_clear),
-                    )
-                }
-            }
-        },
-        placeholder = { Text(stringResource(R.string.library_search_hint)) },
-        modifier =
-            Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 12.dp, vertical = 4.dp),
-    )
-}
-
-@OptIn(ExperimentalFoundationApi::class)
-@Composable
-private fun LibraryViewsPager(
+private fun HomeRoute(
     viewModel: LibraryViewModel,
-    visibleViews: List<LibraryView>,
-    selectedView: LibraryView,
-    favoriteIds: Set<Long>,
     contentPadding: PaddingValues,
-    onAddToPlaylist: (Song) -> Unit,
+    onOpen: (LibraryCategory) -> Unit,
 ) {
-    if (visibleViews.isEmpty()) return
-    var showConfig by remember { mutableStateOf(false) }
-    val startIndex = visibleViews.indexOf(selectedView).coerceAtLeast(0)
-    val pagerState = rememberPagerState(initialPage = startIndex) { visibleViews.size }
-
-    // Chip-Tipp -> Seite animieren; Wischen -> ausgewaehlte Ansicht nachfuehren.
-    LaunchedEffect(selectedView, visibleViews) {
-        val target = visibleViews.indexOf(selectedView)
-        if (target >= 0 && target != pagerState.currentPage) {
-            pagerState.animateScrollToPage(target)
-        }
-    }
-    LaunchedEffect(pagerState.currentPage, visibleViews) {
-        visibleViews.getOrNull(pagerState.currentPage)?.let { view ->
-            if (view != selectedView) viewModel.selectView(view)
-        }
-    }
-
-    ViewChips(
-        views = visibleViews,
-        selected = selectedView,
-        onSelect = viewModel::selectView,
-        onOpenConfig = { showConfig = true },
+    val queue by viewModel.queue.collectAsStateWithLifecycle()
+    LibraryHomeScreen(
+        categories = LibraryCategory.entries,
+        queueCount = queue.size,
+        contentPadding = contentPadding,
+        onOpen = onOpen,
+        onRescan = { viewModel.refresh(force = true) },
     )
-    HorizontalPager(state = pagerState, modifier = Modifier.fillMaxSize()) { page ->
-        LibraryViewBody(
-            viewModel = viewModel,
-            view = visibleViews[page],
-            favoriteIds = favoriteIds,
-            contentPadding = contentPadding,
-            onAddToPlaylist = onAddToPlaylist,
-        )
-    }
-
-    if (showConfig) {
-        ViewConfigDialog(viewModel = viewModel, onDismiss = { showConfig = false })
-    }
 }
 
 @Composable
-private fun ViewChips(
-    views: List<LibraryView>,
-    selected: LibraryView,
-    onSelect: (LibraryView) -> Unit,
-    onOpenConfig: () -> Unit,
-) {
-    Row(
-        modifier =
-            Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 12.dp, vertical = 4.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        Row(
-            modifier =
-                Modifier
-                    .weight(1f)
-                    .horizontalScroll(rememberScrollState()),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            views.forEach { view ->
-                FilterChip(
-                    selected = view == selected,
-                    onClick = { onSelect(view) },
-                    label = { Text(stringResource(view.labelRes())) },
-                    leadingIcon = {
-                        Box(
-                            modifier =
-                                Modifier
-                                    .size(10.dp)
-                                    .clip(CircleShape)
-                                    .background(viewColor(view)),
-                        )
-                    },
-                )
-            }
-        }
-        IconButton(onClick = onOpenConfig) {
-            Icon(
-                painterResource(BrandIcons.Filter),
-                contentDescription = stringResource(R.string.library_views_configure),
-            )
-        }
-    }
-}
-
-@Composable
-private fun ViewConfigDialog(
+private fun CategoryRoute(
     viewModel: LibraryViewModel,
-    onDismiss: () -> Unit,
-) {
-    val ordered by viewModel.orderedViews.collectAsStateWithLifecycle()
-    val hidden by viewModel.hiddenViews.collectAsStateWithLifecycle()
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.library_views_configure)) },
-        text = {
-            Column(
-                modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .heightIn(max = 420.dp)
-                        .verticalScroll(rememberScrollState()),
-            ) {
-                ordered.forEachIndexed { index, view ->
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Checkbox(
-                            checked = view !in hidden,
-                            onCheckedChange = { viewModel.toggleViewHidden(view) },
-                        )
-                        Text(
-                            text = stringResource(view.labelRes()),
-                            style = MaterialTheme.typography.bodyLarge,
-                            modifier = Modifier.weight(1f),
-                        )
-                        IconButton(
-                            onClick = { viewModel.moveView(view, up = true) },
-                            enabled = index > 0,
-                        ) {
-                            Icon(
-                                Icons.Outlined.KeyboardArrowUp,
-                                contentDescription = stringResource(R.string.library_views_move_up),
-                            )
-                        }
-                        IconButton(
-                            onClick = { viewModel.moveView(view, up = false) },
-                            enabled = index < ordered.lastIndex,
-                        ) {
-                            Icon(
-                                Icons.Outlined.KeyboardArrowDown,
-                                contentDescription = stringResource(R.string.library_views_move_down),
-                            )
-                        }
-                    }
-                }
-            }
-        },
-        confirmButton = {
-            TextButton(onClick = onDismiss) {
-                Text(stringResource(R.string.library_views_done))
-            }
-        },
-    )
-}
-
-@Composable
-private fun DetailHeader(
-    title: String,
+    category: LibraryCategory,
+    contentPadding: PaddingValues,
     onBack: () -> Unit,
-) {
-    Row(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 4.dp),
-        verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
-    ) {
-        IconButton(onClick = onBack) {
-            Icon(
-                painterResource(BrandIcons.Back),
-                contentDescription = stringResource(R.string.library_back),
-            )
-        }
-        Text(
-            text = title,
-            style = MaterialTheme.typography.titleMedium,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-        )
-    }
-}
-
-/**
- * Zufallswiedergabe der aktuellen Titelliste (Musik-Workout-Plan A5).
- * Ist das intelligente Shuffle in den Einstellungen aktiv, gewichtet
- * [LibraryViewModel.shufflePlay] ueber play_stats/Favoriten.
- */
-@Composable
-private fun ShuffleBar(
-    enabled: Boolean,
-    onShuffle: () -> Unit,
-) {
-    Row(
-        modifier =
-            Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp),
-    ) {
-        TextButton(
-            onClick = onShuffle,
-            enabled = enabled,
-            modifier = Modifier.heightIn(min = 48.dp),
-        ) {
-            Icon(
-                Icons.Outlined.Shuffle,
-                contentDescription = null,
-                modifier = Modifier.size(18.dp),
-            )
-            Spacer(Modifier.width(8.dp))
-            Text(stringResource(R.string.library_shuffle))
-        }
-    }
-}
-
-@Composable
-private fun LibraryViewBody(
-    viewModel: LibraryViewModel,
-    view: LibraryView,
-    favoriteIds: Set<Long>,
-    contentPadding: PaddingValues,
+    onOpenCollection: (LibraryRoute.Collection) -> Unit,
+    onOpenFolderTree: (String) -> Unit,
+    onOpenPlaylist: (Long) -> Unit,
     onAddToPlaylist: (Song) -> Unit,
+    onShare: (List<Song>) -> Unit,
+    onDelete: (List<Song>) -> Unit,
 ) {
-    when (view) {
-        LibraryView.SONGS -> {
-            val songs by viewModel.songs.collectAsStateWithLifecycle()
-            Column(modifier = Modifier.fillMaxSize()) {
-                SortFilterBar(viewModel)
-                ShuffleBar(enabled = songs.isNotEmpty(), onShuffle = { viewModel.shufflePlay(songs) })
-                SongColumn(
-                    songs = songs,
-                    favoriteIds = favoriteIds,
-                    contentPadding = contentPadding,
-                    onPlay = { index -> viewModel.play(songs, index) },
-                    onToggleFavorite = viewModel::toggleFavorite,
-                    onPlayNext = viewModel::playNext,
-                    onAddToQueue = viewModel::addToQueue,
-                    onDetectDrops = viewModel::detectDrops,
-                    onAddToPlaylist = onAddToPlaylist,
-                )
-            }
-        }
-
-        LibraryView.ARTISTS -> {
-            val artists by viewModel.artists.collectAsStateWithLifecycle()
-            BucketColumn(
-                labels =
-                    artists.map {
-                        BucketItem(it.name, it.name, null, it.trackCount)
-                    },
+    when (category) {
+        LibraryCategory.ALL_SONGS, LibraryCategory.FAVORITES, LibraryCategory.RECENTLY_ADDED,
+        LibraryCategory.RECENTLY_PLAYED, LibraryCategory.MOST_PLAYED,
+        -> {
+            val raw by songSourceFor(viewModel, category).collectAsStateWithLifecycle()
+            SongCategoryScreen(
+                viewModel = viewModel,
+                category = category,
+                rawSongs = raw,
                 contentPadding = contentPadding,
-                onOpen = { viewModel.openBucket(LibraryView.ARTISTS, it.key, it.title) },
-                iconRes = BrandIcons.Artists,
-            )
-        }
-
-        LibraryView.ALBUMS -> {
-            val albums by viewModel.albums.collectAsStateWithLifecycle()
-            BucketColumn(
-                labels = albums.map { BucketItem(it.title, it.title, it.artist, it.trackCount) },
-                contentPadding = contentPadding,
-                onOpen = { viewModel.openBucket(LibraryView.ALBUMS, it.key, it.title) },
-                iconRes = BrandIcons.Albums,
-            )
-        }
-
-        LibraryView.GENRES -> {
-            val genres by viewModel.genres.collectAsStateWithLifecycle()
-            BucketColumn(
-                labels = genres.map { BucketItem(it.name, it.name, null, it.trackCount) },
-                contentPadding = contentPadding,
-                onOpen = { viewModel.openBucket(LibraryView.GENRES, it.key, it.title) },
-                iconRes = BrandIcons.Genres,
-            )
-        }
-
-        LibraryView.FOLDERS -> {
-            val folders by viewModel.folders.collectAsStateWithLifecycle()
-            BucketColumn(
-                labels =
-                    folders.map {
-                        BucketItem(it.relativePath, it.relativePath, null, it.trackCount)
-                    },
-                contentPadding = contentPadding,
-                onOpen = { viewModel.openBucket(LibraryView.FOLDERS, it.key, it.title) },
-                iconRes = BrandIcons.Folder,
-            )
-        }
-
-        LibraryView.FAVORITES -> {
-            val favorites by viewModel.favorites.collectAsStateWithLifecycle()
-            SongColumn(
-                songs = favorites,
-                favoriteIds = favoriteIds,
-                contentPadding = contentPadding,
-                onPlay = { index -> viewModel.play(favorites, index) },
-                onToggleFavorite = viewModel::toggleFavorite,
-                onPlayNext = viewModel::playNext,
-                onAddToQueue = viewModel::addToQueue,
-                onDetectDrops = viewModel::detectDrops,
+                onBack = onBack,
                 onAddToPlaylist = onAddToPlaylist,
+                onRequestShare = onShare,
+                onRequestDelete = onDelete,
             )
         }
 
-        LibraryView.RECENTLY_ADDED -> {
-            val recent by viewModel.recentlyAdded.collectAsStateWithLifecycle()
-            SongColumn(
-                songs = recent,
-                favoriteIds = favoriteIds,
+        LibraryCategory.ALBUMS, LibraryCategory.ARTISTS, LibraryCategory.GENRES, LibraryCategory.FOLDERS -> {
+            BucketRoute(viewModel, category, contentPadding, onBack, onOpenCollection)
+        }
+
+        LibraryCategory.FOLDERS_HIERARCHY -> {
+            FolderTreeRoute(
+                viewModel = viewModel,
+                path = "",
                 contentPadding = contentPadding,
-                onPlay = { index -> viewModel.play(recent, index) },
-                onToggleFavorite = viewModel::toggleFavorite,
-                onPlayNext = viewModel::playNext,
-                onAddToQueue = viewModel::addToQueue,
-                onDetectDrops = viewModel::detectDrops,
-                onAddToPlaylist = onAddToPlaylist,
-                showFastScroller = false,
-            )
-        }
-
-        LibraryView.MOST_PLAYED -> {
-            val most by viewModel.mostPlayed.collectAsStateWithLifecycle()
-            SongColumn(
-                songs = most,
-                favoriteIds = favoriteIds,
-                contentPadding = contentPadding,
-                onPlay = { index -> viewModel.play(most, index) },
-                onToggleFavorite = viewModel::toggleFavorite,
-                onPlayNext = viewModel::playNext,
-                onAddToQueue = viewModel::addToQueue,
-                onDetectDrops = viewModel::detectDrops,
-                onAddToPlaylist = onAddToPlaylist,
-                showFastScroller = false,
-            )
-        }
-
-        LibraryView.PLAYLISTS -> {
-            val playlists by viewModel.playlists.collectAsStateWithLifecycle()
-            PlaylistList(
-                playlists = playlists,
-                contentPadding = contentPadding,
-                onOpen = viewModel::openPlaylist,
-                onCreate = viewModel::createPlaylist,
-                onRename = viewModel::renamePlaylist,
-                onDelete = viewModel::deletePlaylist,
-            )
-        }
-    }
-}
-
-@Composable
-private fun SortFilterBar(viewModel: LibraryViewModel) {
-    val sort by viewModel.sort.collectAsStateWithLifecycle()
-    val hiResOnly by viewModel.hiResOnly.collectAsStateWithLifecycle()
-    val formatFilter by viewModel.formatFilter.collectAsStateWithLifecycle()
-    val durationFilter by viewModel.durationFilter.collectAsStateWithLifecycle()
-    val availableFormats by viewModel.availableFormats.collectAsStateWithLifecycle()
-    var menuOpen by remember { mutableStateOf(false) }
-    var formatMenuOpen by remember { mutableStateOf(false) }
-    var durationMenuOpen by remember { mutableStateOf(false) }
-    Row(
-        modifier =
-            Modifier
-                .fillMaxWidth()
-                .horizontalScroll(rememberScrollState())
-                .padding(horizontal = 12.dp),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        AssistChip(
-            onClick = { menuOpen = true },
-            label = { Text(stringResource(sort.labelRes())) },
-        )
-        DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
-            SongSort.entries.forEach { option ->
-                DropdownMenuItem(
-                    text = { Text(stringResource(option.labelRes())) },
-                    onClick = {
-                        viewModel.setSort(option)
-                        menuOpen = false
-                    },
-                )
-            }
-        }
-        FilterChip(
-            selected = hiResOnly,
-            onClick = { viewModel.toggleHiResOnly() },
-            label = { Text(stringResource(R.string.library_filter_hires)) },
-        )
-        // Filter nach Format (Plan Phase 6.2); nur tatsaechlich vorhandene Formate.
-        FilterChip(
-            selected = formatFilter != null,
-            onClick = { formatMenuOpen = true },
-            label = {
-                Text(formatFilter?.displayName ?: stringResource(R.string.library_filter_format))
-            },
-        )
-        DropdownMenu(expanded = formatMenuOpen, onDismissRequest = { formatMenuOpen = false }) {
-            DropdownMenuItem(
-                text = { Text(stringResource(R.string.library_filter_format_all)) },
-                onClick = {
-                    viewModel.setFormatFilter(null)
-                    formatMenuOpen = false
+                onBack = onBack,
+                onOpenFolder = { onOpenFolderTree(it.path) },
+                onOpenLeaf = { node ->
+                    onOpenCollection(
+                        LibraryRoute.Collection(
+                            kind = CollectionKind.FOLDER,
+                            key = node.path,
+                            label = node.name,
+                            artist = null,
+                        ),
+                    )
                 },
             )
-            availableFormats.forEach { format ->
-                DropdownMenuItem(
-                    text = { Text(format.displayName) },
-                    onClick = {
-                        viewModel.setFormatFilter(format)
-                        formatMenuOpen = false
-                    },
-                )
-            }
         }
-        // Filter nach Dauer (Plan Phase 6.2).
-        FilterChip(
-            selected = durationFilter != DurationFilter.ALL,
-            onClick = { durationMenuOpen = true },
-            label = { Text(stringResource(durationFilter.labelRes())) },
-        )
-        DropdownMenu(expanded = durationMenuOpen, onDismissRequest = { durationMenuOpen = false }) {
-            DurationFilter.entries.forEach { option ->
-                DropdownMenuItem(
-                    text = { Text(stringResource(option.labelRes())) },
-                    onClick = {
-                        viewModel.setDurationFilter(option)
-                        durationMenuOpen = false
-                    },
+
+        LibraryCategory.QUEUE -> {
+            val queue by viewModel.queue.collectAsStateWithLifecycle()
+            val index by viewModel.queueIndex.collectAsStateWithLifecycle()
+            QueueCategoryScreen(
+                queue = queue,
+                currentIndex = index,
+                contentPadding = contentPadding,
+                onBack = onBack,
+                onPlayIndex = viewModel::playQueueIndex,
+            )
+        }
+
+        LibraryCategory.PLAYLISTS -> {
+            val playlists by viewModel.playlists.collectAsStateWithLifecycle()
+            Column(modifier = Modifier.fillMaxSize()) {
+                CategoryHeader(
+                    iconRes = categoryIcon(category),
+                    title = stringResource(category.titleRes()),
+                    subtitle = null,
+                    onBack = onBack,
+                )
+                PlaylistList(
+                    playlists = playlists,
+                    contentPadding = contentPadding,
+                    onOpen = onOpenPlaylist,
+                    onCreate = viewModel::createPlaylist,
+                    onRename = viewModel::renamePlaylist,
+                    onDelete = viewModel::deletePlaylist,
                 )
             }
         }
     }
 }
 
-private fun viewColor(view: LibraryView): Color =
-    when (view) {
-        LibraryView.SONGS -> Color(0xFFDFFF2F)
-        LibraryView.ARTISTS -> Color(0xFF9BAA5A)
-        LibraryView.ALBUMS -> Color(0xFF4F7BEA)
-        LibraryView.GENRES -> Color(0xFF9B6BEA)
-        LibraryView.FOLDERS -> Color(0xFF3FBF6B)
-        LibraryView.FAVORITES -> Color(0xFFEA5A9B)
-        LibraryView.RECENTLY_ADDED -> Color(0xFFEA8A3F)
-        LibraryView.MOST_PLAYED -> Color(0xFFEACB3F)
-        LibraryView.PLAYLISTS -> Color(0xFF3FB5BF)
-    }
+/** Rohe Titelquelle je Song-Kategorie. */
+@Composable
+private fun songSourceFor(
+    viewModel: LibraryViewModel,
+    category: LibraryCategory,
+) = when (category) {
+    LibraryCategory.FAVORITES -> viewModel.favorites
+    LibraryCategory.RECENTLY_ADDED -> viewModel.recentlyAdded
+    LibraryCategory.RECENTLY_PLAYED -> viewModel.recentlyPlayed
+    LibraryCategory.MOST_PLAYED -> viewModel.mostPlayed
+    else -> viewModel.allSongs
+}
 
-private fun LibraryView.labelRes(): Int =
-    when (this) {
-        LibraryView.SONGS -> R.string.library_view_songs
-        LibraryView.ARTISTS -> R.string.library_view_artists
-        LibraryView.ALBUMS -> R.string.library_view_albums
-        LibraryView.GENRES -> R.string.library_view_genres
-        LibraryView.FOLDERS -> R.string.library_view_folders
-        LibraryView.FAVORITES -> R.string.library_view_favorites
-        LibraryView.RECENTLY_ADDED -> R.string.library_view_recently_added
-        LibraryView.MOST_PLAYED -> R.string.library_view_most_played
-        LibraryView.PLAYLISTS -> R.string.library_view_playlists
-    }
+@Composable
+private fun BucketRoute(
+    viewModel: LibraryViewModel,
+    category: LibraryCategory,
+    contentPadding: PaddingValues,
+    onBack: () -> Unit,
+    onOpenCollection: (LibraryRoute.Collection) -> Unit,
+) {
+    val allSongs by viewModel.allSongs.collectAsStateWithLifecycle()
+    val items: List<BucketItem>
+    val kind: CollectionKind
+    val iconRes: Int
+    when (category) {
+        LibraryCategory.ALBUMS -> {
+            val albums by viewModel.albums.collectAsStateWithLifecycle()
+            val art = remember(allSongs) { allSongs.groupCoverBy { it.album } }
+            items = albums.map { BucketItem(it.title, it.title, it.artist, it.trackCount, art[it.title]) }
+            kind = CollectionKind.ALBUM
+            iconRes = BrandIcons.Albums
+        }
 
-private fun SongSort.labelRes(): Int =
-    when (this) {
-        SongSort.TITLE -> R.string.library_sort_title
-        SongSort.ARTIST -> R.string.library_sort_artist
-        SongSort.ALBUM -> R.string.library_sort_album
-        SongSort.DURATION -> R.string.library_sort_duration
-        SongSort.DATE_ADDED -> R.string.library_sort_date_added
-    }
+        LibraryCategory.ARTISTS -> {
+            val artists by viewModel.artists.collectAsStateWithLifecycle()
+            val art = remember(allSongs) { allSongs.groupCoverBy { it.artist } }
+            items = artists.map { BucketItem(it.name, it.name, null, it.trackCount, art[it.name]) }
+            kind = CollectionKind.ARTIST
+            iconRes = BrandIcons.Artists
+        }
 
-private fun DurationFilter.labelRes(): Int =
-    when (this) {
-        DurationFilter.ALL -> R.string.library_filter_duration_all
-        DurationFilter.UNDER_4_MIN -> R.string.library_filter_duration_short
-        DurationFilter.FROM_4_TO_10_MIN -> R.string.library_filter_duration_medium
-        DurationFilter.OVER_10_MIN -> R.string.library_filter_duration_long
+        LibraryCategory.GENRES -> {
+            val genres by viewModel.genres.collectAsStateWithLifecycle()
+            val art = remember(allSongs) { allSongs.groupCoverBy { it.genre } }
+            items = genres.map { BucketItem(it.name, it.name, null, it.trackCount, art[it.name]) }
+            kind = CollectionKind.GENRE
+            iconRes = BrandIcons.Genres
+        }
+
+        else -> {
+            val folders by viewModel.folders.collectAsStateWithLifecycle()
+            val art = remember(allSongs) { allSongs.groupCoverBy { it.relativePath } }
+            items =
+                folders.map {
+                    val name =
+                        it.relativePath
+                            .trim('/')
+                            .substringAfterLast('/')
+                            .ifEmpty { it.relativePath }
+                    val parent = it.relativePath.trim('/').substringBeforeLast('/', "")
+                    BucketItem(it.relativePath, name, parent.ifEmpty { null }, it.trackCount, art[it.relativePath])
+                }
+            kind = CollectionKind.FOLDER
+            iconRes = BrandIcons.Folder
+        }
+    }
+    BucketCategoryScreen(
+        viewModel = viewModel,
+        category = category,
+        items = items,
+        contentPadding = contentPadding,
+        iconRes = iconRes,
+        onBack = onBack,
+        onOpen = { item ->
+            onOpenCollection(
+                LibraryRoute.Collection(kind, item.key, item.title, item.subtitle),
+            )
+        },
+    )
+}
+
+@Composable
+private fun CollectionRoute(
+    viewModel: LibraryViewModel,
+    route: LibraryRoute.Collection,
+    contentPadding: PaddingValues,
+    onBack: () -> Unit,
+    onAddToPlaylist: (Song) -> Unit,
+    onShare: (List<Song>) -> Unit,
+    onDelete: (List<Song>) -> Unit,
+) {
+    LaunchedEffect(route.kind, route.key) {
+        viewModel.openBucket(route.kind.toView(), route.key, route.label)
+    }
+    val songs by viewModel.detailSongs.collectAsStateWithLifecycle()
+    val configCategory =
+        when (route.kind) {
+            CollectionKind.ALBUM -> LibraryCategory.ALBUMS
+            CollectionKind.ARTIST -> LibraryCategory.ARTISTS
+            CollectionKind.GENRE -> LibraryCategory.GENRES
+            CollectionKind.FOLDER -> LibraryCategory.FOLDERS
+        }
+    CollectionSongScreen(
+        viewModel = viewModel,
+        configCategory = configCategory,
+        headerIcon = collectionIcon(route.kind),
+        title = route.label,
+        subtitleArtist = route.artist,
+        songs = songs,
+        hero = route.kind == CollectionKind.ALBUM,
+        contentPadding = contentPadding,
+        onBack = onBack,
+        onAddToPlaylist = onAddToPlaylist,
+        onRequestShare = onShare,
+        onRequestDelete = onDelete,
+    )
+}
+
+@Composable
+private fun FolderTreeRoute(
+    viewModel: LibraryViewModel,
+    path: String,
+    contentPadding: PaddingValues,
+    onBack: () -> Unit,
+    onOpenFolder: (FolderNode) -> Unit,
+    onOpenLeaf: (FolderNode) -> Unit,
+) {
+    val folders by viewModel.folders.collectAsStateWithLifecycle()
+    FolderTreeScreen(
+        path = path,
+        folders = folders,
+        contentPadding = contentPadding,
+        onBack = onBack,
+        onOpenFolder = onOpenFolder,
+        onOpenLeaf = onOpenLeaf,
+    )
+}
+
+@Composable
+private fun PlaylistDetailRoute(
+    viewModel: LibraryViewModel,
+    playlistId: Long,
+    contentPadding: PaddingValues,
+    onBack: () -> Unit,
+) {
+    LaunchedEffect(playlistId) { viewModel.openPlaylist(playlistId) }
+    val playlist by viewModel.openPlaylist.collectAsStateWithLifecycle()
+    val songs by viewModel.playlistSongs.collectAsStateWithLifecycle()
+    val pl = playlist
+    if (pl != null) {
+        PlaylistDetail(
+            playlist = pl,
+            songs = songs,
+            contentPadding = contentPadding,
+            onBack = {
+                viewModel.closePlaylist()
+                onBack()
+            },
+            onPlay = { index -> viewModel.play(songs, index) },
+            onRemove = { position -> viewModel.removeFromPlaylist(pl.id, position) },
+            onMove = { from, to -> viewModel.moveInPlaylist(pl.id, from, to) },
+            onSetLabel = { label -> viewModel.setPlaylistLabel(pl.id, label) },
+        )
+    }
+}
+
+/** Erstes Cover je Gruppierungsschluessel (Album/Interpret/Genre/Ordner). */
+private inline fun List<Song>.groupCoverBy(key: (Song) -> String?): Map<String, String> {
+    val map = HashMap<String, String>()
+    for (song in this) {
+        val k = key(song) ?: continue
+        if (k.isNotEmpty() && k !in map) map[k] = song.contentUri
+    }
+    return map
+}
+
+private fun collectionIcon(kind: CollectionKind): Int =
+    when (kind) {
+        CollectionKind.ALBUM -> BrandIcons.Albums
+        CollectionKind.ARTIST -> BrandIcons.Artists
+        CollectionKind.GENRE -> BrandIcons.Genres
+        CollectionKind.FOLDER -> BrandIcons.Folder
     }

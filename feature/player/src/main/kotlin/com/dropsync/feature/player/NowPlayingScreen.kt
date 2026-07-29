@@ -53,6 +53,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.dropsync.core.designsystem.chart.Waveform
 import com.dropsync.core.designsystem.chart.WaveformPlaceholder
+import com.dropsync.core.designsystem.component.CoverImage
 import com.dropsync.core.designsystem.icon.BrandIcons
 import com.dropsync.core.model.SongMarker
 import kotlinx.coroutines.Dispatchers
@@ -433,65 +434,33 @@ private fun TransportControls(
 }
 
 /**
- * Cover aus dem eingebetteten Bild der Datei, off dem Main-Thread.
- * MediaMetadataRetriever statt loadThumbnail(), weil minSdk 26 unter
- * API 29 liegt; keine neue Abhaengigkeit (Plan-Architekturentscheidung).
+ * Cover aus dem eingebetteten Bild der Datei ueber den gemeinsamen
+ * CoverArtLoader (LRU-Cache in :core:designsystem); grosse Aufloesung,
+ * weil das Cover hier fast bildschirmbreit gezeigt wird.
  */
 @Composable
 private fun CoverArt(contentUri: String?) {
-    val context = LocalContext.current
-    val cover by produceState<ImageBitmap?>(initialValue = null, contentUri) {
-        value =
-            if (contentUri == null) {
-                null
-            } else {
-                withContext(Dispatchers.IO) { loadEmbeddedCover(context, contentUri) }
-            }
-    }
-
-    Box(
+    CoverImage(
+        contentUri = contentUri,
+        contentDescription = stringResource(R.string.now_playing_cover),
+        maxDimPx = NOW_PLAYING_COVER_DIM_PX,
         modifier =
             Modifier
                 .fillMaxWidth(0.8f)
                 .aspectRatio(1f)
                 .clip(CircleShape)
                 .background(MaterialTheme.colorScheme.surfaceContainerHigh),
-        contentAlignment = Alignment.Center,
     ) {
-        val bitmap = cover
-        if (bitmap != null) {
-            Image(
-                bitmap = bitmap,
-                contentDescription = stringResource(R.string.now_playing_cover),
-                contentScale = ContentScale.Crop,
-                modifier = Modifier.fillMaxSize(),
-            )
-        } else {
-            Icon(
-                painterResource(BrandIcons.NavMusic),
-                contentDescription = stringResource(R.string.now_playing_cover),
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.fillMaxSize(0.4f),
-            )
-        }
+        Icon(
+            painterResource(BrandIcons.NavMusic),
+            contentDescription = stringResource(R.string.now_playing_cover),
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.fillMaxSize(0.4f),
+        )
     }
 }
 
-private fun loadEmbeddedCover(
-    context: android.content.Context,
-    contentUri: String,
-): ImageBitmap? =
-    runCatching {
-        val retriever = MediaMetadataRetriever()
-        try {
-            retriever.setDataSource(context, Uri.parse(contentUri))
-            retriever.embeddedPicture?.let { bytes ->
-                BitmapFactory.decodeByteArray(bytes, 0, bytes.size)?.asImageBitmap()
-            }
-        } finally {
-            retriever.release()
-        }
-    }.getOrNull()
+private const val NOW_PLAYING_COVER_DIM_PX = 1024
 
 /** mm:ss bzw. h:mm:ss bei Ueberlaenge; stabile Locale-unabhaengige Ziffern. */
 private fun formatTimeMs(ms: Long): String {

@@ -33,6 +33,8 @@ data class MiniPlayerState(
     val artist: String? = null,
     val positionMs: Long = 0,
     val durationMs: Long = 0,
+    /** Content-URI fuer die Cover-Kachel (gemeinsamer CoverArtLoader). */
+    val contentUri: String? = null,
 )
 
 /**
@@ -105,6 +107,7 @@ class PlayerViewModel
                             artist = song?.artist,
                             positionMs = state.positionMs,
                             durationMs = state.durationMs,
+                            contentUri = song?.contentUri,
                         )
                     }
                 }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), MiniPlayerState())

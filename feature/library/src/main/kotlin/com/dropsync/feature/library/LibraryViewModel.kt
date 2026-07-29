@@ -10,17 +10,18 @@ import com.dropsync.core.model.Song
 import com.dropsync.domain.audio.TrackAnalysisRepository
 import com.dropsync.domain.library.Album
 import com.dropsync.domain.library.Artist
-import com.dropsync.domain.library.AudioFileFormat
 import com.dropsync.domain.library.Genre
 import com.dropsync.domain.library.LibraryBrowseRepository
 import com.dropsync.domain.library.LibraryFolder
+import com.dropsync.domain.library.LibraryListConfig
 import com.dropsync.domain.library.LibraryRepository
-import com.dropsync.domain.library.LibraryViewConfig
 import com.dropsync.domain.library.LibraryViewPreferencesRepository
 import com.dropsync.domain.library.Playlist
 import com.dropsync.domain.library.SmartShuffle
+import com.dropsync.domain.library.SongPlayStat
 import com.dropsync.domain.library.SongSort
 import com.dropsync.domain.playback.PlaybackRepository
+import com.dropsync.domain.playback.QueueItem
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
@@ -61,16 +62,6 @@ data class BucketDetail(
     val label: String,
 )
 
-/** Dauer-Filter der Titelliste (Plan Phase 6.2: Filter nach Dauer). */
-enum class DurationFilter(
-    val range: LongRange,
-) {
-    ALL(0L..Long.MAX_VALUE),
-    UNDER_4_MIN(0L until 4L * 60_000),
-    FROM_4_TO_10_MIN(4L * 60_000..10L * 60_000),
-    OVER_10_MIN(10L * 60_000 + 1..Long.MAX_VALUE),
-}
-
 @OptIn(FlowPreview::class, ExperimentalCoroutinesApi::class)
 @HiltViewModel
 class LibraryViewModel
@@ -88,87 +79,11 @@ class LibraryViewModel
         private val _isRefreshing = MutableStateFlow(false)
         val isRefreshing: StateFlow<Boolean> = _isRefreshing.asStateFlow()
 
-        private val _selectedView = MutableStateFlow(LibraryView.SONGS)
-        val selectedView: StateFlow<LibraryView> = _selectedView.asStateFlow()
-
-        // Konfigurierbare Ansichten (Plan Phase 6.4): Reihenfolge + Sichtbarkeit,
-        // persistiert ueber den Domain-Vertrag; null = Standard (alle, Enum-Reihenfolge).
-        private val viewConfig: StateFlow<LibraryViewConfig?> =
-            viewPreferences.config.stateIn(
-                viewModelScope,
-                SharingStarted.WhileSubscribed(5_000),
-                null,
-            )
-
-        /** Alle Ansichten in konfigurierter Reihenfolge (inkl. ausgeblendeter). */
-        val orderedViews: StateFlow<List<LibraryView>> =
-            viewConfig
-                .map { reconcileOrder(it?.orderedKeys) }
-                .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), DEFAULT_ORDER)
-
-        /** Ausgeblendete Ansichten (nur bekannte Schluessel). */
-        val hiddenViews: StateFlow<Set<LibraryView>> =
-            viewConfig
-                .map { cfg ->
-                    cfg
-                        ?.hiddenKeys
-                        .orEmpty()
-                        .mapNotNull(::keyToView)
-                        .toSet()
-                }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptySet())
-
-        /** Sichtbare Ansichten in Reihenfolge; nie leer (Fallback: alle). */
-        val visibleViews: StateFlow<List<LibraryView>> =
-            combine(orderedViews, hiddenViews) { order, hidden ->
-                order.filterNot { it in hidden }.ifEmpty { order }
-            }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), DEFAULT_ORDER)
-
         private val _detail = MutableStateFlow<BucketDetail?>(null)
         val detail: StateFlow<BucketDetail?> = _detail.asStateFlow()
 
-        private val _sort = MutableStateFlow(SongSort.TITLE)
-        val sort: StateFlow<SongSort> = _sort.asStateFlow()
-
-        private val _hiResOnly = MutableStateFlow(false)
-        val hiResOnly: StateFlow<Boolean> = _hiResOnly.asStateFlow()
-
-        // Filter nach Format und Dauer (Plan Phase 6.2); null/ALL = kein Filter.
-        private val _formatFilter = MutableStateFlow<AudioFileFormat?>(null)
-        val formatFilter: StateFlow<AudioFileFormat?> = _formatFilter.asStateFlow()
-
-        private val _durationFilter = MutableStateFlow(DurationFilter.ALL)
-        val durationFilter: StateFlow<DurationFilter> = _durationFilter.asStateFlow()
-
-        /** Formate, die in der Bibliothek tatsaechlich vorkommen (fuer das Filtermenue). */
-        val availableFormats: StateFlow<List<AudioFileFormat>> =
-            libraryRepository.availableSongs
-                .map { list ->
-                    list
-                        .mapNotNull { AudioFileFormat.fromFileName(it.displayName) }
-                        .distinct()
-                        .sortedBy { it.ordinal }
-                }.asState(emptyList())
-
         private val _searchQuery = MutableStateFlow("")
         val searchQuery: StateFlow<String> = _searchQuery.asStateFlow()
-
-        /** Titelliste, client-seitig sortiert und nach Hi-Res/Format/Dauer gefiltert. */
-        val songs: StateFlow<List<Song>> =
-            combine(
-                libraryRepository.availableSongs,
-                _sort,
-                _hiResOnly,
-                _formatFilter,
-                _durationFilter,
-            ) { list, sort, hiResOnly, format, duration ->
-                list
-                    .asSequence()
-                    .filter { !hiResOnly || isHiRes(it) }
-                    .filter { format == null || AudioFileFormat.fromFileName(it.displayName) == format }
-                    .filter { duration == DurationFilter.ALL || it.durationMs in duration.range }
-                    .sortedWith(comparatorFor(sort))
-                    .toList()
-            }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
         val albums: StateFlow<List<Album>> = browseRepository.albums.asState(emptyList())
         val artists: StateFlow<List<Artist>> = browseRepository.artists.asState(emptyList())
@@ -176,7 +91,146 @@ class LibraryViewModel
         val folders: StateFlow<List<LibraryFolder>> = browseRepository.folders.asState(emptyList())
         val favorites: StateFlow<List<Song>> = browseRepository.favorites.asState(emptyList())
         val recentlyAdded: StateFlow<List<Song>> = browseRepository.recentlyAdded().asState(emptyList())
+        val recentlyPlayed: StateFlow<List<Song>> = browseRepository.recentlyPlayed().asState(emptyList())
         val mostPlayed: StateFlow<List<Song>> = browseRepository.mostPlayed().asState(emptyList())
+
+        /** Rohe, ungefilterte Titelliste fuer die Kategorie "Alle Titel" (Poweramp-Umbau). */
+        val allSongs: StateFlow<List<Song>> = libraryRepository.availableSongs.asState(emptyList())
+
+        /** Wiedergabestatistik je Titel-ID; Grundlage der Sortierung nach Zaehler/zuletzt. */
+        val playStats: StateFlow<Map<Long, SongPlayStat>> =
+            browseRepository.playStats
+                .map { list -> list.associateBy { it.songId } }
+                .asState(emptyMap())
+
+        /** Aktuelle Warteschlange (Kategorie "Warteschlange", Poweramp-Umbau). */
+        val queue: StateFlow<List<QueueItem>> =
+            playbackRepository.state.map { it.queue }.asState(emptyList())
+
+        /** Position des laufenden Titels in der Warteschlange; -1 wenn leer. */
+        val queueIndex: StateFlow<Int> =
+            playbackRepository.state.map { it.currentIndex }.asState(-1)
+
+        /** Springt in der Warteschlange zu [index] und spielt dort. */
+        fun playQueueIndex(index: Int) {
+            viewModelScope.launch { playbackRepository.skipToQueueIndex(index) }
+        }
+
+        // --- Poweramp-Kategorien: Listen-Optionen (Sortierung/Ansicht) je Kategorie ----
+
+        /**
+         * Persistierte Listen-Optionen je Kategorie; leerer/fehlender Eintrag
+         * faellt auf [defaultListConfig] zurueck. Ein StateFlow pro Kategorie,
+         * einmal beim Erzeugen gebaut.
+         */
+        val listConfigs: Map<LibraryCategory, StateFlow<CategoryListConfig>> =
+            LibraryCategory.entries.associateWith { category ->
+                viewPreferences
+                    .listConfig(category.key)
+                    .map { stored -> stored?.toUi() ?: defaultListConfig(category) }
+                    .stateIn(
+                        viewModelScope,
+                        SharingStarted.WhileSubscribed(5_000),
+                        defaultListConfig(category),
+                    )
+            }
+
+        fun setSortFor(
+            category: LibraryCategory,
+            sort: SongSort,
+        ) {
+            val current = listConfigs.getValue(category).value
+            persistListConfig(category, current.copy(sort = sort))
+        }
+
+        fun setDescendingFor(
+            category: LibraryCategory,
+            descending: Boolean,
+        ) {
+            val current = listConfigs.getValue(category).value
+            persistListConfig(category, current.copy(descending = descending))
+        }
+
+        fun setViewModeFor(
+            category: LibraryCategory,
+            mode: LibraryViewMode,
+        ) {
+            val current = listConfigs.getValue(category).value
+            persistListConfig(category, current.copy(viewMode = mode))
+        }
+
+        private fun persistListConfig(
+            category: LibraryCategory,
+            config: CategoryListConfig,
+        ) {
+            viewModelScope.launch {
+                viewPreferences.setListConfig(
+                    category.key,
+                    LibraryListConfig(
+                        sortKey = config.sort.name,
+                        descending = config.descending,
+                        viewModeKey = config.viewMode.name,
+                    ),
+                )
+            }
+        }
+
+        // --- Poweramp-Kategorien: Mehrfachauswahl (Langdruck) --------------------------
+
+        private val _selectionActive = MutableStateFlow(false)
+        val selectionActive: StateFlow<Boolean> = _selectionActive.asStateFlow()
+
+        private val _selectedIds = MutableStateFlow<Set<Long>>(emptySet())
+        val selectedIds: StateFlow<Set<Long>> = _selectedIds.asStateFlow()
+
+        /** Startet den Auswahlmodus mit einem ersten Titel (Langdruck). */
+        fun startSelection(songId: Long) {
+            _selectionActive.value = true
+            _selectedIds.value = setOf(songId)
+        }
+
+        /** Kippt die Auswahl eines Titels; leert sich die Menge, endet der Modus. */
+        fun toggleSelection(songId: Long) {
+            val next = _selectedIds.value.toMutableSet()
+            if (!next.add(songId)) next.remove(songId)
+            _selectedIds.value = next
+            if (next.isEmpty()) _selectionActive.value = false
+        }
+
+        /** Waehlt alle [ids] aus (Kopf "Alle"); leere Liste beendet den Modus. */
+        fun selectAll(ids: List<Long>) {
+            _selectedIds.value = ids.toSet()
+            _selectionActive.value = ids.isNotEmpty()
+        }
+
+        fun clearSelection() {
+            _selectedIds.value = emptySet()
+            _selectionActive.value = false
+        }
+
+        /** Reiht alle ausgewaehlten Titel aus [pool] ans Ende der Warteschlange. */
+        fun addSelectionToQueue(pool: List<Song>) {
+            val selected = pool.filter { it.mediaStoreId in _selectedIds.value }
+            viewModelScope.launch { selected.forEach { playbackRepository.addToQueueEnd(it) } }
+            clearSelection()
+        }
+
+        /** Spielt alle ausgewaehlten Titel als Naechstes (Reihenfolge wie [pool]). */
+        fun playSelectionNext(pool: List<Song>) {
+            val selected = pool.filter { it.mediaStoreId in _selectedIds.value }
+            viewModelScope.launch { selected.asReversed().forEach { playbackRepository.playNext(it) } }
+            clearSelection()
+        }
+
+        /** Fuegt alle ausgewaehlten Titel aus [pool] der Playlist [playlistId] hinzu. */
+        fun addSelectionToPlaylist(
+            playlistId: Long,
+            pool: List<Song>,
+        ) {
+            val ids = pool.filter { it.mediaStoreId in _selectedIds.value }.map { it.mediaStoreId }
+            viewModelScope.launch { browseRepository.addToPlaylist(playlistId, ids) }
+            clearSelection()
+        }
 
         /** Intelligentes Shuffle aktiv (A5)? Steuert [shufflePlay]; Schalter in den Einstellungen. */
         val smartShuffleEnabled: StateFlow<Boolean> = viewPreferences.smartShuffleEnabled.asState(false)
@@ -236,11 +290,6 @@ class LibraryViewModel
             return result
         }
 
-        fun selectView(view: LibraryView) {
-            _selectedView.value = view
-            _detail.value = null
-        }
-
         fun openBucket(
             view: LibraryView,
             key: String,
@@ -251,65 +300,6 @@ class LibraryViewModel
 
         fun closeDetail() {
             _detail.value = null
-        }
-
-        /** Verschiebt [view] in der Anzeigereihenfolge um eine Position (Plan Phase 6.4). */
-        fun moveView(
-            view: LibraryView,
-            up: Boolean,
-        ) {
-            val order = orderedViews.value.toMutableList()
-            val from = order.indexOf(view)
-            val to = if (up) from - 1 else from + 1
-            if (from < 0 || to !in order.indices) return
-            order[from] = order[to].also { order[to] = order[from] }
-            persistConfig(order, hiddenViews.value)
-        }
-
-        /** Blendet [view] ein/aus; mindestens eine Ansicht bleibt sichtbar. */
-        fun toggleViewHidden(view: LibraryView) {
-            val hidden = hiddenViews.value.toMutableSet()
-            if (!hidden.remove(view)) {
-                if (visibleViews.value.size <= 1) return
-                hidden.add(view)
-            }
-            persistConfig(orderedViews.value, hidden)
-            if (_selectedView.value in hidden) {
-                _selectedView.value =
-                    orderedViews.value.firstOrNull { it !in hidden } ?: LibraryView.SONGS
-            }
-        }
-
-        private fun persistConfig(
-            order: List<LibraryView>,
-            hidden: Set<LibraryView>,
-        ) {
-            viewModelScope.launch {
-                viewPreferences.setConfig(
-                    LibraryViewConfig(
-                        orderedKeys = order.map { it.name },
-                        hiddenKeys = hidden.map { it.name }.toSet(),
-                    ),
-                )
-            }
-        }
-
-        fun setSort(sort: SongSort) {
-            _sort.value = sort
-        }
-
-        fun toggleHiResOnly() {
-            _hiResOnly.value = !_hiResOnly.value
-        }
-
-        /** Filtert die Titelliste auf [format]; null hebt den Filter auf. */
-        fun setFormatFilter(format: AudioFileFormat?) {
-            _formatFilter.value = format
-        }
-
-        /** Filtert die Titelliste nach Dauer-Bereich. */
-        fun setDurationFilter(filter: DurationFilter) {
-            _durationFilter.value = filter
         }
 
         fun setSearchQuery(query: String) {
@@ -480,30 +470,4 @@ class LibraryViewModel
 
         private fun <T> Flow<T>.asState(initial: T): StateFlow<T> =
             stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), initial)
-
-        private fun comparatorFor(sort: SongSort): Comparator<Song> =
-            when (sort) {
-                SongSort.TITLE -> compareBy(String.CASE_INSENSITIVE_ORDER) { it.displayTitle() }
-                SongSort.ARTIST -> compareBy(String.CASE_INSENSITIVE_ORDER) { it.artist ?: "" }
-                SongSort.ALBUM -> compareBy(String.CASE_INSENSITIVE_ORDER) { it.album ?: "" }
-                SongSort.DURATION -> compareBy { it.durationMs }
-                SongSort.DATE_ADDED -> compareByDescending { it.dateModifiedSeconds }
-            }
-
-        private fun Song.displayTitle(): String = title ?: displayName
-
-        private fun isHiRes(song: Song): Boolean = AudioFileFormat.fromFileName(song.displayName)?.hiResCapable == true
-
-        private fun keyToView(key: String): LibraryView? = LibraryView.entries.firstOrNull { it.name == key }
-
-        private fun reconcileOrder(keys: List<String>?): List<LibraryView> {
-            if (keys == null) return DEFAULT_ORDER
-            val known = keys.mapNotNull(::keyToView)
-            val missing = DEFAULT_ORDER.filterNot { it in known }
-            return known + missing
-        }
-
-        private companion object {
-            val DEFAULT_ORDER: List<LibraryView> = LibraryView.entries.toList()
-        }
     }

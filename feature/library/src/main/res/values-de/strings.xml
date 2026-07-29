@@ -14,7 +14,10 @@
     <string name="library_play_next">Als Naechstes spielen</string>
     <string name="library_add_to_queue">Zur Warteschlange hinzufuegen</string>
     <string name="library_detect_drops">Drops automatisch erkennen</string>
-    <string name="library_track_count">%1$d Titel</string>
+    <plurals name="library_track_count">
+        <item quantity="one">%1$d Titel</item>
+        <item quantity="other">%1$d Titel</item>
+    </plurals>
     <string name="library_search_hint">Titel, Interpret oder Album suchen</string>
     <string name="library_search_clear">Suche loeschen</string>
     <string name="library_back">Zurueck</string>
@@ -61,4 +64,54 @@
     <string name="library_playlist_label_none">Kein Label</string>
     <string name="library_playlist_label_rest">Pause</string>
     <string name="library_playlist_label_work">Training</string>
+
+    <!-- Poweramp-artige Bibliothek (Umbau) -->
+    <string name="library_title">Bibliothek</string>
+    <string name="library_cat_all_songs">Alle Titel</string>
+    <string name="library_cat_folders">Ordner</string>
+    <string name="library_cat_folders_hierarchy">Ordner-Hierarchie</string>
+    <string name="library_cat_albums">Alben</string>
+    <string name="library_cat_artists">Interpreten</string>
+    <string name="library_cat_genres">Genres</string>
+    <string name="library_cat_playlists">Playlisten</string>
+    <string name="library_cat_queue">Warteschlange</string>
+    <string name="library_cat_favorites">Favoriten</string>
+    <string name="library_cat_recently_added">Zuletzt hinzugefuegt</string>
+    <string name="library_cat_recently_played">Zuletzt gespielt</string>
+    <string name="library_cat_most_played">Meistgespielt</string>
+    <string name="library_queue_empty">leer</string>
+    <string name="library_play_all">Abspielen</string>
+    <string name="library_select">Auswaehlen</string>
+    <string name="library_rescan">Neu scannen</string>
+    <string name="library_list_options">Listen-Optionen</string>
+    <string name="library_list_options_title">Listen-Optionen: %1$s</string>
+    <string name="library_sort_section">Sortieren</string>
+    <string name="library_view_section">Ansicht</string>
+    <string name="library_sort_desc">Absteigend</string>
+    <string name="library_opt_sort_title">Nach Titel</string>
+    <string name="library_opt_sort_filename">Nach Dateiname</string>
+    <string name="library_opt_sort_path">Nach Pfad</string>
+    <string name="library_opt_sort_artist">Nach Interpret</string>
+    <string name="library_opt_sort_album">Nach Album</string>
+    <string name="library_opt_sort_duration">Nach Dauer</string>
+    <string name="library_opt_sort_date_added">Nach Hinzugefuegt</string>
+    <string name="library_opt_sort_last_played">Nach zuletzt gespielt</string>
+    <string name="library_opt_sort_play_count">Nach Abspielzaehler</string>
+    <string name="library_view_mode_list">Liste</string>
+    <string name="library_view_mode_list_compact">Liste - kompakt</string>
+    <string name="library_view_mode_grid_small">Raster - klein</string>
+    <string name="library_view_mode_grid">Raster</string>
+    <string name="library_close">Schliessen</string>
+    <string name="library_header_meta">%1$s  |  %2$s</string>
+    <string name="library_selection_count">%1$d / %2$d</string>
+    <string name="library_selection_all">Alle</string>
+    <string name="library_action_share">Teilen</string>
+    <string name="library_action_info">Info</string>
+    <string name="library_action_delete">Loeschen</string>
+    <string name="library_delete_confirm">%1$d ausgewaehlte(n) Titel von diesem Geraet loeschen? Das laesst sich nicht rueckgaengig machen.</string>
+    <string name="library_info_title">Titel-Infos</string>
+    <string name="library_info_path">Pfad</string>
+    <string name="library_info_duration">Dauer</string>
+    <string name="library_info_size">Groesse</string>
+    <string name="library_folder_parent_root">Interner Speicher</string>
 </resources>

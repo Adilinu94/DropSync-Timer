@@ -10,6 +10,8 @@ data class Album(
     val title: String,
     val artist: String?,
     val trackCount: Int,
+    /** Gesamtdauer aller Titel (Poweramp-Header "Anzahl | Dauer"). */
+    val totalDurationMs: Long = 0,
 )
 
 /** Aggregierter Kuenstler der Bibliothek. */
@@ -17,18 +19,21 @@ data class Artist(
     val name: String,
     val trackCount: Int,
     val albumCount: Int,
+    val totalDurationMs: Long = 0,
 )
 
 /** Aggregiertes Genre der Bibliothek. */
 data class Genre(
     val name: String,
     val trackCount: Int,
+    val totalDurationMs: Long = 0,
 )
 
 /** Ordnerknoten der Ordneransicht (relativer Pfad aus MediaStore). */
 data class LibraryFolder(
     val relativePath: String,
     val trackCount: Int,
+    val totalDurationMs: Long = 0,
 )
 
 /** Nutzerplaylist mit Eintragszahl und optionalem Workout-Label. */
@@ -39,14 +44,28 @@ data class Playlist(
     val label: PlaylistLabel? = null,
 )
 
-/** Sortierschluessel der Titellisten (Plan Phase 6, Punkt 2). */
+/** Sortierschluessel der Titellisten (Plan Phase 6; Poweramp-Umbau erweitert). */
 enum class SongSort {
     TITLE,
+    FILENAME,
+    PATH,
     ARTIST,
     ALBUM,
     DURATION,
     DATE_ADDED,
+    LAST_PLAYED,
+    PLAY_COUNT,
 }
+
+/**
+ * Wiedergabestatistik eines Titels fuer client-seitige Sortierung
+ * (Poweramp-Umbau: "Nach Abspielzaehler"/"Nach zuletzt gespielt").
+ */
+data class SongPlayStat(
+    val songId: Long,
+    val playCount: Int,
+    val lastPlayedAtEpochMs: Long?,
+)
 
 /**
  * Ergebnis eines M3U-Playlisten-Imports (Plan Phase 6): [importedCount]
@@ -73,6 +92,9 @@ interface LibraryBrowseRepository {
     val artists: Flow<List<Artist>>
     val genres: Flow<List<Genre>>
     val folders: Flow<List<LibraryFolder>>
+
+    /** Alle Wiedergabestatistiken; fehlende Titel gelten als nie gespielt. */
+    val playStats: Flow<List<SongPlayStat>>
 
     fun songsByAlbum(album: String): Flow<List<Song>>
 
