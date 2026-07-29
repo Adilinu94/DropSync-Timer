@@ -34,6 +34,9 @@ dependencies {
     api(composeBom)
     androidTestImplementation(composeBom)
 
+    // Stabile Domaenen-Enums (z. B. AccentColor fuer das Theme).
+    implementation(project(":core:model"))
+
     api(libs.androidx.compose.ui)
     api(libs.androidx.compose.ui.graphics)
     api(libs.androidx.compose.material3)

@@ -6,6 +6,8 @@
     <string name="player_previous">Vorheriger Song</string>
     <string name="now_playing_title">Laeuft gerade</string>
     <string name="now_playing_back">Zurueck</string>
+    <string name="now_playing_more">Weitere Optionen</string>
+    <string name="now_playing_add_marker">Marker hier setzen</string>
     <string name="now_playing_empty">Gerade laeuft nichts.</string>
     <string name="now_playing_cover">Albumcover</string>
     <string name="now_playing_waveform">Wellenform: Tippen springt, Ziehen zeigt Vorschau</string>

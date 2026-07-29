@@ -9,6 +9,7 @@ import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import com.dropsync.core.model.AccentColor
 
 // Markenpalette gemaess Design.txt (Repo-Wurzel): Schwarz erzeugt Fokus,
 // Lime erzeugt Energie, Weiss erzeugt Ruhe. Lime ist ausschliesslich fuer
@@ -20,6 +21,18 @@ private val BrandLime = Color(0xFFDFFF2F)
 private val SoftGray = Color(0xFFF5F5F5)
 private val BorderGray = Color(0xFFEAEAEA)
 private val TextGray = Color(0xFF6B6B6B)
+
+// Alternative Akzentfarbe (in den Einstellungen waehlbar): kraeftiges Blau.
+// Auf Blau steht weisse Schrift (onPrimary), auf Lime schwarze — beide
+// erfuellen den Kontrast in Hell wie Dunkel.
+private val AccentBlue = Color(0xFF4564F9)
+
+/** Primaer-/onPrimary-Paar der gewaehlten Akzentfarbe (gilt Hell wie Dunkel). */
+private fun accentPair(accent: AccentColor): Pair<Color, Color> =
+    when (accent) {
+        AccentColor.LIME -> BrandLime to BrandBlack
+        AccentColor.BLUE -> AccentBlue to BrandWhite
+    }
 
 // Dunkler Grund im Poweramp-Stil: kein reines Schwarz, sondern ein neutrales
 // #1F1F1F als Basis. Erhoehte Flaechen (Karten, Sheets, Auswahlleiste,
@@ -87,15 +100,20 @@ private val BrandShapes =
  * Material-3-Theme mit System-Dark-/Light-Mode (Bauplan 2.6, Schritt 12.1).
  * Die Markenidentitaet (Design.txt) verlangt eine feste Schwarz/Weiss/
  * Lime-Palette; Dynamic Color ist deshalb standardmaessig aus und kann
- * bewusst aktiviert werden.
+ * bewusst aktiviert werden. Die [accent]-Farbe ersetzt die primaere
+ * Aktionsfarbe (Buttons, aktive Zustaende, Waveform, Now-Playing-Titel)
+ * in Hell wie Dunkel; Default ist die Marken-Lime.
  */
 @Composable
 fun DropSyncTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
+    accent: AccentColor = AccentColor.LIME,
     content: @Composable () -> Unit,
 ) {
+    val (primary, onPrimary) = accentPair(accent)
+    val base = if (darkTheme) DarkColors else LightColors
     MaterialTheme(
-        colorScheme = if (darkTheme) DarkColors else LightColors,
+        colorScheme = base.copy(primary = primary, onPrimary = onPrimary),
         shapes = BrandShapes,
         typography = DropSyncTypography,
         content = content,

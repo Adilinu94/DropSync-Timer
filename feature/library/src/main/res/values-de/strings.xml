@@ -119,4 +119,12 @@
     <string name="library_info_duration">Dauer</string>
     <string name="library_info_size">Groesse</string>
     <string name="library_folder_parent_root">Interner Speicher</string>
+    <!-- Poweramp-Umbau Punkt 3: Ordnerauswahl + Kategorie-Sichtbarkeit -->
+    <string name="library_select_folders">Ordner auswaehlen</string>
+    <string name="library_select_folders_title">Ordner in der Bibliothek</string>
+    <string name="library_select_folders_desc">Nur angehakte Ordner erscheinen in der Bibliothek.</string>
+    <string name="library_select_folders_empty">Noch keine Ordner gefunden. Aktualisiere zuerst die Bibliothek.</string>
+    <string name="library_select_folders_save">Speichern</string>
+    <string name="library_categories">Kategorien</string>
+    <string name="library_categories_title">Kategorien anzeigen</string>
 </resources>

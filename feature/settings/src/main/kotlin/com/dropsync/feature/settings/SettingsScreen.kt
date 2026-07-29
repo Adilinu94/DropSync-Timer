@@ -2,8 +2,11 @@ package com.dropsync.feature.settings
 
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
@@ -15,8 +18,10 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.FilterChip
@@ -34,11 +39,16 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.dropsync.core.model.AccentColor
 import com.dropsync.core.model.RestMusicBehavior
 import com.dropsync.core.model.Song
 import com.dropsync.core.model.SongMarker
@@ -64,6 +74,7 @@ fun SettingsScreen(
     val songs by viewModel.songs.collectAsStateWithLifecycle()
     val restMusicBehavior by viewModel.restMusicBehavior.collectAsStateWithLifecycle()
     val themeMode by viewModel.themeMode.collectAsStateWithLifecycle()
+    val accentColor by viewModel.accentColor.collectAsStateWithLifecycle()
     val getReadyEnabled by viewModel.getReadyEnabled.collectAsStateWithLifecycle()
     val getReadySeconds by viewModel.getReadySeconds.collectAsStateWithLifecycle()
     val restPresets by viewModel.restPresets.collectAsStateWithLifecycle()
@@ -95,6 +106,12 @@ fun SettingsScreen(
                 option = option,
                 selected = option == themeMode,
                 onSelect = { viewModel.setThemeMode(option) },
+            )
+        }
+        item {
+            AccentColorSection(
+                selected = accentColor,
+                onSelect = viewModel::setAccentColor,
             )
         }
         item { HorizontalDivider(Modifier.padding(vertical = 12.dp)) }
@@ -680,3 +697,76 @@ private fun ThemeMode.descRes(): Int =
         ThemeMode.LIGHT -> R.string.settings_theme_light_desc
         ThemeMode.DARK -> R.string.settings_theme_dark_desc
     }
+
+// Auswaehlbare Akzentfarben als Farbkreise (muessen zu Theme.kt passen).
+private val AccentLimeSwatch = Color(0xFFDFFF2F)
+private val AccentBlueSwatch = Color(0xFF4564F9)
+
+/**
+ * Akzentfarb-Auswahl (Darstellung): Farbkreise fuer Marken-Lime und Blau.
+ * Die gewaehlte Farbe traegt einen kraeftigen Kontrastring; die Auswahl
+ * gilt gleichermassen in Hell und Dunkel.
+ */
+@Composable
+private fun AccentColorSection(
+    selected: AccentColor,
+    onSelect: (AccentColor) -> Unit,
+) {
+    Column(
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 8.dp),
+    ) {
+        Text(
+            text = stringResource(R.string.settings_accent_title),
+            style = MaterialTheme.typography.titleSmall,
+        )
+        Text(
+            text = stringResource(R.string.settings_accent_desc),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Spacer(Modifier.height(12.dp))
+        Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+            AccentSwatch(
+                color = AccentLimeSwatch,
+                selected = selected == AccentColor.LIME,
+                label = stringResource(R.string.settings_accent_lime),
+                onClick = { onSelect(AccentColor.LIME) },
+            )
+            AccentSwatch(
+                color = AccentBlueSwatch,
+                selected = selected == AccentColor.BLUE,
+                label = stringResource(R.string.settings_accent_blue),
+                onClick = { onSelect(AccentColor.BLUE) },
+            )
+        }
+    }
+}
+
+/** Ein Farbkreis der Akzentauswahl; ausgewaehlt = dickerer Kontrastring. */
+@Composable
+private fun AccentSwatch(
+    color: Color,
+    selected: Boolean,
+    label: String,
+    onClick: () -> Unit,
+) {
+    val ring =
+        if (selected) {
+            MaterialTheme.colorScheme.onSurface
+        } else {
+            MaterialTheme.colorScheme.outline
+        }
+    Box(
+        modifier =
+            Modifier
+                .size(48.dp)
+                .clip(CircleShape)
+                .background(color)
+                .border(if (selected) 3.dp else 1.dp, ring, CircleShape)
+                .clickable(onClick = onClick)
+                .semantics { contentDescription = label },
+    )
+}

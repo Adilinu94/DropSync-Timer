@@ -6,6 +6,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.dropsync.core.common.AppResult
 import com.dropsync.core.common.DispatcherProvider
+import com.dropsync.core.model.AccentColor
 import com.dropsync.core.model.RestMusicBehavior
 import com.dropsync.core.model.Song
 import com.dropsync.core.model.SongMarker
@@ -21,6 +22,7 @@ import com.dropsync.domain.library.MarkerDocumentParser
 import com.dropsync.domain.library.MarkerRepository
 import com.dropsync.domain.library.ParsedMarkerDocument
 import com.dropsync.domain.playback.RestMusicSettingsRepository
+import com.dropsync.domain.settings.AccentColorRepository
 import com.dropsync.domain.settings.ThemeSettingsRepository
 import com.dropsync.domain.timer.RestTimerPreferencesRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -62,6 +64,7 @@ class SettingsViewModel
         libraryRepository: LibraryRepository,
         private val restMusicSettings: RestMusicSettingsRepository,
         private val themeSettings: ThemeSettingsRepository,
+        private val accentColorSettings: AccentColorRepository,
         private val restTimerPreferences: RestTimerPreferencesRepository,
         private val libraryViewPreferences: LibraryViewPreferencesRepository,
         private val audioEngine: AudioEngineRepository,
@@ -110,6 +113,14 @@ class SettingsViewModel
                 viewModelScope,
                 SharingStarted.WhileSubscribed(5_000),
                 ThemeMode.SYSTEM,
+            )
+
+        /** Gewaehlte Akzentfarbe (Marken-Lime / Blau); gilt Hell wie Dunkel. */
+        val accentColor: StateFlow<AccentColor> =
+            accentColorSettings.accentColor.stateIn(
+                viewModelScope,
+                SharingStarted.WhileSubscribed(5_000),
+                AccentColor.LIME,
             )
 
         /** Get-Ready-Vorlauf an/aus (B9). */
@@ -234,6 +245,11 @@ class SettingsViewModel
         /** Setzt das App-Design (Systemdesign folgen / Hell / Dunkel). */
         fun setThemeMode(mode: ThemeMode) {
             viewModelScope.launch { themeSettings.setThemeMode(mode) }
+        }
+
+        /** Setzt die Akzentfarbe (Marken-Lime / Blau). */
+        fun setAccentColor(color: AccentColor) {
+            viewModelScope.launch { accentColorSettings.setAccentColor(color) }
         }
 
         /** Get-Ready-Vorlauf an/aus + Dauer (B9). */

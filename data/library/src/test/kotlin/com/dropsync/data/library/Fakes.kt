@@ -12,6 +12,7 @@ import com.dropsync.core.database.entity.SafFileEntity
 import com.dropsync.core.database.entity.SongEntity
 import com.dropsync.core.database.entity.SongMarkerEntity
 import com.dropsync.core.model.Song
+import com.dropsync.domain.library.MusicFolderFilterRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.map
@@ -264,4 +265,15 @@ class FakeSafFolderGateway(
     override fun listFiles(treeUri: String): List<SafDocument> = files
 
     override fun readDocument(documentUri: String): String? = documents[documentUri]
+}
+
+class FakeMusicFolderFilterRepository(
+    excluded: Set<String> = emptySet(),
+) : MusicFolderFilterRepository {
+    private val state = MutableStateFlow(excluded)
+    override val excludedFolders: Flow<Set<String>> = state
+
+    override suspend fun setExcludedFolders(paths: Set<String>) {
+        state.value = paths
+    }
 }

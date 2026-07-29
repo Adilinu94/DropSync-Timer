@@ -13,7 +13,9 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.dropsync.core.designsystem.theme.DropSyncTheme
+import com.dropsync.core.model.AccentColor
 import com.dropsync.core.model.ThemeMode
+import com.dropsync.domain.settings.AccentColorRepository
 import com.dropsync.domain.settings.ThemeSettingsRepository
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
@@ -30,6 +32,9 @@ class MainActivity : ComponentActivity() {
     @Inject
     lateinit var themeSettings: ThemeSettingsRepository
 
+    @Inject
+    lateinit var accentColorSettings: AccentColorRepository
+
     @OptIn(ExperimentalMaterial3WindowSizeClassApi::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -44,6 +49,10 @@ class MainActivity : ComponentActivity() {
                     ThemeMode.LIGHT -> false
                     ThemeMode.DARK -> true
                 }
+            val accent by
+                accentColorSettings.accentColor.collectAsStateWithLifecycle(
+                    initialValue = AccentColor.LIME,
+                )
             // Systemleisten-Icons an das gewaehlte Design koppeln (nicht nur
             // an das Systemdesign), damit Kontraste im erzwungenen Hell-/
             // Dunkelmodus stimmen (offizielles Edge-to-edge-Muster).
@@ -56,7 +65,7 @@ class MainActivity : ComponentActivity() {
                 )
                 onDispose {}
             }
-            DropSyncTheme(darkTheme = darkTheme) {
+            DropSyncTheme(darkTheme = darkTheme, accent = accent) {
                 DropSyncApp(windowSizeClass = calculateWindowSizeClass(this))
             }
         }

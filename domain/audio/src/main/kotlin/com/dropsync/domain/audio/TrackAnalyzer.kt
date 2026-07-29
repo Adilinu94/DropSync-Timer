@@ -14,7 +14,16 @@ import kotlinx.coroutines.flow.Flow
  * Android/Media3 testbar (Modulregel 3.2, ADR-0005).
  */
 interface TrackAnalyzer {
-    suspend fun analyze(song: Song): AppResult<TrackAnalysis>
+    /**
+     * Analysiert [song]. Ohne [detectOnsets] wird nur die Waveform
+     * berechnet — der teurere Energie-/Onset-Pfad (A2) entfaellt dann,
+     * was den haeufigen Nur-Waveform-Fall (Now-Playing) spuerbar
+     * beschleunigt. Nur der explizite Nutzeranstoss setzt [detectOnsets].
+     */
+    suspend fun analyze(
+        song: Song,
+        detectOnsets: Boolean = false,
+    ): AppResult<TrackAnalysis>
 }
 
 /**
@@ -66,7 +75,7 @@ data class WaveformBucket(
  */
 object WaveformCodec {
     /** Version des Analyse-Algorithmus; invalidiert den Cache bei Aenderung. */
-    const val ANALYZER_VERSION: Int = 1
+    const val ANALYZER_VERSION: Int = 2
 
     fun pack(buckets: List<WaveformBucket>): ByteArray {
         val bytes = ByteArray(buckets.size * 2)

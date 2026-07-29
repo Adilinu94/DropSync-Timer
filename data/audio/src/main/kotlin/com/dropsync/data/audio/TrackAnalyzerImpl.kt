@@ -29,9 +29,12 @@ class TrackAnalyzerImpl(
     private val context: Context,
     private val dispatchers: DispatcherProvider,
 ) : TrackAnalyzer {
-    override suspend fun analyze(song: Song): AppResult<TrackAnalysis> =
+    override suspend fun analyze(
+        song: Song,
+        detectOnsets: Boolean,
+    ): AppResult<TrackAnalysis> =
         withContext(dispatchers.default) {
-            runCatching { decodeAndAccumulate(song) }
+            runCatching { decodeAndAccumulate(song, detectOnsets) }
                 .fold(
                     onSuccess = { AppResult.success(it) },
                     onFailure = { failure ->
@@ -43,7 +46,10 @@ class TrackAnalyzerImpl(
                 )
         }
 
-    private fun decodeAndAccumulate(song: Song): TrackAnalysis {
+    private fun decodeAndAccumulate(
+        song: Song,
+        detectOnsets: Boolean,
+    ): TrackAnalysis {
         val extractor = MediaExtractor()
         try {
             extractor.setDataSource(context, Uri.parse(song.contentUri), null)
@@ -62,7 +68,14 @@ class TrackAnalyzerImpl(
             val totalSamples = durationUs * sampleRate / 1_000_000L
 
             val waveform = WaveformAccumulator(totalSamples, BUCKET_COUNT)
-            val energy = EnergyAccumulator(samplesPerWindow = sampleRate * ENERGY_WINDOW_MS / 1_000)
+            // Kurzzeit-Energie nur, wenn Onsets wirklich gebraucht werden:
+            // der Nur-Waveform-Pfad spart so die halbe Sample-Arbeit.
+            val energy =
+                if (detectOnsets) {
+                    EnergyAccumulator(samplesPerWindow = sampleRate * ENERGY_WINDOW_MS / 1_000)
+                } else {
+                    null
+                }
 
             val codec = MediaCodec.createDecoderByType(mime)
             try {
@@ -73,17 +86,19 @@ class TrackAnalyzerImpl(
                 codec.release()
             }
 
-            val energyWindows = energy.finish()
             return TrackAnalysis(
                 waveformBuckets = waveform.finish(),
-                // Onset-Kandidaten entstehen im selben Durchgang (Phase 5);
-                // ob sie als AUTO_DETECTED-Marker landen, entscheidet der
-                // Aufrufer (nur bei explizitem Nutzeranstoss).
+                // Onset-Kandidaten nur im explizit angeforderten Fall (Phase 5);
+                // sonst leer, ohne die Energie ueberhaupt zu berechnen.
                 onsetCandidatesMs =
-                    OnsetDetection.detectOnsets(
-                        energyWindows = energyWindows,
-                        windowDurationMs = ENERGY_WINDOW_MS.toLong(),
-                    ),
+                    if (detectOnsets && energy != null) {
+                        OnsetDetection.detectOnsets(
+                            energyWindows = energy.finish(),
+                            windowDurationMs = ENERGY_WINDOW_MS.toLong(),
+                        )
+                    } else {
+                        emptyList()
+                    },
             )
         } finally {
             extractor.release()
@@ -102,7 +117,7 @@ class TrackAnalyzerImpl(
         extractor: MediaExtractor,
         codec: MediaCodec,
         waveform: WaveformAccumulator,
-        energy: EnergyAccumulator,
+        energy: EnergyAccumulator?,
     ) {
         val bufferInfo = MediaCodec.BufferInfo()
         var inputDone = false
@@ -179,15 +194,19 @@ class TrackAnalyzerImpl(
     private fun feed(
         monoSample: Double,
         waveform: WaveformAccumulator,
-        energy: EnergyAccumulator,
+        energy: EnergyAccumulator?,
     ) {
         waveform.accept(monoSample)
-        energy.accept(monoSample)
+        energy?.accept(monoSample)
     }
 
     companion object {
-        /** Buckets ueber den ganzen Track (Plan Phase 2, ~500). */
-        const val BUCKET_COUNT: Int = 500
+        /**
+         * Buckets ueber den ganzen Track (Plan Phase 2). Bewusst grober als
+         * frueher (500): 256 reicht fuer die Optik voellig, halbiert die
+         * gespeicherte Datenmenge und beschleunigt Analyse wie Zeichnen.
+         */
+        const val BUCKET_COUNT: Int = 256
 
         /** Kurzzeit-Energie-Fenster (Plan Phase 5: 20-50 ms). */
         const val ENERGY_WINDOW_MS: Int = 25

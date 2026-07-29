@@ -127,7 +127,15 @@ class PlayerViewModel
 
         fun togglePlayPause() {
             viewModelScope.launch {
-                if (miniPlayer.value.isPlaying) {
+                // Wahrheit ist die eine Player-Instanz, nicht `miniPlayer.value`:
+                // Der Now-Playing-Screen abonniert `miniPlayer` nicht, daher
+                // bliebe dessen Wert dort auf dem Startwert (isPlaying=false)
+                // stehen und Pause wuerde nie greifen. `snapshotNow()` liefert
+                // den echten Live-Zustand derselben Instanz.
+                val playing =
+                    playbackRepository.snapshotNow().getOrNull()?.isPlaying
+                        ?: miniPlayer.value.isPlaying
+                if (playing) {
                     playbackRepository.pause()
                 } else {
                     playbackRepository.play()
@@ -290,6 +298,14 @@ class PlayerViewModel
         fun playQueueItem(index: Int) {
             viewModelScope.launch { playbackRepository.skipToQueueIndex(index) }
         }
+
+        /**
+         * Cover-URI eines Queue-Titels fuer den Swipe-Wechsel im
+         * Now-Playing-Screen. Wird pro sichtbarer Pager-Seite einzeln
+         * aufgeloest (nicht die ganze Queue auf einmal), damit lange
+         * Warteschlangen die UI nicht belasten.
+         */
+        suspend fun coverUriFor(songId: Long): String? = libraryRepository.getSong(songId).getOrNull()?.contentUri
 
         fun moveQueueItem(
             fromIndex: Int,

@@ -73,4 +73,8 @@
     <string name="settings_theme_light_desc">Always use the light theme.</string>
     <string name="settings_theme_dark">Dark</string>
     <string name="settings_theme_dark_desc">Always use the dark theme.</string>
+    <string name="settings_accent_title">Accent color</string>
+    <string name="settings_accent_desc">Used for buttons, active states and the now-playing title. Works in light and dark mode.</string>
+    <string name="settings_accent_lime">Lime</string>
+    <string name="settings_accent_blue">Blue</string>
 </resources>

@@ -15,7 +15,9 @@ import com.dropsync.domain.library.LibraryBrowseRepository
 import com.dropsync.domain.library.LibraryFolder
 import com.dropsync.domain.library.LibraryListConfig
 import com.dropsync.domain.library.LibraryRepository
+import com.dropsync.domain.library.LibraryViewConfig
 import com.dropsync.domain.library.LibraryViewPreferencesRepository
+import com.dropsync.domain.library.MusicFolderFilterRepository
 import com.dropsync.domain.library.Playlist
 import com.dropsync.domain.library.SmartShuffle
 import com.dropsync.domain.library.SongPlayStat
@@ -72,6 +74,7 @@ class LibraryViewModel
         private val playbackRepository: PlaybackRepository,
         private val viewPreferences: LibraryViewPreferencesRepository,
         private val trackAnalysisRepository: TrackAnalysisRepository,
+        private val folderFilter: MusicFolderFilterRepository,
     ) : ViewModel() {
         private val _error = MutableStateFlow(LibraryError.NONE)
         val error: StateFlow<LibraryError> = _error.asStateFlow()
@@ -96,6 +99,29 @@ class LibraryViewModel
 
         /** Rohe, ungefilterte Titelliste fuer die Kategorie "Alle Titel" (Poweramp-Umbau). */
         val allSongs: StateFlow<List<Song>> = libraryRepository.availableSongs.asState(emptyList())
+
+        // --- Poweramp-Umbau Punkt 3: Ordnerauswahl + Kategorie-Sichtbarkeit ----
+
+        /**
+         * Alle bekannten Ordner (relative_path), auch abgewaehlte, als Quelle
+         * des Ordnerauswahl-Dialogs. Speist sich aus [LibraryRepository.songs]
+         * (inkl. nicht verfuegbarer Titel), damit ausgeschlossene Ordner
+         * erneut waehlbar bleiben.
+         */
+        val allFolderPaths: StateFlow<List<String>> =
+            libraryRepository.songs
+                .map { songs ->
+                    songs
+                        .mapNotNull { it.relativePath.ifEmpty { null } }
+                        .distinct()
+                        .sorted()
+                }.asState(emptyList())
+
+        /** Aktuell abgewaehlte Ordner (Poweramp "Folders and Library"). */
+        val excludedFolders: StateFlow<Set<String>> = folderFilter.excludedFolders.asState(emptySet())
+
+        /** Persistierte Ansichts-Konfiguration; steuert die Kategorie-Sichtbarkeit der Startseite. */
+        val viewConfig: StateFlow<LibraryViewConfig?> = viewPreferences.config.asState(null)
 
         /** Wiedergabestatistik je Titel-ID; Grundlage der Sortierung nach Zaehler/zuletzt. */
         val playStats: StateFlow<Map<Long, SongPlayStat>> =
@@ -327,6 +353,36 @@ class LibraryViewModel
                             }
                     }
                 _isRefreshing.value = false
+            }
+        }
+
+        /**
+         * Speichert die Ordnerauswahl (Poweramp "Folders and Library") und
+         * liest die Bibliothek anschliessend neu ein, damit abgewaehlte Ordner
+         * sofort verschwinden und neu aufgenommene wieder erscheinen.
+         */
+        fun setExcludedFolders(paths: Set<String>) {
+            viewModelScope.launch {
+                folderFilter.setExcludedFolders(paths)
+                refresh(force = true)
+            }
+        }
+
+        /** Blendet eine Kategorie auf der Startseite ein/aus (Poweramp Listenoptionen). */
+        fun setCategoryVisible(
+            category: LibraryCategory,
+            visible: Boolean,
+        ) {
+            viewModelScope.launch {
+                val currentHidden = viewConfig.value?.hiddenKeys ?: emptySet()
+                val nextHidden =
+                    if (visible) currentHidden - category.key else currentHidden + category.key
+                viewPreferences.setConfig(
+                    LibraryViewConfig(
+                        orderedKeys = LibraryCategory.entries.map { it.key },
+                        hiddenKeys = nextHidden,
+                    ),
+                )
             }
         }
 

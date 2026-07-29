@@ -14,10 +14,12 @@ import com.dropsync.domain.library.CueVirtualTrack
 import com.dropsync.domain.library.FolderScanResult
 import com.dropsync.domain.library.LibraryRepository
 import com.dropsync.domain.library.LibraryScanResult
+import com.dropsync.domain.library.MusicFolderFilterRepository
 import com.dropsync.domain.library.ParsedCueSheet
 import com.dropsync.domain.library.ScannedFile
 import com.dropsync.domain.library.ScannedFileKind
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
 
@@ -39,6 +41,7 @@ class LibraryRepositoryImpl(
     private val cueTrackDao: CueTrackDao,
     private val safFileDao: SafFileDao,
     private val safGateway: SafFolderGateway,
+    private val folderFilter: MusicFolderFilterRepository,
 ) : LibraryRepository {
     override val songs: Flow<List<Song>> =
         songDao.observeAll().map { entities -> entities.map { it.toDomain() } }
@@ -70,10 +73,18 @@ class LibraryRepositoryImpl(
 
                 val scanned = gateway.queryAudio()
                 val existing = songDao.getAllOnce().associateBy { it.mediaStoreId }
-                // Extern gelieferte Hashes ueberleben jeden Rescan.
+                val excludedFolders = folderFilter.excludedFolders.first()
+                // Extern gelieferte Hashes ueberleben jeden Rescan; Titel aus
+                // abgewaehlten Ordnern werden als nicht verfuegbar gefuehrt und
+                // fallen so aus allen Ansichten (is_available = 1), Punkt 3.
                 val entities =
                     scanned.map { song ->
-                        song.toEntity(knownSha256 = existing[song.mediaStoreId]?.knownSha256)
+                        val entity = song.toEntity(knownSha256 = existing[song.mediaStoreId]?.knownSha256)
+                        if (song.relativePath in excludedFolders) {
+                            entity.copy(isAvailable = false)
+                        } else {
+                            entity
+                        }
                     }
                 val changed = entities.count { existing[it.mediaStoreId] != it }
                 val presentIds = entities.map { it.mediaStoreId }

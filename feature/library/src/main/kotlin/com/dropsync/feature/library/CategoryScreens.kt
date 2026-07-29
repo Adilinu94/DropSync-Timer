@@ -127,6 +127,9 @@ internal fun SongCategoryScreen(
                         onDetectDrops = viewModel::detectDrops,
                         onAddToPlaylist = onAddToPlaylist,
                         compact = config.viewMode == LibraryViewMode.LIST_COMPACT,
+                        // Poweramp "Alle Titel": kein Herz/⋮ je Zeile, Titel volle
+                        // Breite; Aktionen laufen ueber Langdruck-Auswahl.
+                        showTrailingActions = false,
                         selectionActive = selectionActive,
                         selectedIds = selectedIds,
                         onLongPress = { viewModel.startSelection(it.mediaStoreId) },

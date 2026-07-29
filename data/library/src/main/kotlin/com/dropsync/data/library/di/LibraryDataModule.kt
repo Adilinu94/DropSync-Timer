@@ -21,6 +21,7 @@ import com.dropsync.data.library.LibraryViewPreferencesStore
 import com.dropsync.data.library.MarkerRepositoryImpl
 import com.dropsync.data.library.MediaStoreGateway
 import com.dropsync.data.library.MediaStoreGatewayImpl
+import com.dropsync.data.library.MusicFolderFilterStore
 import com.dropsync.data.library.SafFolderGateway
 import com.dropsync.data.library.SafFolderGatewayImpl
 import com.dropsync.data.library.ScanStateStore
@@ -30,6 +31,7 @@ import com.dropsync.domain.library.LibraryRepository
 import com.dropsync.domain.library.LibraryViewPreferencesRepository
 import com.dropsync.domain.library.MarkerMatcher
 import com.dropsync.domain.library.MarkerRepository
+import com.dropsync.domain.library.MusicFolderFilterRepository
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -80,6 +82,17 @@ object LibraryDataModule {
 
     @Provides
     @Singleton
+    fun provideMusicFolderFilter(
+        @ApplicationContext context: Context,
+    ): MusicFolderFilterRepository =
+        MusicFolderFilterStore(
+            PreferenceDataStoreFactory.create {
+                context.preferencesDataStoreFile(MusicFolderFilterStore.DATA_STORE_NAME)
+            },
+        )
+
+    @Provides
+    @Singleton
     fun provideLibraryRepository(
         gateway: MediaStoreGateway,
         songDao: SongDao,
@@ -89,6 +102,7 @@ object LibraryDataModule {
         cueTrackDao: CueTrackDao,
         safFileDao: SafFileDao,
         safGateway: SafFolderGateway,
+        folderFilter: MusicFolderFilterRepository,
     ): LibraryRepository =
         LibraryRepositoryImpl(
             gateway = gateway,
@@ -99,6 +113,7 @@ object LibraryDataModule {
             cueTrackDao = cueTrackDao,
             safFileDao = safFileDao,
             safGateway = safGateway,
+            folderFilter = folderFilter,
         )
 
     @Provides

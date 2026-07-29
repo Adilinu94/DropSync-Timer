@@ -53,6 +53,14 @@ enum class RestMusicBehavior { NORMAL, REST_PLAYLIST, DROP_LANDING }
  */
 enum class ThemeMode { SYSTEM, LIGHT, DARK }
 
+/**
+ * Vom Nutzer gewaehlte Akzentfarbe (in den Einstellungen waehlbar).
+ * Bestimmt die primaere/aktive Farbe (Buttons, aktive Zustaende, Waveform,
+ * Now-Playing-Titel) in Hell und Dunkel. LIME = Markenfarbe (Default);
+ * BLUE = alternatives Blau (#4564F9). Als stabiler String gespeichert.
+ */
+enum class AccentColor { LIME, BLUE }
+
 /** PR-Typen gemaess der exakten Regeln in Abschnitt 5.4. */
 enum class PrType { HIGHEST_LOAD, HIGHEST_SESSION_VOLUME, MOST_REPS_AT_LOAD }
 

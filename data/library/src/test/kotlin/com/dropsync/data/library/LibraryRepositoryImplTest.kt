@@ -14,6 +14,7 @@ class LibraryRepositoryImplTest {
     private val gateway = FakeMediaStoreGateway()
     private val songDao = FakeSongDao()
     private val scanState = FakeScanStateStore()
+    private val folderFilter = FakeMusicFolderFilterRepository()
 
     private val repository =
         LibraryRepositoryImpl(
@@ -25,6 +26,7 @@ class LibraryRepositoryImplTest {
             cueTrackDao = FakeCueTrackDao(),
             safFileDao = FakeSafFileDao(),
             safGateway = FakeSafFolderGateway(),
+            folderFilter = folderFilter,
         )
 
     private fun song(
@@ -110,6 +112,23 @@ class LibraryRepositoryImplTest {
             repository.refreshLibrary(force = false)
 
             assertEquals("a".repeat(64), songDao.rows.getValue(1).knownSha256)
+        }
+
+    @Test
+    fun `titel in abgewaehltem ordner werden nicht verfuegbar`() =
+        runTest {
+            // Punkt 3: abgewaehlte Ordner werden beim Abgleich als nicht
+            // verfuegbar gefuehrt und fallen so aus allen Ansichten.
+            folderFilter.setExcludedFolders(setOf("Music/Podcasts"))
+            gateway.audio =
+                listOf(
+                    song(1).copy(relativePath = "Music/Training"),
+                    song(2).copy(relativePath = "Music/Podcasts"),
+                )
+            repository.refreshLibrary(force = true)
+
+            assertTrue(songDao.rows.getValue(1).isAvailable)
+            assertFalse(songDao.rows.getValue(2).isAvailable)
         }
 
     @Test

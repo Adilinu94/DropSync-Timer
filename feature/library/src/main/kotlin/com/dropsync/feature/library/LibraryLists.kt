@@ -76,6 +76,7 @@ internal fun SongColumn(
     modifier: Modifier = Modifier,
     showFastScroller: Boolean = true,
     compact: Boolean = false,
+    showTrailingActions: Boolean = true,
     selectionActive: Boolean = false,
     selectedIds: Set<Long> = emptySet(),
     onLongPress: (Song) -> Unit = {},
@@ -97,6 +98,7 @@ internal fun SongColumn(
                     song = song,
                     isFavorite = song.mediaStoreId in favoriteIds,
                     compact = compact,
+                    showTrailingActions = showTrailingActions,
                     selectionActive = selectionActive,
                     isSelected = song.mediaStoreId in selectedIds,
                     onPlay = { onPlay(index) },
@@ -160,6 +162,7 @@ private fun SongRow(
     song: Song,
     isFavorite: Boolean,
     compact: Boolean,
+    showTrailingActions: Boolean,
     selectionActive: Boolean,
     isSelected: Boolean,
     onPlay: () -> Unit,
@@ -185,7 +188,8 @@ private fun SongRow(
                 append(it)
             }
         }
-    val coverSize = if (compact) 40.dp else 52.dp
+    // Poweramp "Alle Titel": groesseres Cover, Titel bis fast an den Rand.
+    val coverSize = if (compact) 44.dp else 60.dp
     val rowPadding = if (compact) 4.dp else 8.dp
     Row(
         modifier =
@@ -234,7 +238,7 @@ private fun SongRow(
                 overflow = TextOverflow.Ellipsis,
             )
         }
-        if (!selectionActive) {
+        if (!selectionActive && showTrailingActions) {
             IconButton(onClick = onToggleFavorite) {
                 val favTint =
                     if (isFavorite) {

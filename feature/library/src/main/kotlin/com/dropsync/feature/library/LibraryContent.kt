@@ -221,13 +221,44 @@ private fun HomeRoute(
     onOpen: (LibraryCategory) -> Unit,
 ) {
     val queue by viewModel.queue.collectAsStateWithLifecycle()
+    val viewConfig by viewModel.viewConfig.collectAsStateWithLifecycle()
+    val excluded by viewModel.excludedFolders.collectAsStateWithLifecycle()
+    val allFolders by viewModel.allFolderPaths.collectAsStateWithLifecycle()
+
+    var showFolders by remember { mutableStateOf(false) }
+    var showCategories by remember { mutableStateOf(false) }
+
+    val hidden = viewConfig?.hiddenKeys ?: emptySet()
+    val visibleCategories = LibraryCategory.entries.filter { it.key !in hidden }
+
     LibraryHomeScreen(
-        categories = LibraryCategory.entries,
+        categories = visibleCategories,
         queueCount = queue.size,
         contentPadding = contentPadding,
         onOpen = onOpen,
         onRescan = { viewModel.refresh(force = true) },
+        onSelectFolders = { showFolders = true },
+        onEditCategories = { showCategories = true },
     )
+
+    if (showFolders) {
+        SelectFoldersDialog(
+            allFolders = allFolders,
+            excluded = excluded,
+            onSave = { newExcluded ->
+                viewModel.setExcludedFolders(newExcluded)
+                showFolders = false
+            },
+            onDismiss = { showFolders = false },
+        )
+    }
+    if (showCategories) {
+        CategoryVisibilityDialog(
+            hidden = hidden,
+            onToggle = { category, visible -> viewModel.setCategoryVisible(category, visible) },
+            onDismiss = { showCategories = false },
+        )
+    }
 }
 
 @Composable

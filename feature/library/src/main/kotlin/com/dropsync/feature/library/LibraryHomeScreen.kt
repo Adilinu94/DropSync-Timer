@@ -46,6 +46,8 @@ internal fun LibraryHomeScreen(
     contentPadding: PaddingValues,
     onOpen: (LibraryCategory) -> Unit,
     onRescan: () -> Unit,
+    onSelectFolders: () -> Unit,
+    onEditCategories: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     var menuOpen by remember { mutableStateOf(false) }
@@ -74,9 +76,23 @@ internal fun LibraryHomeScreen(
                 }
                 DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
                     DropdownMenuItem(
+                        text = { Text(stringResource(R.string.library_select_folders)) },
+                        onClick = {
+                            onSelectFolders()
+                            menuOpen = false
+                        },
+                    )
+                    DropdownMenuItem(
                         text = { Text(stringResource(R.string.library_rescan)) },
                         onClick = {
                             onRescan()
+                            menuOpen = false
+                        },
+                    )
+                    DropdownMenuItem(
+                        text = { Text(stringResource(R.string.library_categories)) },
+                        onClick = {
+                            onEditCategories()
                             menuOpen = false
                         },
                     )

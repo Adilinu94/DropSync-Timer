@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.work.CoroutineWorker
 import androidx.work.ExistingWorkPolicy
 import androidx.work.OneTimeWorkRequestBuilder
+import androidx.work.OutOfQuotaPolicy
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
 import androidx.work.workDataOf
@@ -62,6 +63,11 @@ class TrackAnalysisRepositoryImpl(
         val request =
             OneTimeWorkRequestBuilder<TrackAnalysisWorker>()
                 .setInputData(workDataOf(TrackAnalysisWorker.KEY_SONG_ID to song.mediaStoreId))
+                // Beschleunigt: die Wellenform soll moeglichst zeitnah zum
+                // Titelwechsel bereitstehen, nicht erst nach WorkManager-
+                // Standardlatenz. Faellt auf normale Ausfuehrung zurueck, wenn
+                // kein Expedited-Kontingent frei ist (kein harter Zwang).
+                .setExpedited(OutOfQuotaPolicy.RUN_AS_NON_EXPEDITED_WORK_REQUEST)
                 .build()
         WorkManager
             .getInstance(context)
@@ -123,7 +129,7 @@ class TrackAnalysisWorker(
         val deps = EntryPointAccessors.fromApplication(applicationContext, Dependencies::class.java)
         val entity = deps.songDao().getById(songId) ?: return Result.failure()
 
-        return when (val result = deps.trackAnalyzer().analyze(entity.toSong())) {
+        return when (val result = deps.trackAnalyzer().analyze(entity.toSong(), detectOnsets)) {
             is AppResult.Success -> {
                 val buckets = result.value.waveformBuckets
                 deps.trackAnalysisDao().upsert(

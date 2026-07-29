@@ -73,4 +73,8 @@
     <string name="settings_theme_light_desc">Immer das helle Design verwenden.</string>
     <string name="settings_theme_dark">Dunkel</string>
     <string name="settings_theme_dark_desc">Immer das dunkle Design verwenden.</string>
+    <string name="settings_accent_title">Akzentfarbe</string>
+    <string name="settings_accent_desc">Faerbt Buttons, aktive Zustaende und den Titel im Now-Playing. Funktioniert in Hell und Dunkel.</string>
+    <string name="settings_accent_lime">Limette</string>
+    <string name="settings_accent_blue">Blau</string>
 </resources>
