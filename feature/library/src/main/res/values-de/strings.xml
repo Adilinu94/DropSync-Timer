@@ -85,6 +85,9 @@
     <string name="library_rescan">Neu scannen</string>
     <string name="library_list_options">Listen-Optionen</string>
     <string name="library_list_options_title">Listen-Optionen: %1$s</string>
+    <string name="library_folder_sort_name_asc">Name (A-Z)</string>
+    <string name="library_folder_sort_name_desc">Name (Z-A)</string>
+    <string name="library_folder_sort_tracks">Meiste Titel</string>
     <string name="library_sort_section">Sortieren</string>
     <string name="library_view_section">Ansicht</string>
     <string name="library_sort_desc">Absteigend</string>

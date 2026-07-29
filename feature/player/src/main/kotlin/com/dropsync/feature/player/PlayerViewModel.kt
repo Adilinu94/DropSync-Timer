@@ -91,6 +91,19 @@ class PlayerViewModel
         private val trackAnalysisRepository: TrackAnalysisRepository,
         private val markerRepository: MarkerRepository,
     ) : ViewModel() {
+        init {
+            // Waveform-Analyse fruehzeitig anstossen (Plan Phase 2/3): sobald ein
+            // neuer Titel laeuft, nicht erst beim Oeffnen des Now-Playing-Screens.
+            // So ist die Wellenform beim Tap auf einen Titel meist schon bereit;
+            // die Analyse ist idempotent und cachebar (kein doppelter Aufwand).
+            viewModelScope.launch {
+                playbackRepository.state
+                    .map { it.currentSongId }
+                    .distinctUntilChanged()
+                    .collect { songId -> requestAnalysis(songId) }
+            }
+        }
+
         @OptIn(ExperimentalCoroutinesApi::class)
         val miniPlayer: StateFlow<MiniPlayerState> =
             playbackRepository.state

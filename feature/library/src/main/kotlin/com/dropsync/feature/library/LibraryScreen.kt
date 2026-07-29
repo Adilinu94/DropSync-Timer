@@ -51,6 +51,7 @@ private val audioPermission: String
 fun LibraryScreen(
     contentPadding: PaddingValues,
     modifier: Modifier = Modifier,
+    onOpenNowPlaying: () -> Unit = {},
     viewModel: LibraryViewModel = hiltViewModel(),
 ) {
     val error by viewModel.error.collectAsStateWithLifecycle()
@@ -86,6 +87,7 @@ fun LibraryScreen(
                 viewModel = viewModel,
                 contentPadding = contentPadding,
                 scanFailed = error == LibraryError.SCAN_FAILED,
+                onOpenNowPlaying = onOpenNowPlaying,
                 modifier = modifier,
             )
         }

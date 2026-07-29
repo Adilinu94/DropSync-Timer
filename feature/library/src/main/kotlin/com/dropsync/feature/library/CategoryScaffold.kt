@@ -112,9 +112,9 @@ internal fun CategoryHeader(
 
 /**
  * Aktionsleiste eines Kategorie-Screens (Poweramp): Zufallswiedergabe, Play,
- * Suche (blendet ein Suchfeld ein), "Auswaehlen" und ein Ueberlaufmenue-Ersatz
- * ueber das Listen-Optionen-Icon. Suche und Auswahl sind optional (nicht jede
- * Kategorie unterstuetzt sie).
+ * Suche (blendet ein Suchfeld ein), "Auswaehlen" und rechts das Drei-Punkte-
+ * Ueberlaufmenue (Poweramp "More Options"), das die Listen-Optionen oeffnet.
+ * Suche und Auswahl sind optional (nicht jede Kategorie unterstuetzt sie).
  */
 @Composable
 internal fun LibraryToolbar(
@@ -169,7 +169,7 @@ internal fun LibraryToolbar(
         }
         IconButton(onClick = onOpenListOptions) {
             Icon(
-                painterResource(BrandIcons.Filter),
+                painterResource(BrandIcons.More),
                 contentDescription = stringResource(R.string.library_list_options),
                 tint = MaterialTheme.colorScheme.primary,
             )

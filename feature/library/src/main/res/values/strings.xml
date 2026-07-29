@@ -85,6 +85,9 @@
     <string name="library_rescan">Rescan</string>
     <string name="library_list_options">List Options</string>
     <string name="library_list_options_title">List Options: %1$s</string>
+    <string name="library_folder_sort_name_asc">Name (A-Z)</string>
+    <string name="library_folder_sort_name_desc">Name (Z-A)</string>
+    <string name="library_folder_sort_tracks">Most tracks</string>
     <string name="library_sort_section">Sort</string>
     <string name="library_view_section">View As</string>
     <string name="library_sort_desc">Descending</string>

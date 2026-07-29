@@ -12,6 +12,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
@@ -55,6 +57,7 @@ internal fun CollectionSongScreen(
     onBack: () -> Unit,
     onAddToPlaylist: (Song) -> Unit,
     onRequestDelete: (List<Song>) -> Unit,
+    onOpenNowPlaying: () -> Unit,
 ) {
     val config by viewModel.listConfigs.getValue(configCategory).collectAsStateWithLifecycle()
     val playStats by viewModel.playStats.collectAsStateWithLifecycle()
@@ -105,7 +108,10 @@ internal fun CollectionSongScreen(
                 songs = sorted,
                 favoriteIds = favoriteIds,
                 contentPadding = contentPadding,
-                onPlay = { index -> viewModel.play(sorted, index) },
+                onPlay = { index ->
+                    viewModel.play(sorted, index)
+                    onOpenNowPlaying()
+                },
                 onToggleFavorite = viewModel::toggleFavorite,
                 onPlayNext = viewModel::playNext,
                 onAddToQueue = viewModel::addToQueue,
@@ -230,9 +236,11 @@ private fun AlbumHero(
 
 /**
  * Ordner-Hierarchie (Poweramp "Folders Hierarchy"): zeigt die direkten
- * Unterordner von [path]. Ein Ordner ohne Unterordner ist ein Blatt und wird
- * ueber [onOpenLeaf] als Titelliste geoeffnet; sonst geht es per [onOpenFolder]
- * eine Ebene tiefer.
+ * Unterordner von [path] mit Aktionsleiste (Shuffle/Play spielen den ganzen
+ * Teilbaum, das Drei-Punkte-Menue sortiert die Ordner). Ein Ordner ohne
+ * Unterordner ist ein Blatt und wird ueber [onOpenLeaf] als Titelliste
+ * geoeffnet; sonst geht es per [onOpenFolder] eine Ebene tiefer. Navigierbare
+ * Ordner tragen rechts ein Ordner-Symbol als Hinweis (Poweramp).
  */
 @Composable
 internal fun FolderTreeScreen(
@@ -242,8 +250,21 @@ internal fun FolderTreeScreen(
     onBack: () -> Unit,
     onOpenFolder: (FolderNode) -> Unit,
     onOpenLeaf: (FolderNode) -> Unit,
+    playEnabled: Boolean,
+    onPlayAll: () -> Unit,
+    onShuffle: () -> Unit,
 ) {
     val children = remember(folders, path) { FolderHierarchy.childrenOf(folders, path) }
+    var folderSort by remember { mutableStateOf(FolderSort.NAME_ASC) }
+    var sortMenuOpen by remember { mutableStateOf(false) }
+    val ordered =
+        remember(children, folderSort) {
+            when (folderSort) {
+                FolderSort.NAME_ASC -> children
+                FolderSort.NAME_DESC -> children.sortedByDescending { it.name.lowercase() }
+                FolderSort.TRACKS_DESC -> children.sortedByDescending { it.trackCount }
+            }
+        }
     val title =
         if (path.isEmpty()) {
             stringResource(LibraryCategory.FOLDERS_HIERARCHY.titleRes())
@@ -257,8 +278,47 @@ internal fun FolderTreeScreen(
             subtitle = if (path.isEmpty()) null else path,
             onBack = onBack,
         )
+        // Poweramp-Aktionsleiste der Ordner-Hierarchie: Shuffle/Play spielen den
+        // Teilbaum, das Drei-Punkte-Menue bietet die Ordnersortierung.
+        Box(modifier = Modifier.fillMaxWidth()) {
+            LibraryToolbar(
+                onShuffle = onShuffle,
+                onPlayAll = onPlayAll,
+                onToggleSearch = null,
+                onSelect = null,
+                onOpenListOptions = { sortMenuOpen = true },
+                enabled = playEnabled,
+            )
+            DropdownMenu(
+                expanded = sortMenuOpen,
+                onDismissRequest = { sortMenuOpen = false },
+                modifier = Modifier.align(Alignment.TopEnd),
+            ) {
+                DropdownMenuItem(
+                    text = { Text(stringResource(R.string.library_folder_sort_name_asc)) },
+                    onClick = {
+                        folderSort = FolderSort.NAME_ASC
+                        sortMenuOpen = false
+                    },
+                )
+                DropdownMenuItem(
+                    text = { Text(stringResource(R.string.library_folder_sort_name_desc)) },
+                    onClick = {
+                        folderSort = FolderSort.NAME_DESC
+                        sortMenuOpen = false
+                    },
+                )
+                DropdownMenuItem(
+                    text = { Text(stringResource(R.string.library_folder_sort_tracks)) },
+                    onClick = {
+                        folderSort = FolderSort.TRACKS_DESC
+                        sortMenuOpen = false
+                    },
+                )
+            }
+        }
         LazyColumn(modifier = Modifier.fillMaxSize(), contentPadding = contentPadding) {
-            items(children, key = { it.path }) { node ->
+            items(ordered, key = { it.path }) { node ->
                 val deeper = FolderHierarchy.childrenOf(folders, node.path).isNotEmpty()
                 ListItem(
                     leadingContent = {
@@ -297,6 +357,18 @@ internal fun FolderTreeScreen(
                             ),
                         )
                     },
+                    trailingContent =
+                        if (deeper) {
+                            {
+                                Icon(
+                                    painterResource(BrandIcons.Folder),
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
+                        } else {
+                            null
+                        },
                     modifier =
                         Modifier.clickable {
                             if (deeper) onOpenFolder(node) else onOpenLeaf(node)
@@ -306,3 +378,6 @@ internal fun FolderTreeScreen(
         }
     }
 }
+
+/** Sortierung der Ordner-Hierarchie (Poweramp: Ordner sortieren). */
+private enum class FolderSort { NAME_ASC, NAME_DESC, TRACKS_DESC }

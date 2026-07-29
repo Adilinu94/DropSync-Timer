@@ -1,8 +1,10 @@
 package com.dropsync.core.designsystem.chart
 
+import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
@@ -11,14 +13,18 @@ import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -77,6 +83,18 @@ object WaveformMapping {
     ): Float = if (width <= 0f) 0f else (x / width).coerceIn(0f, 1f)
 }
 
+/** Anteil der Hoehe fuer die gespiegelte Reflexion unter der Grundlinie. */
+private const val REFLECTION_RATIO = 0.35f
+
+/** Stauchung der Reflexion gegenueber der Hauptwellenform (Poweramp-Optik). */
+private const val REFLECTION_SCALE = 0.42f
+
+/** Grundstaerke der Reflexion direkt unter der Grundlinie (blendet nach unten aus). */
+private const val REFLECTION_ALPHA = 0.30f
+
+/** Glaettungsdauer des Fortschritts zwischen den 200ms-Ticks (weicher Lauf). */
+private const val PROGRESS_SMOOTH_MS = 240
+
 /**
  * Interaktive Waveform. [buckets] sind Min/Max-Paare in [-1..1];
  * [progressFraction] ist der gespielte Anteil [0..1]. Tap springt sofort
@@ -85,6 +103,10 @@ object WaveformMapping {
  * [markerFractions] zeichnet vorhandene Marker als duenne Ticks in
  * Akzentfarbe (Phase 4); Long-Press meldet die Position an [onLongPress]
  * (Marker setzen bzw. nahe eines Ticks loeschen — der Aufrufer entscheidet).
+ *
+ * Poweramp-Optik: die Hauptwellenform blendet beim Erscheinen sanft ein, der
+ * Fortschritt gleitet weich zwischen den Ticks, und unter der Grundlinie liegt
+ * eine gestauchte, nach unten ausblendende Spiegelung.
  */
 @Composable
 fun Waveform(
@@ -101,6 +123,23 @@ fun Waveform(
     val restColor = MaterialTheme.colorScheme.outlineVariant
     val markerColor = MaterialTheme.colorScheme.tertiary
     var scrubFraction by remember { mutableFloatStateOf(-1f) }
+
+    // Sanfter Auftritt: die Wellenform blendet ein, sobald die Analyse vorliegt.
+    var appeared by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) { appeared = true }
+    val appear by animateFloatAsState(
+        targetValue = if (appeared) 1f else 0f,
+        animationSpec = tween(durationMillis = 480, easing = FastOutSlowInEasing),
+        label = "waveform_appear",
+    )
+    // Fortschritt gleitet weich zwischen den 200ms-Ticks; beim Scrubben zeigt die
+    // Geste sofort die Zielposition (kein Glaetten waehrend des Ziehens).
+    val animatedProgress by animateFloatAsState(
+        targetValue = progressFraction.coerceIn(0f, 1f),
+        animationSpec = tween(durationMillis = PROGRESS_SMOOTH_MS, easing = LinearEasing),
+        label = "waveform_progress",
+    )
+
     val desc = contentDescription
     val semanticsModifier =
         if (desc != null) {
@@ -144,32 +183,66 @@ fun Waveform(
                     }
                 },
     ) {
-        val bars = WaveformMapping.mapToBars(buckets, size.width, size.height)
+        // Oberer Bereich traegt die Hauptwellenform, darunter liegt die Reflexion.
+        val gap = 2.dp.toPx()
+        val mainHeight = size.height * (1f - REFLECTION_RATIO)
+        val bars = WaveformMapping.mapToBars(buckets, size.width, mainHeight)
         if (bars.isEmpty()) return@Canvas
-        val shownFraction = if (scrubFraction >= 0f) scrubFraction else progressFraction.coerceIn(0f, 1f)
+
+        val shownFraction =
+            if (scrubFraction >= 0f) scrubFraction else animatedProgress.coerceIn(0f, 1f)
         val playedX = shownFraction * size.width
+        val corner = CornerRadius(1.dp.toPx(), 1.dp.toPx())
+        val baselineY = mainHeight
+        val reflectionTop = baselineY + gap
+
+        // Vertikaler Alpha-Verlauf der Reflexion: unter der Grundlinie am
+        // kraeftigsten, nach unten hin ausblendend (gemeinsam fuer alle Balken).
+        val fade = REFLECTION_ALPHA * appear
+        val playedReflection =
+            Brush.verticalGradient(
+                colors = listOf(playedColor.copy(alpha = fade), Color.Transparent),
+                startY = reflectionTop,
+                endY = size.height,
+            )
+        val restReflection =
+            Brush.verticalGradient(
+                colors = listOf(restColor.copy(alpha = fade), Color.Transparent),
+                startY = reflectionTop,
+                endY = size.height,
+            )
+
         bars.forEach { bar ->
-            val color = if (bar.left + bar.width / 2f <= playedX) playedColor else restColor
+            val played = bar.left + bar.width / 2f <= playedX
+            val color = if (played) playedColor else restColor
+            // Hauptbalken (blendet ueber [appear] ein).
             drawRoundRect(
-                color = color,
+                color = color.copy(alpha = appear),
                 topLeft = Offset(bar.left, bar.top),
                 size = Size(bar.width, bar.height),
-                cornerRadius = CornerRadius(1.dp.toPx(), 1.dp.toPx()),
+                cornerRadius = corner,
+            )
+            // Reflexion: gestauchter Balken, an der Grundlinie haengend.
+            drawRoundRect(
+                brush = if (played) playedReflection else restReflection,
+                topLeft = Offset(bar.left, reflectionTop),
+                size = Size(bar.width, bar.height * REFLECTION_SCALE),
+                cornerRadius = corner,
             )
         }
-        // Marker-Ticks (Phase 4): duenne Linien in Akzentfarbe.
+        // Marker-Ticks (Phase 4): duenne Linien in Akzentfarbe im Hauptbereich.
         markerFractions.forEach { fraction ->
             val x = fraction.coerceIn(0f, 1f) * size.width
             drawLine(
-                color = markerColor,
+                color = markerColor.copy(alpha = appear),
                 start = Offset(x, 0f),
-                end = Offset(x, size.height),
+                end = Offset(x, baselineY),
                 strokeWidth = 2.dp.toPx(),
             )
         }
-        // Positionslinie als klarer Anker der Bedienflaeche.
+        // Positionslinie als klarer Anker der Bedienflaeche (ueber beide Zonen).
         drawLine(
-            color = playedColor,
+            color = playedColor.copy(alpha = appear),
             start = Offset(playedX, 0f),
             end = Offset(playedX, size.height),
             strokeWidth = 2.dp.toPx(),

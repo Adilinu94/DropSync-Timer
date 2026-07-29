@@ -40,6 +40,7 @@ internal fun SongCategoryScreen(
     onBack: () -> Unit,
     onAddToPlaylist: (Song) -> Unit,
     onRequestDelete: (List<Song>) -> Unit,
+    onOpenNowPlaying: () -> Unit,
 ) {
     val config by viewModel.listConfigs.getValue(category).collectAsStateWithLifecycle()
     val playStats by viewModel.playStats.collectAsStateWithLifecycle()
@@ -100,7 +101,10 @@ internal fun SongCategoryScreen(
                         songs = sorted,
                         contentPadding = contentPadding,
                         columns = if (config.viewMode == LibraryViewMode.GRID) 2 else 3,
-                        onPlay = { index -> viewModel.play(sorted, index) },
+                        onPlay = { index ->
+                            viewModel.play(sorted, index)
+                            onOpenNowPlaying()
+                        },
                         selectionActive = selectionActive,
                         selectedIds = selectedIds,
                         onLongPress = { viewModel.startSelection(it.mediaStoreId) },
@@ -113,7 +117,10 @@ internal fun SongCategoryScreen(
                         songs = sorted,
                         favoriteIds = favoriteIds,
                         contentPadding = contentPadding,
-                        onPlay = { index -> viewModel.play(sorted, index) },
+                        onPlay = { index ->
+                            viewModel.play(sorted, index)
+                            onOpenNowPlaying()
+                        },
                         onToggleFavorite = viewModel::toggleFavorite,
                         onPlayNext = viewModel::playNext,
                         onAddToQueue = viewModel::addToQueue,

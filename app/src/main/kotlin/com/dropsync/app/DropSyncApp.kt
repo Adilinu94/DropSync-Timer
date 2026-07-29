@@ -92,7 +92,7 @@ private fun DropSyncContent(
             Column {
                 // Der aktive Mini-Player bleibt in der Shell sichtbar (12.2).
                 MiniPlayer(
-                    onOpenNowPlaying = { navController.navigate(ROUTE_NOW_PLAYING) },
+                    onOpenNowPlaying = { navController.openNowPlaying() },
                 )
                 if (showBottomBar) {
                     DropSyncNavigationBar(navController)
@@ -114,7 +114,12 @@ private fun DropSyncNavHost(
         startDestination = TopLevelDestination.MUSIC.route,
     ) {
         composable(TopLevelDestination.MUSIC.route) {
-            LibraryScreen(contentPadding = contentPadding)
+            LibraryScreen(
+                contentPadding = contentPadding,
+                // Tap auf einen Titel oeffnet direkt den Now-Playing-Screen
+                // (wie Poweramp), zusaetzlich zum Mini-Player-Tap.
+                onOpenNowPlaying = { navController.openNowPlaying() },
+            )
         }
         composable(TopLevelDestination.TRAINING.route) {
             // Timer und Trainingslog teilen sich den Trainingskontext; nur
@@ -212,4 +217,12 @@ private fun NavHostController.navigateTopLevel(route: String) {
         launchSingleTop = true
         restoreState = true
     }
+}
+
+/**
+ * Oeffnet den Now-Playing-Screen; [launchSingleTop] verhindert, dass
+ * wiederholte Titel-Taps mehrere identische Eintraege stapeln.
+ */
+private fun NavHostController.openNowPlaying() {
+    navigate(ROUTE_NOW_PLAYING) { launchSingleTop = true }
 }

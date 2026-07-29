@@ -13,13 +13,24 @@ import androidx.compose.ui.unit.dp
 // Markenpalette gemaess Design.txt (Repo-Wurzel): Schwarz erzeugt Fokus,
 // Lime erzeugt Energie, Weiss erzeugt Ruhe. Lime ist ausschliesslich fuer
 // die primaere Aktion reserviert; Kontraste bleiben erhalten (Bauplan 2.6:
-// Lime #DFFF2F zu Schwarz #0D0D0D erfuellt AA deutlich).
+// Lime #DFFF2F zu dunklem Grund erfuellt AA deutlich).
 private val BrandBlack = Color(0xFF0D0D0D)
 private val BrandWhite = Color(0xFFFFFFFF)
 private val BrandLime = Color(0xFFDFFF2F)
 private val SoftGray = Color(0xFFF5F5F5)
 private val BorderGray = Color(0xFFEAEAEA)
 private val TextGray = Color(0xFF6B6B6B)
+
+// Dunkler Grund im Poweramp-Stil: kein reines Schwarz, sondern ein neutrales
+// #1F1F1F als Basis. Erhoehte Flaechen (Karten, Sheets, Auswahlleiste,
+// Mini-Player) liegen als hellere Stufen darueber; Vertiefungen etwas darunter.
+private val DarkBase = Color(0xFF1F1F1F)
+private val DarkSurfaceLow = Color(0xFF262626)
+private val DarkSurface = Color(0xFF2A2A2A)
+private val DarkSurfaceHigh = Color(0xFF323232)
+private val DarkSurfaceVariant = Color(0xFF2E2E2E)
+private val DarkOutline = Color(0xFF3C3C3C)
+private val DarkTextGray = Color(0xFFB3B3B3)
 
 private val LightColors =
     lightColorScheme(
@@ -50,17 +61,17 @@ private val DarkColors =
         onSecondary = BrandBlack,
         tertiary = BrandLime,
         onTertiary = BrandBlack,
-        background = BrandBlack,
+        background = DarkBase,
         onBackground = BrandWhite,
-        surface = BrandBlack,
+        surface = DarkBase,
         onSurface = BrandWhite,
-        surfaceVariant = Color(0xFF1A1A1A),
-        onSurfaceVariant = Color(0xFFB3B3B3),
-        surfaceContainer = Color(0xFF1A1A1A),
-        surfaceContainerLow = Color(0xFF141414),
-        surfaceContainerHigh = Color(0xFF222222),
-        outline = Color(0xFF2A2A2A),
-        outlineVariant = Color(0xFF2A2A2A),
+        surfaceVariant = DarkSurfaceVariant,
+        onSurfaceVariant = DarkTextGray,
+        surfaceContainer = DarkSurface,
+        surfaceContainerLow = DarkSurfaceLow,
+        surfaceContainerHigh = DarkSurfaceHigh,
+        outline = DarkOutline,
+        outlineVariant = DarkOutline,
     )
 
 // Radien gemaess Design.txt: Cards 24, grosse Flaechen 32; Buttons sind

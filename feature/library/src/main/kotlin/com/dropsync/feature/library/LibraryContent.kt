@@ -76,6 +76,7 @@ internal fun LibraryContent(
     viewModel: LibraryViewModel,
     contentPadding: PaddingValues,
     scanFailed: Boolean,
+    onOpenNowPlaying: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val stack = remember { mutableStateListOf<LibraryRoute>(LibraryRoute.Home) }
@@ -146,6 +147,7 @@ internal fun LibraryContent(
                     onOpenPlaylist = { push(LibraryRoute.PlaylistDetailRoute(it)) },
                     onAddToPlaylist = { songForPlaylist = it },
                     onDelete = ::requestDelete,
+                    onOpenNowPlaying = onOpenNowPlaying,
                 )
             }
 
@@ -157,6 +159,7 @@ internal fun LibraryContent(
                     onBack = ::pop,
                     onAddToPlaylist = { songForPlaylist = it },
                     onDelete = ::requestDelete,
+                    onOpenNowPlaying = onOpenNowPlaying,
                 )
             }
 
@@ -177,6 +180,7 @@ internal fun LibraryContent(
                             ),
                         )
                     },
+                    onOpenNowPlaying = onOpenNowPlaying,
                 )
             }
 
@@ -186,6 +190,7 @@ internal fun LibraryContent(
                     playlistId = route.id,
                     contentPadding = contentPadding,
                     onBack = ::pop,
+                    onOpenNowPlaying = onOpenNowPlaying,
                 )
             }
         }
@@ -236,6 +241,7 @@ private fun CategoryRoute(
     onOpenPlaylist: (Long) -> Unit,
     onAddToPlaylist: (Song) -> Unit,
     onDelete: (List<Song>) -> Unit,
+    onOpenNowPlaying: () -> Unit,
 ) {
     when (category) {
         LibraryCategory.ALL_SONGS, LibraryCategory.FAVORITES, LibraryCategory.RECENTLY_ADDED,
@@ -250,6 +256,7 @@ private fun CategoryRoute(
                 onBack = onBack,
                 onAddToPlaylist = onAddToPlaylist,
                 onRequestDelete = onDelete,
+                onOpenNowPlaying = onOpenNowPlaying,
             )
         }
 
@@ -274,6 +281,7 @@ private fun CategoryRoute(
                         ),
                     )
                 },
+                onOpenNowPlaying = onOpenNowPlaying,
             )
         }
 
@@ -285,7 +293,10 @@ private fun CategoryRoute(
                 currentIndex = index,
                 contentPadding = contentPadding,
                 onBack = onBack,
-                onPlayIndex = viewModel::playQueueIndex,
+                onPlayIndex = { queueIndex ->
+                    viewModel.playQueueIndex(queueIndex)
+                    onOpenNowPlaying()
+                },
             )
         }
 
@@ -401,6 +412,7 @@ private fun CollectionRoute(
     onBack: () -> Unit,
     onAddToPlaylist: (Song) -> Unit,
     onDelete: (List<Song>) -> Unit,
+    onOpenNowPlaying: () -> Unit,
 ) {
     LaunchedEffect(route.kind, route.key) {
         viewModel.openBucket(route.kind.toView(), route.key, route.label)
@@ -425,6 +437,7 @@ private fun CollectionRoute(
         onBack = onBack,
         onAddToPlaylist = onAddToPlaylist,
         onRequestDelete = onDelete,
+        onOpenNowPlaying = onOpenNowPlaying,
     )
 }
 
@@ -436,8 +449,25 @@ private fun FolderTreeRoute(
     onBack: () -> Unit,
     onOpenFolder: (FolderNode) -> Unit,
     onOpenLeaf: (FolderNode) -> Unit,
+    onOpenNowPlaying: () -> Unit,
 ) {
     val folders by viewModel.folders.collectAsStateWithLifecycle()
+    val allSongs by viewModel.allSongs.collectAsStateWithLifecycle()
+    // Alle Titel im Teilbaum des aktuellen Ordners (Poweramp: Play/Shuffle in
+    // der Ordner-Hierarchie spielt rekursiv den ganzen Ordner). Pfad-Praefix
+    // wie in FolderHierarchy (getrimmte relative_path-Segmente).
+    val subtree =
+        remember(allSongs, path) {
+            if (path.isEmpty()) {
+                allSongs
+            } else {
+                allSongs
+                    .filter {
+                        val rp = it.relativePath.trim('/')
+                        rp == path || rp.startsWith("$path/")
+                    }.sortedWith(compareBy({ it.relativePath }, { songTitle(it) }))
+            }
+        }
     FolderTreeScreen(
         path = path,
         folders = folders,
@@ -445,6 +475,19 @@ private fun FolderTreeRoute(
         onBack = onBack,
         onOpenFolder = onOpenFolder,
         onOpenLeaf = onOpenLeaf,
+        playEnabled = subtree.isNotEmpty(),
+        onPlayAll = {
+            if (subtree.isNotEmpty()) {
+                viewModel.play(subtree, 0)
+                onOpenNowPlaying()
+            }
+        },
+        onShuffle = {
+            if (subtree.isNotEmpty()) {
+                viewModel.shufflePlay(subtree)
+                onOpenNowPlaying()
+            }
+        },
     )
 }
 
@@ -454,6 +497,7 @@ private fun PlaylistDetailRoute(
     playlistId: Long,
     contentPadding: PaddingValues,
     onBack: () -> Unit,
+    onOpenNowPlaying: () -> Unit,
 ) {
     LaunchedEffect(playlistId) { viewModel.openPlaylist(playlistId) }
     val playlist by viewModel.openPlaylist.collectAsStateWithLifecycle()
@@ -468,7 +512,10 @@ private fun PlaylistDetailRoute(
                 viewModel.closePlaylist()
                 onBack()
             },
-            onPlay = { index -> viewModel.play(songs, index) },
+            onPlay = { index ->
+                viewModel.play(songs, index)
+                onOpenNowPlaying()
+            },
             onRemove = { position -> viewModel.removeFromPlaylist(pl.id, position) },
             onMove = { from, to -> viewModel.moveInPlaylist(pl.id, from, to) },
             onSetLabel = { label -> viewModel.setPlaylistLabel(pl.id, label) },
