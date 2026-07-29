@@ -13,7 +13,7 @@ Grundsätze: offline (Raleway als gebündelte OFL-TTF, kein Netz), keine neuen F
 | 3 | Marken-Komponenten (Buttons, BrandCard, ProgressRing) | Abgeschlossen |
 | 4 | Rebrand FlowRep (app_name, Launcher-Icon) | Abgeschlossen |
 | 5 | Screen-Redesign: Bibliothek (`:feature:library`) | Abgeschlossen |
-| 6 | Screen-Redesign: Now-Playing + Mini-Player (`:feature:player`) | Offen |
+| 6 | Screen-Redesign: Now-Playing + Mini-Player (`:feature:player`) | Abgeschlossen |
 | 7 | Timer + Bottom-Nav + globaler Feinschliff | Offen |
 
 ## Phase 2 – Design-Tokens + Typografie (Abgeschlossen)
@@ -36,6 +36,12 @@ Grundsätze: offline (Raleway als gebündelte OFL-TTF, kein Netz), keine neuen F
 - [LibraryLists.kt](feature/library/src/main/kotlin/com/dropsync/feature/library/LibraryLists.kt): Songzeilen als FlowRep-Zeilen (gerundete 52dp-Cover-Kachel mit Outline-Glyph, Raleway-Titel, Meta „Interpret | Dauer | Format", Favorit aktiv=Lime, Outline-Overflow); Sammlungszeilen mit gerundeter Icon-Kachel.
 - [LibraryContent.kt](feature/library/src/main/kotlin/com/dropsync/feature/library/LibraryContent.kt): durchgehend Outline-Icons (Suche/Clear/Tune/Zurück/Pfeile), farbige Kategorie-Punkte auf den Ansicht-Chips (Wayfinding), Shuffle mit Outline-Icon.
 - Hinweis: Album-Art-Laden bleibt ausserhalb des Feature-Moduls (keine Bild-Abhaengigkeit in `:feature:library`); die Cover-Kachel ist der gerundete Platzhalter-Slot.
+
+## Phase 6 – Screen-Redesign: Now-Playing + Mini-Player (Abgeschlossen)
+
+- [NowPlayingScreen.kt](feature/player/src/main/kotlin/com/dropsync/feature/player/NowPlayingScreen.kt): kreisrundes Cover (`CircleShape`), größerer Titel (headlineMedium), Outline-Icons (Zurück/Skip), Cover-Fallback als Outline-Glyph. Die vorhandene Lime-Waveform bleibt primäre Seekbar; der Slider-Fallback bleibt für Barrierefreiheit, wenn keine Waveform vorliegt.
+- [MiniPlayer.kt](feature/player/src/main/kotlin/com/dropsync/feature/player/MiniPlayer.kt): dünne Lime-Fortschrittslinie (neue `positionMs`/`durationMs` im `MiniPlayerState`), gerundete Cover-Kachel, Outline-Icons.
+- Hinweis: Der grosse Play-Kreis ist bereits die Lime-Primäraktion (`FilledIconButton` = primary). Der Titel bleibt kontraststark (kein Lime-Text), da Lime der Primäraktion vorbehalten ist und auf hellem Grund sonst die Lesbarkeit leidet.
 
 ## Verifikation je Phase
 

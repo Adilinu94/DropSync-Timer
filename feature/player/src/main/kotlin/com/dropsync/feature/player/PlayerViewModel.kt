@@ -31,6 +31,8 @@ data class MiniPlayerState(
     val isPlaying: Boolean = false,
     val title: String = "",
     val artist: String? = null,
+    val positionMs: Long = 0,
+    val durationMs: Long = 0,
 )
 
 /**
@@ -101,6 +103,8 @@ class PlayerViewModel
                             isPlaying = state.isPlaying,
                             title = song?.title ?: song?.displayName ?: "",
                             artist = song?.artist,
+                            positionMs = state.positionMs,
+                            durationMs = state.durationMs,
                         )
                     }
                 }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), MiniPlayerState())

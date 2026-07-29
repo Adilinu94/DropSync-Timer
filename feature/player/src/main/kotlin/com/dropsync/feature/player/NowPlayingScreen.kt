@@ -17,14 +17,14 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.MusicNote
+import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material.icons.filled.SkipNext
-import androidx.compose.material.icons.filled.SkipPrevious
+import androidx.compose.material.icons.outlined.MusicNote
+import androidx.compose.material.icons.outlined.SkipNext
+import androidx.compose.material.icons.outlined.SkipPrevious
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledIconButton
@@ -107,7 +107,7 @@ fun NowPlayingScreen(
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(
-                            Icons.AutoMirrored.Filled.ArrowBack,
+                            Icons.AutoMirrored.Outlined.ArrowBack,
                             contentDescription = stringResource(R.string.now_playing_back),
                         )
                     }
@@ -140,7 +140,7 @@ fun NowPlayingScreen(
 
             Text(
                 text = state.title,
-                style = MaterialTheme.typography.headlineSmall,
+                style = MaterialTheme.typography.headlineMedium,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
@@ -411,7 +411,7 @@ private fun TransportControls(
     ) {
         IconButton(onClick = onPrevious, modifier = Modifier.size(56.dp)) {
             Icon(
-                Icons.Filled.SkipPrevious,
+                Icons.Outlined.SkipPrevious,
                 contentDescription = stringResource(R.string.player_previous),
             )
         }
@@ -430,7 +430,7 @@ private fun TransportControls(
         }
         IconButton(onClick = onNext, modifier = Modifier.size(56.dp)) {
             Icon(
-                Icons.Filled.SkipNext,
+                Icons.Outlined.SkipNext,
                 contentDescription = stringResource(R.string.player_next),
             )
         }
@@ -459,7 +459,7 @@ private fun CoverArt(contentUri: String?) {
             Modifier
                 .fillMaxWidth(0.8f)
                 .aspectRatio(1f)
-                .clip(RoundedCornerShape(16.dp))
+                .clip(CircleShape)
                 .background(MaterialTheme.colorScheme.surfaceContainerHigh),
         contentAlignment = Alignment.Center,
     ) {
@@ -473,7 +473,7 @@ private fun CoverArt(contentUri: String?) {
             )
         } else {
             Icon(
-                Icons.Filled.MusicNote,
+                Icons.Outlined.MusicNote,
                 contentDescription = stringResource(R.string.now_playing_cover),
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.fillMaxSize(0.4f),

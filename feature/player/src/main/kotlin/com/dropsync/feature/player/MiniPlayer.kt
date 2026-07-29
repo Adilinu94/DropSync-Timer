@@ -1,16 +1,24 @@
 package com.dropsync.feature.player
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Pause
-import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material.icons.filled.QueueMusic
-import androidx.compose.material.icons.filled.SkipNext
+import androidx.compose.material.icons.outlined.MusicNote
+import androidx.compose.material.icons.outlined.Pause
+import androidx.compose.material.icons.outlined.PlayArrow
+import androidx.compose.material.icons.outlined.QueueMusic
+import androidx.compose.material.icons.outlined.SkipNext
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -23,6 +31,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -51,65 +60,106 @@ fun MiniPlayer(
         color = MaterialTheme.colorScheme.surfaceContainerHigh,
         tonalElevation = 3.dp,
     ) {
-        Row(
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Column(
+        Column(modifier = Modifier.fillMaxWidth()) {
+            val progress =
+                if (state.durationMs > 0) {
+                    (state.positionMs.toFloat() / state.durationMs).coerceIn(0f, 1f)
+                } else {
+                    0f
+                }
+            Box(
                 modifier =
                     Modifier
-                        .weight(1f)
-                        .clickable(onClick = onOpenNowPlaying),
+                        .fillMaxWidth()
+                        .height(2.dp)
+                        .background(MaterialTheme.colorScheme.surfaceVariant),
             ) {
-                Text(
-                    text = state.title,
-                    style = MaterialTheme.typography.titleSmall,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                state.artist?.let {
+                if (progress > 0f) {
+                    Box(
+                        modifier =
+                            Modifier
+                                .fillMaxWidth(progress)
+                                .fillMaxHeight()
+                                .background(MaterialTheme.colorScheme.primary),
+                    )
+                }
+            }
+            Row(
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Box(
+                    modifier =
+                        Modifier
+                            .size(44.dp)
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(MaterialTheme.colorScheme.surfaceVariant),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        Icons.Outlined.MusicNote,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                Spacer(Modifier.width(12.dp))
+                Column(
+                    modifier =
+                        Modifier
+                            .weight(1f)
+                            .clickable(onClick = onOpenNowPlaying),
+                ) {
                     Text(
-                        text = it,
-                        style = MaterialTheme.typography.bodySmall,
+                        text = state.title,
+                        style = MaterialTheme.typography.titleSmall,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )
+                    state.artist?.let {
+                        Text(
+                            text = it,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
                 }
-            }
-            IconButton(
-                onClick = viewModel::togglePlayPause,
-                // Grosse Touch-Ziele (12.5).
-                modifier = Modifier.size(48.dp),
-            ) {
-                if (state.isPlaying) {
+                IconButton(
+                    onClick = viewModel::togglePlayPause,
+                    // Grosse Touch-Ziele (12.5).
+                    modifier = Modifier.size(48.dp),
+                ) {
+                    if (state.isPlaying) {
+                        Icon(
+                            Icons.Outlined.Pause,
+                            contentDescription = stringResource(R.string.player_pause),
+                        )
+                    } else {
+                        Icon(
+                            Icons.Outlined.PlayArrow,
+                            contentDescription = stringResource(R.string.player_play),
+                        )
+                    }
+                }
+                IconButton(
+                    onClick = viewModel::skipToNext,
+                    modifier = Modifier.size(48.dp),
+                ) {
                     Icon(
-                        Icons.Filled.Pause,
-                        contentDescription = stringResource(R.string.player_pause),
-                    )
-                } else {
-                    Icon(
-                        Icons.Filled.PlayArrow,
-                        contentDescription = stringResource(R.string.player_play),
+                        Icons.Outlined.SkipNext,
+                        contentDescription = stringResource(R.string.player_next),
                     )
                 }
-            }
-            IconButton(
-                onClick = viewModel::skipToNext,
-                modifier = Modifier.size(48.dp),
-            ) {
-                Icon(
-                    Icons.Filled.SkipNext,
-                    contentDescription = stringResource(R.string.player_next),
-                )
-            }
-            IconButton(
-                onClick = { showQueue = true },
-                modifier = Modifier.size(48.dp),
-            ) {
-                Icon(
-                    Icons.Filled.QueueMusic,
-                    contentDescription = stringResource(R.string.player_queue_open),
-                )
+                IconButton(
+                    onClick = { showQueue = true },
+                    modifier = Modifier.size(48.dp),
+                ) {
+                    Icon(
+                        Icons.Outlined.QueueMusic,
+                        contentDescription = stringResource(R.string.player_queue_open),
+                    )
+                }
             }
         }
     }
