@@ -71,6 +71,7 @@ object DspConfigCodec {
             "dvcEnabled" to sanitized.dvcEnabled.toString(),
             "dvcVolume" to sanitized.dvcVolume.toString(),
             "crossfadeSeconds" to sanitized.crossfadeSeconds.toString(),
+            "mixPreset" to sanitized.mixPreset.name,
             "useSystemEffects" to sanitized.useSystemEffects.toString(),
             "bitPerfect" to sanitized.bitPerfectEnabled.toString(),
         ).joinToString(ENTRY_SEPARATOR) { (key, value) -> "$key$KV_SEPARATOR$value" }
@@ -121,6 +122,7 @@ object DspConfigCodec {
                 dvcVolume = values.double("dvcVolume", defaults.dvcVolume) ?: return null,
                 crossfadeSeconds =
                     values.int("crossfadeSeconds", defaults.crossfadeSeconds) ?: return null,
+                mixPreset = values.enum("mixPreset", defaults.mixPreset) ?: return null,
                 useSystemEffects =
                     values.bool("useSystemEffects", defaults.useSystemEffects) ?: return null,
                 bitPerfectEnabled =

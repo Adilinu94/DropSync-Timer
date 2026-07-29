@@ -9,6 +9,10 @@ import com.dropsync.core.common.DispatcherProvider
 import com.dropsync.core.model.RestMusicBehavior
 import com.dropsync.core.model.Song
 import com.dropsync.core.model.SongMarker
+import com.dropsync.domain.audio.AudioEngineRepository
+import com.dropsync.domain.audio.CrossfadeCurves
+import com.dropsync.domain.audio.DspConfig
+import com.dropsync.domain.audio.MixPreset
 import com.dropsync.domain.library.ImportReport
 import com.dropsync.domain.library.LibraryRepository
 import com.dropsync.domain.library.LibraryViewPreferencesRepository
@@ -23,6 +27,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -56,6 +61,7 @@ class SettingsViewModel
         private val restMusicSettings: RestMusicSettingsRepository,
         private val restTimerPreferences: RestTimerPreferencesRepository,
         private val libraryViewPreferences: LibraryViewPreferencesRepository,
+        private val audioEngine: AudioEngineRepository,
         private val dispatchers: DispatcherProvider,
     ) : ViewModel() {
         /** Nicht zugeordnete Marker fuer die manuelle Zuordnung (Schritt 6.6). */
@@ -125,6 +131,18 @@ class SettingsViewModel
                 viewModelScope,
                 SharingStarted.WhileSubscribed(5_000),
                 false,
+            )
+
+        /**
+         * DSP-Konfiguration fuer den Mix-Uebergaenge-Abschnitt
+         * (Mix-Uebergaenge-Plan Phase 3): an/aus = crossfadeSeconds > 0,
+         * Preset und Dauer werden direkt in der Konfiguration gehalten.
+         */
+        val dspConfig: StateFlow<DspConfig> =
+            audioEngine.dspConfig.stateIn(
+                viewModelScope,
+                SharingStarted.WhileSubscribed(5_000),
+                DspConfig(),
             )
 
         private val mutableImportState = MutableStateFlow<ImportUiState>(ImportUiState.Idle)
@@ -220,6 +238,35 @@ class SettingsViewModel
             viewModelScope.launch { libraryViewPreferences.setSmartShuffleEnabled(enabled) }
         }
 
+        /**
+         * Mix-Uebergaenge an/aus: aus = Dauer 0 (Bestandsverhalten des
+         * Crossfade), an = zuletzt sinnvolle bzw. Standarddauer.
+         */
+        fun setMixEnabled(enabled: Boolean) {
+            viewModelScope.launch {
+                val current = audioEngine.dspConfig.first()
+                val seconds = if (enabled) DEFAULT_MIX_SECONDS else 0
+                audioEngine.updateDspConfig(current.copy(crossfadeSeconds = seconds))
+            }
+        }
+
+        /** Waehlt das Uebergangs-Preset (Mix-Uebergaenge-Plan Phase 2). */
+        fun setMixPreset(preset: MixPreset) {
+            viewModelScope.launch {
+                val current = audioEngine.dspConfig.first()
+                audioEngine.updateDspConfig(current.copy(mixPreset = preset))
+            }
+        }
+
+        /** Setzt die Uebergangsdauer in Sekunden (1..MAX, 0 nur via Schalter). */
+        fun setMixSeconds(seconds: Int) {
+            viewModelScope.launch {
+                val current = audioEngine.dspConfig.first()
+                val clamped = seconds.coerceIn(1, CrossfadeCurves.MAX_SECONDS)
+                audioEngine.updateDspConfig(current.copy(crossfadeSeconds = clamped))
+            }
+        }
+
         fun dismissImportResult() {
             mutableImportState.value = ImportUiState.Idle
         }
@@ -248,5 +295,10 @@ class SettingsViewModel
             data object TooLarge : ReadResult
 
             data object Unreadable : ReadResult
+        }
+
+        companion object {
+            /** Standarddauer beim Einschalten der Mix-Uebergaenge. */
+            const val DEFAULT_MIX_SECONDS: Int = 6
         }
     }

@@ -4,6 +4,7 @@ import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.exoplayer.ExoPlayer
 import com.dropsync.domain.audio.CrossfadeCurves
+import com.dropsync.domain.audio.MixPreset
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -15,8 +16,9 @@ import kotlinx.coroutines.launch
  *
  * Der sessionfuehrende Hauptspieler bleibt Single Source of Truth; ein
  * zweiter, vorgepufferter ExoPlayer startet [crossfadeSeconds] vor dem
- * Titelende und beide laufen ueber Equal-Power-Rampen aus
- * [CrossfadeCurves]. Nach der Rampe uebernimmt der Hauptspieler den
+ * Titelende und beide laufen ueber die Kurven des aktiven [MixPreset]
+ * aus (Mix-Uebergaenge-Plan Phase 2; Default FADE = Equal-Power-Rampen
+ * aus [CrossfadeCurves]). Nach der Rampe uebernimmt der Hauptspieler den
  * naechsten Titel an der Position des Zweitspielers.
  *
  * Regeln (Plan Phase 4):
@@ -34,6 +36,7 @@ class CrossfadeController(
     private val scope: CoroutineScope,
 ) {
     private var crossfadeSeconds: Int = 0
+    private var sessionPreset: MixPreset = MixPreset.FADE
     private var watchJob: Job? = null
     private var fadeJob: Job? = null
     private var secondaryPlayer: ExoPlayer? = null
@@ -44,6 +47,15 @@ class CrossfadeController(
         if (crossfadeSeconds == 0) {
             cancelFade(restoreVolume = true)
         }
+    }
+
+    /**
+     * Uebergangs-Preset aus der DSP-Konfiguration (Mix-Uebergaenge-Plan
+     * Phase 2). Wirkt ab der naechsten Rampe; eine laufende Rampe wird
+     * nicht unterbrochen.
+     */
+    fun setPreset(preset: MixPreset) {
+        sessionPreset = preset
     }
 
     /** Startet die Titelende-Ueberwachung (einmal je Service-Leben). */
@@ -100,6 +112,7 @@ class CrossfadeController(
         secondary.prepare()
         secondary.play()
         val fadeMs = crossfadeSeconds * 1000L
+        val preset = sessionPreset
         fadeJob =
             scope.launch {
                 try {
@@ -108,8 +121,8 @@ class CrossfadeController(
                         // Nutzer hat pausiert: Rampe abbrechen, Uebergabe folgt.
                         if (!mainPlayer.isPlaying) break
                         val t = elapsed.toDouble() / fadeMs
-                        mainPlayer.volume = CrossfadeCurves.fadeOutGain(t).toFloat()
-                        secondary.volume = CrossfadeCurves.fadeInGain(t).toFloat()
+                        mainPlayer.volume = smoothedGain(preset, t, fadeMs, fadeOut = true)
+                        secondary.volume = smoothedGain(preset, t, fadeMs, fadeOut = false)
                         delay(STEP_MS)
                         elapsed += STEP_MS
                     }
@@ -156,6 +169,7 @@ class CrossfadeController(
         secondary.setMediaItem(next)
         secondary.prepare()
         secondary.play()
+        val preset = sessionPreset
         fadeJob =
             scope.launch {
                 try {
@@ -164,8 +178,8 @@ class CrossfadeController(
                         // Nutzer hat pausiert oder gesprungen: Rampe abbrechen.
                         if (!mainPlayer.isPlaying) return@launch
                         val t = elapsed.toDouble() / fadeMs
-                        mainPlayer.volume = CrossfadeCurves.fadeOutGain(t).toFloat()
-                        secondary.volume = CrossfadeCurves.fadeInGain(t).toFloat()
+                        mainPlayer.volume = smoothedGain(preset, t, fadeMs, fadeOut = true)
+                        secondary.volume = smoothedGain(preset, t, fadeMs, fadeOut = false)
                         delay(STEP_MS)
                         elapsed += STEP_MS
                     }
@@ -196,6 +210,25 @@ class CrossfadeController(
     companion object {
         private const val POLL_INTERVAL_MS = 250L
         private const val STEP_MS = 50L
+
+        /**
+         * Klickschutz (Mix-Uebergaenge-Plan Phase 2): Der Gain wird ueber
+         * das jeweils naechste [STEP_MS]-Fenster gemittelt. Fuer stetige
+         * Kurven aendert das praktisch nichts; der harte 0<->1-Sprung von
+         * [MixPreset.SLAM] wird so zu einer kurzen Mikro-Rampe statt eines
+         * Knacksers in einem einzelnen Schritt.
+         */
+        internal fun smoothedGain(
+            preset: MixPreset,
+            t: Double,
+            fadeMs: Long,
+            fadeOut: Boolean,
+        ): Float {
+            val tNext = (t + STEP_MS.toDouble() / fadeMs).coerceAtMost(1.0)
+            val now = if (fadeOut) preset.fadeOutGain(t) else preset.fadeInGain(t)
+            val next = if (fadeOut) preset.fadeOutGain(tNext) else preset.fadeInGain(tNext)
+            return ((now + next) / 2.0).toFloat()
+        }
 
         /**
          * Gapless-Regel (Plan Phase 4): kein Crossfade bei virtuellen

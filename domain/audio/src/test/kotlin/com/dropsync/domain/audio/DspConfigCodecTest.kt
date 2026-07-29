@@ -30,6 +30,7 @@ class DspConfigCodecTest {
                 dvcEnabled = true,
                 dvcVolume = 0.8,
                 crossfadeSeconds = 6,
+                mixPreset = MixPreset.SLAM,
                 useSystemEffects = true,
                 bitPerfectEnabled = true,
             )
@@ -50,6 +51,16 @@ class DspConfigCodecTest {
         assertNull(DspConfigCodec.decode("enabled=vielleicht"))
         assertNull(DspConfigCodec.decode("preampDb=abc"))
         assertNull(DspConfigCodec.decode("kein-trenner"))
+        assertNull(DspConfigCodec.decode("mixPreset=QUATSCH"))
+    }
+
+    @Test
+    fun `fehlendes mix preset faellt auf fade zurueck`() {
+        // Vorwaertskompatibilitaet: alte Profile ohne mixPreset-Schluessel
+        // (vor Mix-Uebergaenge-Plan Phase 2) bleiben gueltig.
+        val decoded = DspConfigCodec.decode("crossfadeSeconds=4")
+        assertEquals(MixPreset.FADE, decoded!!.mixPreset)
+        assertEquals(4, decoded.crossfadeSeconds)
     }
 
     @Test

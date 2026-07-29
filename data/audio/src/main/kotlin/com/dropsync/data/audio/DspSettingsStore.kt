@@ -13,6 +13,7 @@ import com.dropsync.domain.audio.DspConfig
 import com.dropsync.domain.audio.EqBandsCodec
 import com.dropsync.domain.audio.EqMode
 import com.dropsync.domain.audio.EqSettings
+import com.dropsync.domain.audio.MixPreset
 import com.dropsync.domain.audio.ResamplerQuality
 import com.dropsync.domain.audio.ResamplerSettings
 import com.dropsync.domain.audio.ReverbSettings
@@ -55,6 +56,7 @@ class DspSettingsStore
         private val dvcEnabledKey = booleanPreferencesKey("dvc_enabled")
         private val dvcVolumeKey = doublePreferencesKey("dvc_volume")
         private val crossfadeSecondsKey = intPreferencesKey("crossfade_seconds")
+        private val mixPresetKey = stringPreferencesKey("mix_preset")
         private val useSystemEffectsKey = booleanPreferencesKey("use_system_effects")
         private val bitPerfectKey = booleanPreferencesKey("bit_perfect_enabled")
 
@@ -82,6 +84,7 @@ class DspSettingsStore
                 prefs[dvcEnabledKey] = sanitized.dvcEnabled
                 prefs[dvcVolumeKey] = sanitized.dvcVolume
                 prefs[crossfadeSecondsKey] = sanitized.crossfadeSeconds
+                prefs[mixPresetKey] = sanitized.mixPreset.name
                 prefs[useSystemEffectsKey] = sanitized.useSystemEffects
                 prefs[bitPerfectKey] = sanitized.bitPerfectEnabled
             }
@@ -120,6 +123,7 @@ class DspSettingsStore
                     dvcEnabled = prefs[dvcEnabledKey] ?: false,
                     dvcVolume = prefs[dvcVolumeKey] ?: 1.0,
                     crossfadeSeconds = prefs[crossfadeSecondsKey] ?: 0,
+                    mixPreset = enumOr(prefs[mixPresetKey], MixPreset.FADE),
                     useSystemEffects = prefs[useSystemEffectsKey] ?: false,
                     bitPerfectEnabled = prefs[bitPerfectKey] ?: false,
                 ),

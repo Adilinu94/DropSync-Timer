@@ -42,6 +42,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.dropsync.core.model.RestMusicBehavior
 import com.dropsync.core.model.Song
 import com.dropsync.core.model.SongMarker
+import com.dropsync.domain.audio.MixPreset
 import kotlin.math.roundToInt
 
 /**
@@ -65,6 +66,7 @@ fun SettingsScreen(
     val getReadySeconds by viewModel.getReadySeconds.collectAsStateWithLifecycle()
     val restPresets by viewModel.restPresets.collectAsStateWithLifecycle()
     val smartShuffleEnabled by viewModel.smartShuffleEnabled.collectAsStateWithLifecycle()
+    val dspConfig by viewModel.dspConfig.collectAsStateWithLifecycle()
     val importState by viewModel.importState.collectAsStateWithLifecycle()
     var markerToLink by remember { mutableStateOf<SongMarker?>(null) }
 
@@ -95,6 +97,17 @@ fun SettingsScreen(
                         .fillMaxWidth()
                         .heightIn(min = 48.dp)
                         .clickable(onClick = onOpenAudioSettings),
+            )
+        }
+        item { HorizontalDivider(Modifier.padding(vertical = 12.dp)) }
+        item {
+            MixTransitionsSection(
+                crossfadeSeconds = dspConfig.crossfadeSeconds,
+                preset = dspConfig.mixPreset,
+                bitPerfectEnabled = dspConfig.bitPerfectEnabled,
+                onSetEnabled = viewModel::setMixEnabled,
+                onSetPreset = viewModel::setMixPreset,
+                onSetSeconds = viewModel::setMixSeconds,
             )
         }
         item { HorizontalDivider(Modifier.padding(vertical = 12.dp)) }
@@ -477,6 +490,107 @@ private fun WorkoutExtrasSection(
 
 /** Waehlbare Sekundenwerte fuer die Rest-Schnellwahl (B8). */
 private val PRESET_CHOICES: List<Int> = listOf(30, 45, 60, 75, 90, 120, 150, 180, 240, 300)
+
+/**
+ * Mix-Uebergaenge (Mix-Uebergaenge-Plan Phase 3): automatischer
+ * Uebergang zwischen Titeln mit waehlbarem Preset und Dauer. An/aus
+ * entspricht Crossfade-Dauer > 0; bei Bit-Perfect (ADR-0009) ist der
+ * Crossfade technisch deaktiviert, der Abschnitt weist darauf hin.
+ */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun MixTransitionsSection(
+    crossfadeSeconds: Int,
+    preset: MixPreset,
+    bitPerfectEnabled: Boolean,
+    onSetEnabled: (Boolean) -> Unit,
+    onSetPreset: (MixPreset) -> Unit,
+    onSetSeconds: (Int) -> Unit,
+) {
+    val enabled = crossfadeSeconds > 0
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Text(
+            text = stringResource(R.string.settings_mix_section),
+            style = MaterialTheme.typography.titleMedium,
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+        )
+        ListItem(
+            headlineContent = { Text(stringResource(R.string.settings_mix_toggle_title)) },
+            supportingContent = { Text(stringResource(R.string.settings_mix_toggle_desc)) },
+            trailingContent = {
+                Switch(
+                    checked = enabled,
+                    onCheckedChange = onSetEnabled,
+                    enabled = !bitPerfectEnabled,
+                )
+            },
+        )
+        if (bitPerfectEnabled) {
+            Text(
+                text = stringResource(R.string.settings_mix_bit_perfect_hint),
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.padding(horizontal = 16.dp),
+            )
+        }
+        if (enabled && !bitPerfectEnabled) {
+            Text(
+                text = stringResource(R.string.settings_mix_preset_title),
+                style = MaterialTheme.typography.titleSmall,
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+            )
+            FlowRow(
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                MixPreset.entries.forEach { option ->
+                    FilterChip(
+                        selected = option == preset,
+                        onClick = { onSetPreset(option) },
+                        label = { Text(stringResource(option.labelRes())) },
+                    )
+                }
+            }
+            Text(
+                text = stringResource(preset.descRes()),
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.padding(horizontal = 16.dp),
+            )
+            Spacer(Modifier.height(8.dp))
+            Text(
+                text = stringResource(R.string.settings_mix_duration, crossfadeSeconds),
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.padding(horizontal = 16.dp),
+            )
+            Slider(
+                value = crossfadeSeconds.toFloat(),
+                onValueChange = { onSetSeconds(it.roundToInt()) },
+                valueRange = 1f..12f,
+                steps = 10,
+                modifier = Modifier.padding(horizontal = 16.dp),
+            )
+        }
+    }
+}
+
+private fun MixPreset.labelRes(): Int =
+    when (this) {
+        MixPreset.FADE -> R.string.settings_mix_preset_fade
+        MixPreset.RISE -> R.string.settings_mix_preset_rise
+        MixPreset.BLEND -> R.string.settings_mix_preset_blend
+        MixPreset.WAVE -> R.string.settings_mix_preset_wave
+        MixPreset.MELT -> R.string.settings_mix_preset_melt
+        MixPreset.SLAM -> R.string.settings_mix_preset_slam
+    }
+
+private fun MixPreset.descRes(): Int =
+    when (this) {
+        MixPreset.FADE -> R.string.settings_mix_preset_fade_desc
+        MixPreset.RISE -> R.string.settings_mix_preset_rise_desc
+        MixPreset.BLEND -> R.string.settings_mix_preset_blend_desc
+        MixPreset.WAVE -> R.string.settings_mix_preset_wave_desc
+        MixPreset.MELT -> R.string.settings_mix_preset_melt_desc
+        MixPreset.SLAM -> R.string.settings_mix_preset_slam_desc
+    }
 
 /**
  * Eine Auswahl des Pausen-Musik-Verhaltens (Musik-Workout-Plan Phase 3):

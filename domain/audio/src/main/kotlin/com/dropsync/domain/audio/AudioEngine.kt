@@ -53,6 +53,8 @@ data class DspConfig(
     val dvcVolume: Double = 1.0,
     /** Crossfade-Dauer in Sekunden (Plan Phase 4); 0 = aus. */
     val crossfadeSeconds: Int = 0,
+    /** Uebergangs-Preset des Crossfade (Mix-Uebergaenge-Plan Phase 2). */
+    val mixPreset: MixPreset = MixPreset.FADE,
     /**
      * Systemeffekte (MusicFX) verwenden: die interne DSP-Kette wird
      * stummgeschaltet, um Doppel-EQ zu vermeiden (Plan Phase 4).

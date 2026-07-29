@@ -5,6 +5,19 @@ Status: Entwurf, noch nicht umgesetzt, zur Freigabe. Diese Fassung
 ersetzt den urspruenglichen Entwurf vom selben Tag; die Aenderungen
 gegenueber dem Original sind im Abschnitt "Review-Ergebnis" belegt.
 
+**Update (28.07.2026, nach Freigabe): Phasen 2 und 3 sind umgesetzt.**
+Projektinhaber-Entscheidung bei der Freigabe: Die Steuerung liegt
+**global in den Einstellungen** (an/aus, Uebergangsstil, Dauer) statt
+pro Playlist. Damit entfaellt die geplante Spalte
+`playlists.mix_preset`; das Preset ist Teil der `DspConfig`
+(DataStore `audio_dsp`, Schluessel `mix_preset`, stabiler Enum-Name)
+und wandert ueber den bestehenden Konfigurationsfluss
+(`AudioPipeline.currentConfig`) in den `CrossfadeController`. An/aus
+ist `crossfadeSeconds > 0` (Einschalten setzt 6 s Standard). Phase 1
+(BPM/Tonart-Analyse) und die BPM/Key-Badges aus Phase 3 bleiben
+Entwurf; die zugehoerige Migration reduziert sich auf die zwei
+`track_analysis`-Spalten.
+
 Basiert auf tatsaechlich gelesenem Code (CrossfadeController.kt,
 CrossfadeCurves.kt, MasterDspProcessor.kt, AudioPipeline.kt,
 DspRenderersFactory.kt, PlaybackService.kt, DropRestRequestBus.kt,
@@ -141,10 +154,10 @@ Drop-Landung.
 
 | Phase | Inhalt | Status |
 |---|---|---|
-| 1 | BPM/Key-Analyse: `TrackAnalyzer`/`TrackAnalysisRepositoryImpl` additiv erweitern (bpm/camelotKey), Migration v4->v5 (inkl. `playlists.mix_preset`), laeuft im vorhandenen Decode-Durchgang mit | Entwurf |
-| 2 | Preset-Modell: `MixPreset`-Enum mit sechs unterscheidbaren Kurven + generischem Equal-Power-Komplement, `CrossfadeController` (`beginFade` + `crossfadeTo`) auf Strategie umgestellt | Entwurf |
-| 3 | UI (FlowRep-Design): BPM/Key-Badge, Mix-Umschalter + Preset-Wahl pro Playlist, Batch-Analyse-Trigger beim Aktivieren | Entwurf |
-| 4 | Tests: Tempo-/Chroma-Akkumulatoren (inkl. Oktav-Toleranz), Analyzer-Regression, `CrossfadeControllerTest` je Preset, Analyse-Durchsatz-Waechter, Migrationstest v4->v5 | Entwurf |
+| 1 | BPM/Key-Analyse: `TrackAnalyzer`/`TrackAnalysisRepositoryImpl` additiv erweitern (bpm/camelotKey), Migration v4->v5 (nur noch `track_analysis.bpm`/`camelot_key`), laeuft im vorhandenen Decode-Durchgang mit | Entwurf |
+| 2 | Preset-Modell: `MixPreset`-Enum mit sechs unterscheidbaren Kurven + generischem Equal-Power-Komplement, `CrossfadeController` (`beginFade` + `crossfadeTo`) auf Strategie umgestellt, SLAM-Mikro-Rampe (`smoothedGain`), `DspConfig.mixPreset` inkl. Persistenz + Profil-Codec | Umgesetzt |
+| 3 | UI: Abschnitt "Mix-Uebergaenge" in den Einstellungen (an/aus, sechs Preset-Chips mit Erklaertext, Dauer-Slider 1-12 s, Bit-Perfect-Hinweis), Strings DE/EN | Umgesetzt (globale Einstellungen statt pro Playlist, Nutzerentscheidung; BPM/Key-Badge + Batch-Analyse folgen mit Phase 1) |
+| 4 | Tests: `MixPresetTest` (Equal-Power-Eigenschaftstest, FADE bitidentisch, Monotonie, paarweise Verschiedenheit), `CrossfadeControllerTest` (SLAM-Mikro-Rampe, Glaettung stetiger Kurven), `DspConfigCodecTest` (Roundtrip, Rueckfall, defekter Wert) | Umgesetzt (Analyzer-/Migrationstests folgen mit Phase 1) |
 | 5 (optional) | Zweite DSP-Kette fuer Zweitspieler -> echte EQ-/Filter-Uebergaenge; braucht ADR-0013 | Nicht geplant, nur beschrieben |
 | 6 (optional) | `PlaybackRepository.crossfadeTo`/`RestMusicCoordinator` um optionalen `MixPreset` erweitern (Drop-Landung mit Preset) | Nicht geplant, nur beschrieben |
 

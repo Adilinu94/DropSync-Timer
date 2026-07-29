@@ -165,6 +165,8 @@ class PlaybackService : MediaLibraryService() {
                 // Nie bei Bit-Perfect ueberblenden (ADR-0009).
                 val seconds = if (config.bitPerfectEnabled) 0 else config.crossfadeSeconds
                 controller.setCrossfadeSeconds(seconds)
+                // Uebergangs-Preset (Mix-Uebergaenge-Plan Phase 2).
+                controller.setPreset(config.mixPreset)
             }
         }
         // Option "Bei BT-Verbindung automatisch fortsetzen" (Plan Phase 4).
