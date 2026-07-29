@@ -1,10 +1,27 @@
 # DropSync/FlowRep Herzfrequenz-Anbindung ueber Health Connect — Plan (korrigierte Fassung)
 
 Stand: 28.07.2026, Repo-Stand `d4505a8` (Mix-Uebergaenge Phasen 2-4).
-Status: Entwurf, noch nicht umgesetzt, zur Freigabe. Diese Fassung
+Status: Phase 1 umgesetzt; Phasen 2-3 offen. Diese Fassung
 ersetzt den eingereichten Entwurf vom selben Tag; die Aenderungen sind
 im Abschnitt "Review-Ergebnis" belegt. Geschrieben, um ohne weiteren
 Chat-Kontext auszureichen, auch fuer eine andere KI-Instanz.
+
+**Update (28.07.2026, Phase 1 umgesetzt):** `:domain:health` und
+`:data:health` existieren. Eine Abweichung von der Skizze in 3.2 wurde
+noetig: Domain-Module sind laut Architekturtest
+(`ModuleDependencyRulesTest`, Regel 3.2/2) **reine JVM-Module** — der
+Android-Typ `ActivityResultContract` darf dort nicht auftauchen. Der
+Berechtigungs-Contract haengt deshalb nicht am `HeartRateSource`-
+Interface, sondern wird von `:data:health` unter dem Hilt-Qualifier
+`@HealthPermissionContract` (deklariert in `:domain:health`, nur
+`javax.inject`) als generischer
+`ActivityResultContract<Set<String>, Set<String>>` bereitgestellt;
+Features injizieren ihn qualifiziert und registrieren ihn per
+`rememberLauncherForActivityResult`. Zusaetzlich kapselt das interne
+`HealthConnectGateway` alle SDK-Aufrufe, wodurch Zustandsautomat,
+Initial-Read, Changes-Pfad und Token-Ablauf-Fallback rein auf der JVM
+gegen ein Fake-Gateway getestet sind. Abschnitt 3.2 unten zeigt den
+umgesetzten Vertrag.
 
 Hinweis zum Vorgaenger: Der im Original referenzierte Plan
 `LIVE_HERZFREQUENZ_ANBINDUNG_PLAN.md` (direkte Bluetooth-Anbindung an
@@ -110,20 +127,12 @@ Anzeige-Komponente in `:core:designsystem`, eingebunden von
 ### 3.2 Domain-Vertrag
 
 ```kotlin
-// :domain:health — reines Kotlin/Android-Basistypen, kein HC-SDK-Typ.
+// :domain:health — reines Kotlin (Regel 3.2/2), kein Android-/SDK-Typ.
 interface HeartRateSource {
     val availability: Flow<HeartRateAvailability>
     val latestSample: Flow<HeartRateSample?>
 
-    /**
-     * Permission-Strings und generischer Contract fuer den
-     * Berechtigungsdialog. Der Contract-Typ ist bewusst der generische
-     * ActivityResultContract<Set<String>, Set<String>> — Features
-     * registrieren ihn per rememberLauncherForActivityResult, ohne
-     * das Health-Connect-SDK zu kennen.
-     */
-    fun permissionContract(): ActivityResultContract<Set<String>, Set<String>>
-
+    /** Permission-Strings fuer den Berechtigungs-Launcher. */
     val requiredPermissions: Set<String>
 
     /** Nach Dialog-Ergebnis oder App-Resume neu pruefen. */
@@ -132,6 +141,15 @@ interface HeartRateSource {
     /** Einmaliges Nachladen (Initial-Read bzw. Changes seit Token). */
     suspend fun refresh(): AppResult<Unit>
 }
+
+/**
+ * Hilt-Qualifier: :data:health bindet darunter den generischen
+ * ActivityResultContract<Set<String>, Set<String>> fuer den
+ * Health-Connect-Berechtigungsdialog — Features kennen so weder das
+ * SDK noch :data:health.
+ */
+@Qualifier
+annotation class HealthPermissionContract
 
 enum class HeartRateAvailability {
     /** API < 28 oder Health Connect nicht installierbar. */
@@ -212,8 +230,8 @@ Erweiterung mit eigener Migration.
 
 | Phase | Inhalt | Status |
 |---|---|---|
-| 1 | `:domain:health` + `:data:health` Grundgeruest: Vertrag (3.2), `HealthConnectHeartRateSource` (3.3), `HealthSettingsStore` (Token); Tests: Sample-Mapping (mehrere Samples/Records, neuestes zaehlt), Verfuegbarkeits-Zustandsautomat inkl. `UPDATE_REQUIRED`, Token-Ablauf-Fallback — alles reine JVM-Tests gegen Fixtures | Offen |
-| 2 | `:feature:settings`: Statusanzeige (4 Zustaende), Berechtigungs-Launcher ueber den generischen Contract, Play-Store-Link bei `UPDATE_REQUIRED`; Manifest: Permission + Rationale-Intent-Filter (Abschnitt 7); Rationale-/Datenschutzseite (baut auf dem bestehenden `settings_privacy_body`-Text auf) | Offen |
+| 1 | `:domain:health` + `:data:health` Grundgeruest: Vertrag (3.2), `HealthConnectHeartRateSource` (3.3), `HealthSettingsStore` (Token), `HealthConnectGateway`-Kapselung; Tests: Sample-Mapping, Verfuegbarkeits-Zustandsautomat inkl. `UPDATE_REQUIRED`, Token-Ablauf-Fallback — alles reine JVM-Tests gegen Fakes | Umgesetzt |
+| 2 | `:feature:settings`: Statusanzeige (Zustaende aus 3.2), Berechtigungs-Launcher ueber den qualifizierten Contract, Play-Store-Link bei `UPDATE_REQUIRED`; Manifest: Permission + Rationale-Intent-Filter (Abschnitt 7); Rationale-/Datenschutzseite (baut auf dem bestehenden `settings_privacy_body`-Text auf) | Offen |
 | 3 | `HeartRateBadge` in `:core:designsystem` (bpm + "zuletzt aktualisiert vor X min" — bewusst nicht als Echtzeit dargestellt); Einbindung in Now-Playing (`:feature:player`) und Session-Screen (`:feature:workout`), FlowRep-Design-Tokens; Geraetetest inkl. Latenz-Messung (Abschnitt 6) | Offen |
 
 ## 6. Offener Beobachtungspunkt

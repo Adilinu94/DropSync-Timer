@@ -35,6 +35,7 @@ include(":core:testing")
 
 // :data
 include(":data:audio") // ADR-0005
+include(":data:health") // Herzfrequenz-Plan Phase 1
 include(":data:library")
 include(":data:playback")
 include(":data:timer")
@@ -42,6 +43,7 @@ include(":data:workout")
 
 // :domain
 include(":domain:audio") // ADR-0005
+include(":domain:health") // Herzfrequenz-Plan Phase 1
 include(":domain:library") // ADR-0003
 include(":domain:playback") // ADR-0004
 include(":domain:timer")

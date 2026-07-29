@@ -84,11 +84,11 @@ Bauplan sind nur ueber ADRs in [`docs/adr/`](docs/adr/) erlaubt.
 | 5 | Optional: zweite DSP-Kette fuer echte EQ-/Filter-Uebergaenge (ADR-0013-pflichtig) | Nicht geplant, nur beschrieben |
 | 6 | Optional: Drop-Landung (`crossfadeTo`) mit waehlbarem Preset | Nicht geplant, nur beschrieben |
 
-### Herzfrequenz ueber Health Connect (Plan `HERZFREQUENZ_HEALTH_CONNECT_PLAN.md`, Entwurf — noch nicht umgesetzt)
+### Herzfrequenz ueber Health Connect (Plan `HERZFREQUENZ_HEALTH_CONNECT_PLAN.md`)
 
 | Phase | Inhalt | Status |
 | ----- | ------ | ------ |
-| 1 | `:domain:health` + `:data:health`: `HeartRateSource`-Vertrag (generischer Permission-Contract, kein SDK-Leak in Features), `getSdkStatus`-Verfuegbarkeit inkl. `UPDATE_REQUIRED`, Changes-API mit Token-Ablauf-Fallback, `connect-client` 1.1.0 | Offen |
+| 1 | `:domain:health` + `:data:health`: `HeartRateSource`-Vertrag (Permission-Contract via `@HealthPermissionContract`-Qualifier, kein SDK-Leak in Features), `getSdkStatus`-Verfuegbarkeit inkl. `UPDATE_REQUIRED`, Changes-API mit Token-Ablauf-Fallback, `connect-client` 1.1.0; JVM-Tests gegen Fake-Gateway | Abgeschlossen |
 | 2 | Berechtigungs-UI in `:feature:settings`, Manifest (`health.READ_HEART_RATE` + Rationale-Intent-Filter), Datenschutz-/Rationale-Seite | Offen |
 | 3 | `HeartRateBadge` in `:core:designsystem` (bpm + "zuletzt aktualisiert vor X min"), Einbindung Now-Playing + Session-Screen, Latenz-Messung am Geraet | Offen |
 

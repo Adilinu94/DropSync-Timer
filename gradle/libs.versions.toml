@@ -28,9 +28,11 @@ media3 = "1.10.1"
 workManager = "2.11.2"
 datastore = "1.2.1"
 hiltNavigationCompose = "1.4.0"
+healthConnect = "1.1.0"
 
 # DI
 hilt = "2.60.1"
+javaxInject = "1"
 
 # KotlinX
 coroutines = "1.11.0"
@@ -83,11 +85,15 @@ androidx-work-runtime-ktx = { group = "androidx.work", name = "work-runtime-ktx"
 # DataStore (Scan-Generation, Player-Restore-Zustand)
 androidx-datastore-preferences = { group = "androidx.datastore", name = "datastore-preferences", version.ref = "datastore" }
 
+# Health Connect (Herzfrequenz-Plan; stabil seit 11/2025)
+androidx-health-connect-client = { group = "androidx.health.connect", name = "connect-client", version.ref = "healthConnect" }
+
 # Hilt
 hilt-android = { group = "com.google.dagger", name = "hilt-android", version.ref = "hilt" }
 hilt-compiler = { group = "com.google.dagger", name = "hilt-compiler", version.ref = "hilt" }
 hilt-android-testing = { group = "com.google.dagger", name = "hilt-android-testing", version.ref = "hilt" }
 androidx-hilt-navigation-compose = { group = "androidx.hilt", name = "hilt-navigation-compose", version.ref = "hiltNavigationCompose" }
+javax-inject = { group = "javax.inject", name = "javax.inject", version.ref = "javaxInject" }
 
 # KotlinX
 kotlinx-coroutines-core = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-core", version.ref = "coroutines" }
