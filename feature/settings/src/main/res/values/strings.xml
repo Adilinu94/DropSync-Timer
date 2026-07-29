@@ -66,4 +66,11 @@
     <string name="settings_seconds_format">%1$d s</string>
     <string name="settings_smart_shuffle_title">Smart shuffle</string>
     <string name="settings_smart_shuffle_desc">Weight shuffle by play count and favorites and avoid recently played tracks.</string>
+    <string name="settings_appearance_section">Appearance</string>
+    <string name="settings_theme_system">Follow system</string>
+    <string name="settings_theme_system_desc">Use the light or dark theme depending on your system setting.</string>
+    <string name="settings_theme_light">Light</string>
+    <string name="settings_theme_light_desc">Always use the light theme.</string>
+    <string name="settings_theme_dark">Dark</string>
+    <string name="settings_theme_dark_desc">Always use the dark theme.</string>
 </resources>

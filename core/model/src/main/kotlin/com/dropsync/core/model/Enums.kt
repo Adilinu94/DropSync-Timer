@@ -46,6 +46,13 @@ enum class PlaylistLabel { REST, WORK }
  */
 enum class RestMusicBehavior { NORMAL, REST_PLAYLIST, DROP_LANDING }
 
+/**
+ * Vom Nutzer gewaehltes App-Design (in den Einstellungen waehlbar).
+ * SYSTEM = dem hellen/dunklen Systemdesign folgen; LIGHT = immer hell;
+ * DARK = immer dunkel. Als stabiler String gespeichert.
+ */
+enum class ThemeMode { SYSTEM, LIGHT, DARK }
+
 /** PR-Typen gemaess der exakten Regeln in Abschnitt 5.4. */
 enum class PrType { HIGHEST_LOAD, HIGHEST_SESSION_VOLUME, MOST_REPS_AT_LOAD }
 

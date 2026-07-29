@@ -67,12 +67,14 @@ dependencies {
     implementation(project(":domain:health"))
     implementation(project(":domain:library"))
     implementation(project(":domain:playback"))
+    implementation(project(":domain:settings"))
     implementation(project(":domain:timer"))
     implementation(project(":domain:workout"))
     implementation(project(":data:audio"))
     implementation(project(":data:health"))
     implementation(project(":data:library"))
     implementation(project(":data:playback"))
+    implementation(project(":data:settings"))
     implementation(project(":data:timer"))
     implementation(project(":data:workout"))
     implementation(project(":feature:library"))
@@ -84,6 +86,7 @@ dependencies {
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
+    implementation(libs.androidx.lifecycle.runtime.compose)
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.navigation.compose)
 

@@ -42,6 +42,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.dropsync.core.model.RestMusicBehavior
 import com.dropsync.core.model.Song
 import com.dropsync.core.model.SongMarker
+import com.dropsync.core.model.ThemeMode
 import com.dropsync.domain.audio.MixPreset
 import kotlin.math.roundToInt
 
@@ -62,6 +63,7 @@ fun SettingsScreen(
     val pendingCandidates by viewModel.pendingAutoDetectedMarkers.collectAsStateWithLifecycle()
     val songs by viewModel.songs.collectAsStateWithLifecycle()
     val restMusicBehavior by viewModel.restMusicBehavior.collectAsStateWithLifecycle()
+    val themeMode by viewModel.themeMode.collectAsStateWithLifecycle()
     val getReadyEnabled by viewModel.getReadyEnabled.collectAsStateWithLifecycle()
     val getReadySeconds by viewModel.getReadySeconds.collectAsStateWithLifecycle()
     val restPresets by viewModel.restPresets.collectAsStateWithLifecycle()
@@ -81,6 +83,21 @@ fun SettingsScreen(
         modifier = modifier.fillMaxSize(),
         contentPadding = contentPadding,
     ) {
+        item {
+            Text(
+                text = stringResource(R.string.settings_appearance_section),
+                style = MaterialTheme.typography.titleMedium,
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+            )
+        }
+        items(ThemeMode.entries, key = { it.name }) { option ->
+            ThemeModeOption(
+                option = option,
+                selected = option == themeMode,
+                onSelect = { viewModel.setThemeMode(option) },
+            )
+        }
+        item { HorizontalDivider(Modifier.padding(vertical = 12.dp)) }
         item {
             Text(
                 text = stringResource(R.string.settings_audio_section),
@@ -626,4 +643,40 @@ private fun RestMusicBehavior.descRes(): Int =
         RestMusicBehavior.NORMAL -> R.string.settings_rest_music_normal_desc
         RestMusicBehavior.REST_PLAYLIST -> R.string.settings_rest_music_rest_playlist_desc
         RestMusicBehavior.DROP_LANDING -> R.string.settings_rest_music_drop_landing_desc
+    }
+
+/**
+ * Eine Auswahl des App-Designs (Darstellung): Radio-Knopf, Titel und
+ * Erklaertext. SYSTEM folgt dem hellen/dunklen Systemdesign.
+ */
+@Composable
+private fun ThemeModeOption(
+    option: ThemeMode,
+    selected: Boolean,
+    onSelect: () -> Unit,
+) {
+    ListItem(
+        headlineContent = { Text(stringResource(option.titleRes())) },
+        supportingContent = { Text(stringResource(option.descRes())) },
+        leadingContent = { RadioButton(selected = selected, onClick = onSelect) },
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .heightIn(min = 48.dp)
+                .clickable(onClick = onSelect),
+    )
+}
+
+private fun ThemeMode.titleRes(): Int =
+    when (this) {
+        ThemeMode.SYSTEM -> R.string.settings_theme_system
+        ThemeMode.LIGHT -> R.string.settings_theme_light
+        ThemeMode.DARK -> R.string.settings_theme_dark
+    }
+
+private fun ThemeMode.descRes(): Int =
+    when (this) {
+        ThemeMode.SYSTEM -> R.string.settings_theme_system_desc
+        ThemeMode.LIGHT -> R.string.settings_theme_light_desc
+        ThemeMode.DARK -> R.string.settings_theme_dark_desc
     }

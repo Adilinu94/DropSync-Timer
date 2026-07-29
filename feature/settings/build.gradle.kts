@@ -39,6 +39,7 @@ dependencies {
     implementation(project(":domain:audio"))
     implementation(project(":domain:library"))
     implementation(project(":domain:playback"))
+    implementation(project(":domain:settings"))
     implementation(project(":domain:timer"))
 
     val composeBom = platform(libs.androidx.compose.bom)

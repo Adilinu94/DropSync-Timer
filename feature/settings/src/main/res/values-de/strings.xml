@@ -66,4 +66,11 @@
     <string name="settings_seconds_format">%1$d s</string>
     <string name="settings_smart_shuffle_title">Intelligentes Shuffle</string>
     <string name="settings_smart_shuffle_desc">Gewichtet das Shuffle nach Wiedergaben und Favoriten und meidet zuletzt Gespielte.</string>
+    <string name="settings_appearance_section">Darstellung</string>
+    <string name="settings_theme_system">Systemdesign folgen</string>
+    <string name="settings_theme_system_desc">Nutzt je nach Systemeinstellung das helle oder dunkle Design.</string>
+    <string name="settings_theme_light">Hell</string>
+    <string name="settings_theme_light_desc">Immer das helle Design verwenden.</string>
+    <string name="settings_theme_dark">Dunkel</string>
+    <string name="settings_theme_dark_desc">Immer das dunkle Design verwenden.</string>
 </resources>

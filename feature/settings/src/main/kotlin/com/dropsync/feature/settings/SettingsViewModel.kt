@@ -9,6 +9,7 @@ import com.dropsync.core.common.DispatcherProvider
 import com.dropsync.core.model.RestMusicBehavior
 import com.dropsync.core.model.Song
 import com.dropsync.core.model.SongMarker
+import com.dropsync.core.model.ThemeMode
 import com.dropsync.domain.audio.AudioEngineRepository
 import com.dropsync.domain.audio.CrossfadeCurves
 import com.dropsync.domain.audio.DspConfig
@@ -20,6 +21,7 @@ import com.dropsync.domain.library.MarkerDocumentParser
 import com.dropsync.domain.library.MarkerRepository
 import com.dropsync.domain.library.ParsedMarkerDocument
 import com.dropsync.domain.playback.RestMusicSettingsRepository
+import com.dropsync.domain.settings.ThemeSettingsRepository
 import com.dropsync.domain.timer.RestTimerPreferencesRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -59,6 +61,7 @@ class SettingsViewModel
         private val markerRepository: MarkerRepository,
         libraryRepository: LibraryRepository,
         private val restMusicSettings: RestMusicSettingsRepository,
+        private val themeSettings: ThemeSettingsRepository,
         private val restTimerPreferences: RestTimerPreferencesRepository,
         private val libraryViewPreferences: LibraryViewPreferencesRepository,
         private val audioEngine: AudioEngineRepository,
@@ -99,6 +102,14 @@ class SettingsViewModel
                 viewModelScope,
                 SharingStarted.WhileSubscribed(5_000),
                 RestMusicBehavior.NORMAL,
+            )
+
+        /** Gewaehltes App-Design (Systemdesign folgen / Hell / Dunkel). */
+        val themeMode: StateFlow<ThemeMode> =
+            themeSettings.themeMode.stateIn(
+                viewModelScope,
+                SharingStarted.WhileSubscribed(5_000),
+                ThemeMode.SYSTEM,
             )
 
         /** Get-Ready-Vorlauf an/aus (B9). */
@@ -218,6 +229,11 @@ class SettingsViewModel
         /** Setzt das Pausen-Musik-Verhalten (Musik-Workout-Plan Phase 3). */
         fun setRestMusicBehavior(behavior: RestMusicBehavior) {
             viewModelScope.launch { restMusicSettings.setBehavior(behavior) }
+        }
+
+        /** Setzt das App-Design (Systemdesign folgen / Hell / Dunkel). */
+        fun setThemeMode(mode: ThemeMode) {
+            viewModelScope.launch { themeSettings.setThemeMode(mode) }
         }
 
         /** Get-Ready-Vorlauf an/aus + Dauer (B9). */
