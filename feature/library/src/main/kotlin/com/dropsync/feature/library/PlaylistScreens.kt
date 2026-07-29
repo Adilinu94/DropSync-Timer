@@ -15,13 +15,13 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.KeyboardArrowDown
-import androidx.compose.material.icons.filled.KeyboardArrowUp
-import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.automirrored.outlined.ArrowBack
+import androidx.compose.material.icons.outlined.Add
+import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.material.icons.outlined.KeyboardArrowDown
+import androidx.compose.material.icons.outlined.KeyboardArrowUp
+import androidx.compose.material.icons.outlined.MoreVert
+import androidx.compose.material.icons.outlined.PlayArrow
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -71,7 +71,7 @@ internal fun PlaylistList(
         ListItem(
             headlineContent = { Text(stringResource(R.string.library_playlist_create)) },
             leadingContent = {
-                Icon(Icons.Filled.Add, contentDescription = null)
+                Icon(Icons.Outlined.Add, contentDescription = null)
             },
             modifier = Modifier.clickable { showCreate = true },
         )
@@ -156,7 +156,7 @@ private fun PlaylistRow(
         trailingContent = {
             IconButton(onClick = { menuOpen = true }) {
                 Icon(
-                    Icons.Filled.MoreVert,
+                    Icons.Outlined.MoreVert,
                     contentDescription = stringResource(R.string.library_more_actions),
                 )
             }
@@ -206,7 +206,7 @@ internal fun PlaylistDetail(
         ) {
             IconButton(onClick = onBack) {
                 Icon(
-                    Icons.AutoMirrored.Filled.ArrowBack,
+                    Icons.AutoMirrored.Outlined.ArrowBack,
                     contentDescription = stringResource(R.string.library_back),
                 )
             }
@@ -220,7 +220,7 @@ internal fun PlaylistDetail(
             if (songs.isNotEmpty()) {
                 IconButton(onClick = { onPlay(0) }) {
                     Icon(
-                        Icons.Filled.PlayArrow,
+                        Icons.Outlined.PlayArrow,
                         contentDescription = stringResource(R.string.library_playlist_play_all),
                     )
                 }
@@ -250,7 +250,7 @@ internal fun PlaylistDetail(
                                     enabled = index > 0,
                                 ) {
                                     Icon(
-                                        Icons.Filled.KeyboardArrowUp,
+                                        Icons.Outlined.KeyboardArrowUp,
                                         contentDescription =
                                             stringResource(R.string.library_playlist_move_up),
                                     )
@@ -260,14 +260,14 @@ internal fun PlaylistDetail(
                                     enabled = index < songs.lastIndex,
                                 ) {
                                     Icon(
-                                        Icons.Filled.KeyboardArrowDown,
+                                        Icons.Outlined.KeyboardArrowDown,
                                         contentDescription =
                                             stringResource(R.string.library_playlist_move_down),
                                     )
                                 }
                                 IconButton(onClick = { onRemove(index) }) {
                                     Icon(
-                                        Icons.Filled.Delete,
+                                        Icons.Outlined.Delete,
                                         contentDescription =
                                             stringResource(R.string.library_playlist_remove_song),
                                     )
@@ -315,7 +315,7 @@ internal fun AddToPlaylistDialog(
             ) {
                 ListItem(
                     headlineContent = { Text(stringResource(R.string.library_playlist_new)) },
-                    leadingContent = { Icon(Icons.Filled.Add, contentDescription = null) },
+                    leadingContent = { Icon(Icons.Outlined.Add, contentDescription = null) },
                     modifier = Modifier.clickable { creating = true },
                 )
                 playlists.forEach { playlist ->

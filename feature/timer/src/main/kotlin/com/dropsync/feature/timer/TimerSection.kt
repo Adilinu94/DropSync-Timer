@@ -6,8 +6,12 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
@@ -21,6 +25,7 @@ import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.dropsync.core.designsystem.component.ProgressRing
 import com.dropsync.domain.timer.TimerStatus
 import java.util.Locale
 
@@ -81,12 +86,14 @@ fun TimerSection(
                         text = stringResource(R.string.timer_rest_title),
                         style = MaterialTheme.typography.titleMedium,
                     )
+                    // Start als Lime-Pill: die Presets sind die Primaeraktion
+                    // des Timers (Design.txt: Lime nur fuer die Primaeraktion).
                     Row(
                         modifier = Modifier.padding(top = 8.dp),
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
                         REST_PRESETS_SECONDS.forEach { seconds ->
-                            OutlinedButton(
+                            Button(
                                 onClick = { viewModel.startRest(seconds * 1_000L) },
                                 modifier = Modifier.heightIn(min = 48.dp),
                             ) {
@@ -97,12 +104,27 @@ fun TimerSection(
                 }
 
                 TimerStatus.RUNNING, TimerStatus.PAUSED, TimerStatus.PREPARING -> {
-                    Text(
-                        text = formatRemaining(state.remainingMs),
-                        style = MaterialTheme.typography.displayMedium,
-                    )
+                    // Lime-Ring um die grosse Restzeit (Design.txt
+                    // "Progress Ring"); der Ring leert sich mit der Restzeit.
+                    val totalMs = state.session?.durationMs ?: 0L
+                    val ringProgress =
+                        if (totalMs > 0) {
+                            (state.remainingMs.toFloat() / totalMs).coerceIn(0f, 1f)
+                        } else {
+                            0f
+                        }
+                    ProgressRing(
+                        progress = ringProgress,
+                        ringSize = 200.dp,
+                        strokeWidth = 12.dp,
+                    ) {
+                        Text(
+                            text = formatRemaining(state.remainingMs),
+                            style = MaterialTheme.typography.displayMedium,
+                        )
+                    }
                     Row(
-                        modifier = Modifier.padding(top = 8.dp),
+                        modifier = Modifier.padding(top = 16.dp),
                         horizontalArrangement = Arrangement.spacedBy(16.dp),
                     ) {
                         if (state.status == TimerStatus.RUNNING) {
@@ -130,9 +152,26 @@ fun TimerSection(
                 }
 
                 TimerStatus.COMPLETED, TimerStatus.CANCELLED, TimerStatus.FAILED -> {
+                    // Peak-End: der volle Lime-Ring mit Haken belohnt das
+                    // durchgestandene Satzende (nur bei echtem Abschluss).
+                    if (state.status == TimerStatus.COMPLETED) {
+                        ProgressRing(
+                            progress = 1f,
+                            ringSize = 96.dp,
+                            strokeWidth = 8.dp,
+                        ) {
+                            Icon(
+                                Icons.Outlined.Check,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(40.dp),
+                            )
+                        }
+                    }
                     Text(
                         text = statusText,
                         style = MaterialTheme.typography.titleMedium,
+                        modifier = Modifier.padding(top = 8.dp),
                     )
                     Button(
                         onClick = viewModel::acknowledgeFinished,

@@ -14,7 +14,7 @@ Grundsätze: offline (Raleway als gebündelte OFL-TTF, kein Netz), keine neuen F
 | 4 | Rebrand FlowRep (app_name, Launcher-Icon) | Abgeschlossen |
 | 5 | Screen-Redesign: Bibliothek (`:feature:library`) | Abgeschlossen |
 | 6 | Screen-Redesign: Now-Playing + Mini-Player (`:feature:player`) | Abgeschlossen |
-| 7 | Timer + Bottom-Nav + globaler Feinschliff | Offen |
+| 7 | Timer + Bottom-Nav + globaler Feinschliff | Abgeschlossen |
 
 ## Phase 2 – Design-Tokens + Typografie (Abgeschlossen)
 
@@ -42,6 +42,12 @@ Grundsätze: offline (Raleway als gebündelte OFL-TTF, kein Netz), keine neuen F
 - [NowPlayingScreen.kt](feature/player/src/main/kotlin/com/dropsync/feature/player/NowPlayingScreen.kt): kreisrundes Cover (`CircleShape`), größerer Titel (headlineMedium), Outline-Icons (Zurück/Skip), Cover-Fallback als Outline-Glyph. Die vorhandene Lime-Waveform bleibt primäre Seekbar; der Slider-Fallback bleibt für Barrierefreiheit, wenn keine Waveform vorliegt.
 - [MiniPlayer.kt](feature/player/src/main/kotlin/com/dropsync/feature/player/MiniPlayer.kt): dünne Lime-Fortschrittslinie (neue `positionMs`/`durationMs` im `MiniPlayerState`), gerundete Cover-Kachel, Outline-Icons.
 - Hinweis: Der grosse Play-Kreis ist bereits die Lime-Primäraktion (`FilledIconButton` = primary). Der Titel bleibt kontraststark (kein Lime-Text), da Lime der Primäraktion vorbehalten ist und auf hellem Grund sonst die Lesbarkeit leidet.
+
+## Phase 7 – Timer, Bottom-Nav, globaler Feinschliff (Abgeschlossen)
+
+- [TimerSection.kt](feature/timer/src/main/kotlin/com/dropsync/feature/timer/TimerSection.kt): Lime-`ProgressRing` (200dp) um die große Restzeit, der sich mit der Restzeit leert; Rest-Presets als Lime-Pills (Start = Primäraktion); Peak-End: voller Lime-Ring mit Haken bei `COMPLETED`. Dafür `material-icons-extended` in `:feature:timer` ergänzt (`ProgressRing` kommt aus dem bereits verdrahteten `:core:designsystem`).
+- [DropSyncApp.kt](app/src/main/kotlin/com/dropsync/app/DropSyncApp.kt): Bottom-Nav und Rail mit Outline-Icons; Active-State als Lime-Pill-Indicator (`indicatorColor = primary`, Icon `onPrimary` = Schwarz auf Lime, Kontrast in Light und Dark).
+- Globaler Sweep Filled→Outlined: `QueueSheet`, `PlaylistScreens`, `AudioSettingsScreen`, `AudioEqSection` (Delete/Pfeile/Add/MoreVert/PlayArrow/ArrowBack). Bewusst Filled geblieben: Play/Pause-Glyphe im Lime-`FilledIconButton` (Primäraktion) und das aktive Favoriten-Herz (Zustand „aktiv").
 
 ## Verifikation je Phase
 

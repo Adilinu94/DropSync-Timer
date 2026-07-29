@@ -10,9 +10,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.KeyboardArrowDown
-import androidx.compose.material.icons.filled.KeyboardArrowUp
+import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.material.icons.outlined.KeyboardArrowDown
+import androidx.compose.material.icons.outlined.KeyboardArrowUp
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -134,19 +134,19 @@ private fun QueueRow(
         // 48-dp-Touch-Ziele (Schritt 12.5); Pfeile sind an den Raendern deaktiviert.
         IconButton(onClick = onMoveUp, enabled = canMoveUp) {
             Icon(
-                Icons.Filled.KeyboardArrowUp,
+                Icons.Outlined.KeyboardArrowUp,
                 contentDescription = stringResource(R.string.player_queue_move_up),
             )
         }
         IconButton(onClick = onMoveDown, enabled = canMoveDown) {
             Icon(
-                Icons.Filled.KeyboardArrowDown,
+                Icons.Outlined.KeyboardArrowDown,
                 contentDescription = stringResource(R.string.player_queue_move_down),
             )
         }
         IconButton(onClick = onRemove) {
             Icon(
-                Icons.Filled.Delete,
+                Icons.Outlined.Delete,
                 contentDescription = stringResource(R.string.player_queue_remove),
             )
         }

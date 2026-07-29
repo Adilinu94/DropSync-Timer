@@ -6,7 +6,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material3.Button
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -95,7 +95,7 @@ private fun PresetRow(
                         if (!preset.isBuiltIn) {
                             IconButton(onClick = { viewModel.deletePreset(preset.id) }) {
                                 Icon(
-                                    Icons.Filled.Delete,
+                                    Icons.Outlined.Delete,
                                     contentDescription =
                                         stringResource(R.string.audio_eq_preset_delete),
                                 )

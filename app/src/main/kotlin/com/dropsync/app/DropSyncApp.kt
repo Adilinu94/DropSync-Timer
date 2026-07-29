@@ -6,14 +6,17 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.FitnessCenter
-import androidx.compose.material.icons.filled.LibraryMusic
-import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.outlined.FitnessCenter
+import androidx.compose.material.icons.outlined.LibraryMusic
+import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.NavigationRail
 import androidx.compose.material3.NavigationRailItem
+import androidx.compose.material3.NavigationRailItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.windowsizeclass.WindowSizeClass
@@ -49,9 +52,9 @@ enum class TopLevelDestination(
     val icon: ImageVector,
     val labelRes: Int,
 ) {
-    MUSIC("music", Icons.Filled.LibraryMusic, R.string.nav_music),
-    TRAINING("training", Icons.Filled.FitnessCenter, R.string.nav_training),
-    SETTINGS("settings", Icons.Filled.Settings, R.string.nav_settings),
+    MUSIC("music", Icons.Outlined.LibraryMusic, R.string.nav_music),
+    TRAINING("training", Icons.Outlined.FitnessCenter, R.string.nav_training),
+    SETTINGS("settings", Icons.Outlined.Settings, R.string.nav_settings),
 }
 
 /**
@@ -171,6 +174,13 @@ private fun DropSyncNavigationBar(navController: NavHostController) {
                 onClick = { navController.navigateTopLevel(destination.route) },
                 icon = { Icon(destination.icon, contentDescription = null) },
                 label = { Text(label) },
+                colors =
+                    NavigationBarItemDefaults.colors(
+                        // Lime-Pill als Active-State (Design.txt: Lime nur
+                        // fuer die aktive/primaere Stelle).
+                        indicatorColor = MaterialTheme.colorScheme.primary,
+                        selectedIconColor = MaterialTheme.colorScheme.onPrimary,
+                    ),
             )
         }
     }
@@ -188,6 +198,11 @@ private fun DropSyncNavigationRail(navController: NavHostController) {
                 onClick = { navController.navigateTopLevel(destination.route) },
                 icon = { Icon(destination.icon, contentDescription = null) },
                 label = { Text(label) },
+                colors =
+                    NavigationRailItemDefaults.colors(
+                        indicatorColor = MaterialTheme.colorScheme.primary,
+                        selectedIconColor = MaterialTheme.colorScheme.onPrimary,
+                    ),
             )
         }
     }
