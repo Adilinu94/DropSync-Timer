@@ -18,13 +18,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.ArrowBack
-import androidx.compose.material.icons.filled.Pause
-import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material.icons.outlined.MusicNote
-import androidx.compose.material.icons.outlined.SkipNext
-import androidx.compose.material.icons.outlined.SkipPrevious
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledIconButton
@@ -51,6 +44,7 @@ import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -59,6 +53,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.dropsync.core.designsystem.chart.Waveform
 import com.dropsync.core.designsystem.chart.WaveformPlaceholder
+import com.dropsync.core.designsystem.icon.BrandIcons
 import com.dropsync.core.model.SongMarker
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -107,7 +102,7 @@ fun NowPlayingScreen(
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(
-                            Icons.AutoMirrored.Outlined.ArrowBack,
+                            painterResource(BrandIcons.Back),
                             contentDescription = stringResource(R.string.now_playing_back),
                         )
                     }
@@ -411,26 +406,26 @@ private fun TransportControls(
     ) {
         IconButton(onClick = onPrevious, modifier = Modifier.size(56.dp)) {
             Icon(
-                Icons.Outlined.SkipPrevious,
+                painterResource(BrandIcons.SkipPrevious),
                 contentDescription = stringResource(R.string.player_previous),
             )
         }
         FilledIconButton(onClick = onTogglePlayPause, modifier = Modifier.size(72.dp)) {
             if (isPlaying) {
                 Icon(
-                    Icons.Filled.Pause,
+                    painterResource(BrandIcons.Pause),
                     contentDescription = stringResource(R.string.player_pause),
                 )
             } else {
                 Icon(
-                    Icons.Filled.PlayArrow,
+                    painterResource(BrandIcons.Play),
                     contentDescription = stringResource(R.string.player_play),
                 )
             }
         }
         IconButton(onClick = onNext, modifier = Modifier.size(56.dp)) {
             Icon(
-                Icons.Outlined.SkipNext,
+                painterResource(BrandIcons.SkipNext),
                 contentDescription = stringResource(R.string.player_next),
             )
         }
@@ -473,7 +468,7 @@ private fun CoverArt(contentUri: String?) {
             )
         } else {
             Icon(
-                Icons.Outlined.MusicNote,
+                painterResource(BrandIcons.NavMusic),
                 contentDescription = stringResource(R.string.now_playing_cover),
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.fillMaxSize(0.4f),

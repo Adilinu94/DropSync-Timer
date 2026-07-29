@@ -5,10 +5,6 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.FitnessCenter
-import androidx.compose.material.icons.outlined.LibraryMusic
-import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
@@ -24,7 +20,7 @@ import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavGraph.Companion.findStartDestination
@@ -33,6 +29,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.dropsync.core.designsystem.icon.BrandIcons
 import com.dropsync.feature.audio.AudioSettingsScreen
 import com.dropsync.feature.library.LibraryScreen
 import com.dropsync.feature.player.DropRestCard
@@ -49,12 +46,12 @@ import com.dropsync.feature.workout.WorkoutFeature
  */
 enum class TopLevelDestination(
     val route: String,
-    val icon: ImageVector,
+    val iconRes: Int,
     val labelRes: Int,
 ) {
-    MUSIC("music", Icons.Outlined.LibraryMusic, R.string.nav_music),
-    TRAINING("training", Icons.Outlined.FitnessCenter, R.string.nav_training),
-    SETTINGS("settings", Icons.Outlined.Settings, R.string.nav_settings),
+    MUSIC("music", BrandIcons.NavMusic, R.string.nav_music),
+    TRAINING("training", BrandIcons.NavTraining, R.string.nav_training),
+    SETTINGS("settings", BrandIcons.NavSettings, R.string.nav_settings),
 }
 
 /**
@@ -172,7 +169,7 @@ private fun DropSyncNavigationBar(navController: NavHostController) {
             NavigationBarItem(
                 selected = currentRoute == destination.route,
                 onClick = { navController.navigateTopLevel(destination.route) },
-                icon = { Icon(destination.icon, contentDescription = null) },
+                icon = { Icon(painterResource(destination.iconRes), contentDescription = null) },
                 label = { Text(label) },
                 colors =
                     NavigationBarItemDefaults.colors(
@@ -196,7 +193,7 @@ private fun DropSyncNavigationRail(navController: NavHostController) {
             NavigationRailItem(
                 selected = currentRoute == destination.route,
                 onClick = { navController.navigateTopLevel(destination.route) },
-                icon = { Icon(destination.icon, contentDescription = null) },
+                icon = { Icon(painterResource(destination.iconRes), contentDescription = null) },
                 label = { Text(label) },
                 colors =
                     NavigationRailItemDefaults.colors(

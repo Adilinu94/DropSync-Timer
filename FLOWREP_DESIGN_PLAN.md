@@ -49,6 +49,13 @@ Grundsätze: offline (Raleway als gebündelte OFL-TTF, kein Netz), keine neuen F
 - [DropSyncApp.kt](app/src/main/kotlin/com/dropsync/app/DropSyncApp.kt): Bottom-Nav und Rail mit Outline-Icons; Active-State als Lime-Pill-Indicator (`indicatorColor = primary`, Icon `onPrimary` = Schwarz auf Lime, Kontrast in Light und Dark).
 - Globaler Sweep Filled→Outlined: `QueueSheet`, `PlaylistScreens`, `AudioSettingsScreen`, `AudioEqSection` (Delete/Pfeile/Add/MoreVert/PlayArrow/ArrowBack). Bewusst Filled geblieben: Play/Pause-Glyphe im Lime-`FilledIconButton` (Primäraktion) und das aktive Favoriten-Herz (Zustand „aktiv").
 
+## Nachtrag – Eigene Marken-Icons (Abgeschlossen)
+
+- 61 gelieferte FlowRep-Icon-Drawables (Outline, 2px, 24dp-Grid, Laufzeit-Tint) nach `core/designsystem/src/main/res/drawable/` übernommen; zentraler Zugriff über [BrandIcons.kt](core/designsystem/src/main/kotlin/com/dropsync/core/designsystem/icon/BrandIcons.kt).
+- Verdrahtet: App-Shell-Navigation (`ic_nav_*`, aktiv = Lime-Pill mit schwarzem Icon), Mini-Player/Now-Playing/Queue (`ic_play/pause/skip_*/queue/delete/back`), Bibliothek (`ic_search/close/filter/back/more/favorite_*`, Kategorie-Kacheln `ic_artists/albums/genres/folder`, Playlists `ic_playlists/playlist_add/add/delete/play`), Audio-Sektionen (`ic_info/audio_dsp/bass_treble/equalizer/stereo_width/reverb/resampler/dvc/swap/bit_perfect/output_device` als 20dp-Titel-Icons), Training (`ic_repeat_session/exercise_library/routines/progress` auf den Einstiegs-Buttons, `ic_rest_dropsync` an der Drop-Rest-Karte, `ic_set_complete` als Peak-End-Haken im Timer).
+- Farben: Icons folgen der Content-Farbe (`LocalContentColor`/explizites `onSurfaceVariant`), Lime nur für aktive Zustände (Favorit aktiv, Nav-Indicator, Timer-Haken) — wie in den Icon-Kommentaren vorgesehen.
+- Ohne Marken-Ersatz belassen (kein passendes Icon im Satz): einzelne Auf-/Ab-Pfeile (`KeyboardArrowUp/Down`) und `Shuffle`.
+
 ## Verifikation je Phase
 
 - `./gradlew spotlessApply` (separat) → betroffene Modul-Tests + `:app:assembleDebug` → `:core:testing:test` (Architektur-Wächter) + `spotlessCheck`.

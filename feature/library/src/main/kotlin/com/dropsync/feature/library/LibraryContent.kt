@@ -21,13 +21,9 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.ArrowBack
-import androidx.compose.material.icons.outlined.Clear
 import androidx.compose.material.icons.outlined.KeyboardArrowDown
 import androidx.compose.material.icons.outlined.KeyboardArrowUp
-import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.Shuffle
-import androidx.compose.material.icons.outlined.Tune
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Checkbox
@@ -51,10 +47,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.dropsync.core.designsystem.icon.BrandIcons
 import com.dropsync.core.model.Song
 import com.dropsync.domain.library.SongSort
 
@@ -185,12 +183,12 @@ private fun SearchField(
         value = query,
         onValueChange = onQueryChange,
         singleLine = true,
-        leadingIcon = { Icon(Icons.Outlined.Search, contentDescription = null) },
+        leadingIcon = { Icon(painterResource(BrandIcons.Search), contentDescription = null) },
         trailingIcon = {
             if (query.isNotEmpty()) {
                 IconButton(onClick = { onQueryChange("") }) {
                     Icon(
-                        Icons.Outlined.Clear,
+                        painterResource(BrandIcons.Close),
                         contentDescription = stringResource(R.string.library_search_clear),
                     )
                 }
@@ -294,7 +292,7 @@ private fun ViewChips(
         }
         IconButton(onClick = onOpenConfig) {
             Icon(
-                Icons.Outlined.Tune,
+                painterResource(BrandIcons.Filter),
                 contentDescription = stringResource(R.string.library_views_configure),
             )
         }
@@ -374,7 +372,7 @@ private fun DetailHeader(
     ) {
         IconButton(onClick = onBack) {
             Icon(
-                Icons.AutoMirrored.Outlined.ArrowBack,
+                painterResource(BrandIcons.Back),
                 contentDescription = stringResource(R.string.library_back),
             )
         }
@@ -456,6 +454,7 @@ private fun LibraryViewBody(
                     },
                 contentPadding = contentPadding,
                 onOpen = { viewModel.openBucket(LibraryView.ARTISTS, it.key, it.title) },
+                iconRes = BrandIcons.Artists,
             )
         }
 
@@ -465,6 +464,7 @@ private fun LibraryViewBody(
                 labels = albums.map { BucketItem(it.title, it.title, it.artist, it.trackCount) },
                 contentPadding = contentPadding,
                 onOpen = { viewModel.openBucket(LibraryView.ALBUMS, it.key, it.title) },
+                iconRes = BrandIcons.Albums,
             )
         }
 
@@ -474,6 +474,7 @@ private fun LibraryViewBody(
                 labels = genres.map { BucketItem(it.name, it.name, null, it.trackCount) },
                 contentPadding = contentPadding,
                 onOpen = { viewModel.openBucket(LibraryView.GENRES, it.key, it.title) },
+                iconRes = BrandIcons.Genres,
             )
         }
 
@@ -486,6 +487,7 @@ private fun LibraryViewBody(
                     },
                 contentPadding = contentPadding,
                 onOpen = { viewModel.openBucket(LibraryView.FOLDERS, it.key, it.title) },
+                iconRes = BrandIcons.Folder,
             )
         }
 

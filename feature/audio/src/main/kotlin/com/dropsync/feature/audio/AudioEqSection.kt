@@ -22,8 +22,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.dropsync.core.designsystem.icon.BrandIcons
 import com.dropsync.domain.audio.DspConfig
 import com.dropsync.domain.audio.EqBand
 import com.dropsync.domain.audio.EqMode
@@ -41,7 +43,7 @@ internal fun EqSection(
     presets: List<EqPreset>,
     viewModel: AudioSettingsViewModel,
 ) {
-    SectionCard(title = stringResource(R.string.audio_eq_title)) {
+    SectionCard(title = stringResource(R.string.audio_eq_title), iconRes = BrandIcons.Equalizer) {
         SwitchRow(
             label = stringResource(R.string.audio_eq_enable),
             checked = config.eq.enabled,
@@ -95,7 +97,7 @@ private fun PresetRow(
                         if (!preset.isBuiltIn) {
                             IconButton(onClick = { viewModel.deletePreset(preset.id) }) {
                                 Icon(
-                                    Icons.Outlined.Delete,
+                                    painterResource(BrandIcons.Delete),
                                     contentDescription =
                                         stringResource(R.string.audio_eq_preset_delete),
                                 )

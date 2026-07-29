@@ -10,7 +10,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.KeyboardArrowDown
 import androidx.compose.material.icons.outlined.KeyboardArrowUp
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -22,9 +21,11 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.dropsync.core.designsystem.icon.BrandIcons
 import com.dropsync.domain.playback.QueueItem
 
 /**
@@ -146,7 +147,7 @@ private fun QueueRow(
         }
         IconButton(onClick = onRemove) {
             Icon(
-                Icons.Outlined.Delete,
+                painterResource(BrandIcons.Delete),
                 contentDescription = stringResource(R.string.player_queue_remove),
             )
         }

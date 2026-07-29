@@ -10,6 +10,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.dropsync.core.designsystem.icon.BrandIcons
 import com.dropsync.domain.audio.BitPerfectSupport
 import com.dropsync.domain.audio.CrossfadeCurves
 import com.dropsync.domain.audio.DitherMode
@@ -22,7 +23,7 @@ internal fun ReverbSection(
     config: DspConfig,
     viewModel: AudioSettingsViewModel,
 ) {
-    SectionCard(title = stringResource(R.string.audio_reverb_title)) {
+    SectionCard(title = stringResource(R.string.audio_reverb_title), iconRes = BrandIcons.Reverb) {
         SwitchRow(
             label = stringResource(R.string.audio_reverb_enable),
             checked = config.reverb.enabled,
@@ -65,7 +66,7 @@ internal fun ResamplerSection(
     config: DspConfig,
     viewModel: AudioSettingsViewModel,
 ) {
-    SectionCard(title = stringResource(R.string.audio_resampler_title)) {
+    SectionCard(title = stringResource(R.string.audio_resampler_title), iconRes = BrandIcons.Resampler) {
         Text(stringResource(R.string.audio_resampler_quality))
         ChoiceChips(
             options = ResamplerQuality.entries,
@@ -115,7 +116,7 @@ internal fun DvcSection(
     config: DspConfig,
     viewModel: AudioSettingsViewModel,
 ) {
-    SectionCard(title = stringResource(R.string.audio_dvc_title)) {
+    SectionCard(title = stringResource(R.string.audio_dvc_title), iconRes = BrandIcons.Dvc) {
         SwitchRow(
             label = stringResource(R.string.audio_dvc_enable),
             checked = config.dvcEnabled,
@@ -139,7 +140,7 @@ internal fun CrossfadeSection(
     config: DspConfig,
     viewModel: AudioSettingsViewModel,
 ) {
-    SectionCard(title = stringResource(R.string.audio_crossfade_title)) {
+    SectionCard(title = stringResource(R.string.audio_crossfade_title), iconRes = BrandIcons.Swap) {
         LabeledSlider(
             label = stringResource(R.string.audio_crossfade_seconds),
             value = config.crossfadeSeconds.toFloat(),
@@ -176,7 +177,7 @@ internal fun BitPerfectSection(
     support: BitPerfectSupport,
     viewModel: AudioSettingsViewModel,
 ) {
-    SectionCard(title = stringResource(R.string.audio_bitperfect_title)) {
+    SectionCard(title = stringResource(R.string.audio_bitperfect_title), iconRes = BrandIcons.BitPerfect) {
         SwitchRow(
             label = stringResource(R.string.audio_bitperfect_enable),
             checked = config.bitPerfectEnabled && support.available,
@@ -209,7 +210,7 @@ internal fun BitPerfectSection(
 @Composable
 internal fun OutputProfileSection(activeProfileKey: String?) {
     val context = LocalContext.current
-    SectionCard(title = stringResource(R.string.audio_profile_title)) {
+    SectionCard(title = stringResource(R.string.audio_profile_title), iconRes = BrandIcons.OutputDevice) {
         Text(
             text =
                 activeProfileKey

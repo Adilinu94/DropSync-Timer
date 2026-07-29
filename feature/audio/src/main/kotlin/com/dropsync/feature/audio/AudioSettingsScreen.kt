@@ -7,8 +7,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -18,10 +16,12 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.dropsync.core.designsystem.icon.BrandIcons
 import com.dropsync.domain.audio.AudioInfo
 import com.dropsync.domain.audio.DspConfig
 import com.dropsync.domain.audio.StereoMatrix
@@ -58,7 +58,7 @@ fun AudioSettingsScreen(
             navigationIcon = {
                 IconButton(onClick = onBack) {
                     Icon(
-                        Icons.AutoMirrored.Outlined.ArrowBack,
+                        painterResource(BrandIcons.Back),
                         contentDescription = stringResource(R.string.audio_back),
                     )
                 }
@@ -84,7 +84,7 @@ fun AudioSettingsScreen(
 
 @Composable
 private fun AudioInfoPanel(info: AudioInfo?) {
-    SectionCard(title = stringResource(R.string.audio_info_title)) {
+    SectionCard(title = stringResource(R.string.audio_info_title), iconRes = BrandIcons.Info) {
         if (info == null) {
             Text(
                 text = stringResource(R.string.audio_info_idle),
@@ -137,7 +137,7 @@ private fun MasterSection(
     config: DspConfig,
     viewModel: AudioSettingsViewModel,
 ) {
-    SectionCard(title = stringResource(R.string.audio_master_title)) {
+    SectionCard(title = stringResource(R.string.audio_master_title), iconRes = BrandIcons.AudioDsp) {
         SwitchRow(
             label = stringResource(R.string.audio_master_enable),
             checked = config.enabled,
@@ -166,7 +166,7 @@ private fun ToneSection(
     config: DspConfig,
     viewModel: AudioSettingsViewModel,
 ) {
-    SectionCard(title = stringResource(R.string.audio_tone_title)) {
+    SectionCard(title = stringResource(R.string.audio_tone_title), iconRes = BrandIcons.BassTreble) {
         LabeledSlider(
             label = stringResource(R.string.audio_bass),
             value = config.bassGainDb.toFloat(),
@@ -191,7 +191,7 @@ private fun StereoSection(
     config: DspConfig,
     viewModel: AudioSettingsViewModel,
 ) {
-    SectionCard(title = stringResource(R.string.audio_stereo_title)) {
+    SectionCard(title = stringResource(R.string.audio_stereo_title), iconRes = BrandIcons.StereoWidth) {
         LabeledSlider(
             label = stringResource(R.string.audio_stereo_width),
             value = config.stereoWidthPercent.toFloat(),

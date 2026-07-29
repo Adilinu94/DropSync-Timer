@@ -10,6 +10,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.KeyboardOptions
@@ -22,6 +24,7 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -40,11 +43,13 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.dropsync.core.designsystem.icon.BrandIcons
 import com.dropsync.core.model.RestMode
 import com.dropsync.domain.workout.ExerciseInfo
 import com.dropsync.domain.workout.RestPref
@@ -174,17 +179,41 @@ private fun EmptySessionContent(
         Spacer(Modifier.height(8.dp))
         // Letzte Session mit einem Tap wiederholen (9.6).
         OutlinedButton(onClick = onRepeatLast, modifier = Modifier.heightIn(min = 48.dp)) {
+            Icon(
+                painterResource(BrandIcons.RepeatSession),
+                contentDescription = null,
+                modifier = Modifier.size(18.dp),
+            )
+            Spacer(Modifier.width(8.dp))
             Text(stringResource(R.string.workout_repeat_last))
         }
         Spacer(Modifier.height(24.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             TextButton(onClick = onOpenLibrary) {
+                Icon(
+                    painterResource(BrandIcons.ExerciseLibrary),
+                    contentDescription = null,
+                    modifier = Modifier.size(18.dp),
+                )
+                Spacer(Modifier.width(6.dp))
                 Text(stringResource(R.string.workout_open_library))
             }
             TextButton(onClick = onOpenRoutines) {
+                Icon(
+                    painterResource(BrandIcons.Routines),
+                    contentDescription = null,
+                    modifier = Modifier.size(18.dp),
+                )
+                Spacer(Modifier.width(6.dp))
                 Text(stringResource(R.string.workout_open_routines))
             }
             TextButton(onClick = onOpenProgress) {
+                Icon(
+                    painterResource(BrandIcons.Progress),
+                    contentDescription = null,
+                    modifier = Modifier.size(18.dp),
+                )
+                Spacer(Modifier.width(6.dp))
                 Text(stringResource(R.string.workout_open_progress))
             }
         }

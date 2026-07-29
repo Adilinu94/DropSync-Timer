@@ -13,12 +13,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.MusicNote
-import androidx.compose.material.icons.outlined.Pause
-import androidx.compose.material.icons.outlined.PlayArrow
-import androidx.compose.material.icons.outlined.QueueMusic
-import androidx.compose.material.icons.outlined.SkipNext
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -32,11 +26,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.dropsync.core.designsystem.icon.BrandIcons
 
 /**
  * Aktiver Mini-Player: bleibt als klar beschriebene, bedienbare
@@ -97,7 +93,7 @@ fun MiniPlayer(
                     contentAlignment = Alignment.Center,
                 ) {
                     Icon(
-                        Icons.Outlined.MusicNote,
+                        painterResource(BrandIcons.NavMusic),
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -132,12 +128,12 @@ fun MiniPlayer(
                 ) {
                     if (state.isPlaying) {
                         Icon(
-                            Icons.Outlined.Pause,
+                            painterResource(BrandIcons.Pause),
                             contentDescription = stringResource(R.string.player_pause),
                         )
                     } else {
                         Icon(
-                            Icons.Outlined.PlayArrow,
+                            painterResource(BrandIcons.Play),
                             contentDescription = stringResource(R.string.player_play),
                         )
                     }
@@ -147,7 +143,7 @@ fun MiniPlayer(
                     modifier = Modifier.size(48.dp),
                 ) {
                     Icon(
-                        Icons.Outlined.SkipNext,
+                        painterResource(BrandIcons.SkipNext),
                         contentDescription = stringResource(R.string.player_next),
                     )
                 }
@@ -156,7 +152,7 @@ fun MiniPlayer(
                     modifier = Modifier.size(48.dp),
                 ) {
                     Icon(
-                        Icons.Outlined.QueueMusic,
+                        painterResource(BrandIcons.Queue),
                         contentDescription = stringResource(R.string.player_queue_open),
                     )
                 }

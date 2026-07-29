@@ -20,12 +20,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Favorite
-import androidx.compose.material.icons.outlined.FavoriteBorder
-import androidx.compose.material.icons.outlined.LibraryMusic
-import androidx.compose.material.icons.outlined.MoreVert
-import androidx.compose.material.icons.outlined.MusicNote
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
@@ -42,9 +36,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.dropsync.core.designsystem.icon.BrandIcons
 import com.dropsync.core.model.Song
 import kotlinx.coroutines.launch
 
@@ -148,7 +144,7 @@ private fun SongRow(
             contentAlignment = Alignment.Center,
         ) {
             Icon(
-                Icons.Outlined.MusicNote,
+                painterResource(BrandIcons.NavMusic),
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -177,14 +173,17 @@ private fun SongRow(
                     MaterialTheme.colorScheme.onSurfaceVariant
                 }
             Icon(
-                imageVector = if (isFavorite) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
+                painter =
+                    painterResource(
+                        if (isFavorite) BrandIcons.FavoriteFilled else BrandIcons.FavoriteOutline,
+                    ),
                 contentDescription = favLabel,
                 tint = favTint,
             )
         }
         IconButton(onClick = { menuOpen = true }) {
             Icon(
-                Icons.Outlined.MoreVert,
+                painterResource(BrandIcons.More),
                 contentDescription = stringResource(R.string.library_more_actions),
             )
         }
@@ -269,6 +268,7 @@ internal fun BucketColumn(
     contentPadding: PaddingValues,
     onOpen: (BucketItem) -> Unit,
     modifier: Modifier = Modifier,
+    iconRes: Int = BrandIcons.Albums,
 ) {
     if (labels.isEmpty()) {
         EmptyHint(contentPadding = contentPadding, modifier = modifier)
@@ -287,7 +287,7 @@ internal fun BucketColumn(
                         contentAlignment = Alignment.Center,
                     ) {
                         Icon(
-                            Icons.Outlined.LibraryMusic,
+                            painterResource(iconRes),
                             contentDescription = null,
                             tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
