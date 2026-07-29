@@ -73,6 +73,17 @@ Bauplan sind nur ueber ADRs in [`docs/adr/`](docs/adr/) erlaubt.
 | 5 | Hardware-/Touch-Control (F4): Verifikation MediaSession-Standardbefehle, Override-Absicherung, Doku `docs/hardware-control.md` | Abgeschlossen (codeseitig: Standardkommandos + Notification-Aktionen ueber `MediaLibrarySession`, Nutzer-Vorrang der Automatik getestet, Doku; Geraeteabnahme wie Schritt 13 offen) |
 | 6 | Extras: Intelligentes Shuffle (A5, reiner `SmartShuffle` in `:domain:library` ueber play_stats/Favoriten, Schalter in den Einstellungen, `shufflePlay` in der Titelliste), Rest-Timer-Presets (B8, `RestTimerPreferencesRepository`/-`Store` (DataStore), Schnellwahl-Chips im Rest-Dialog + Editor in den Einstellungen), Get-Ready-Countdown 3-2-1 (B9, `prepMs`/`PREPARING` in `TimerEngine`, Schalter+Dauer in den Einstellungen) | Abgeschlossen |
 
+### Mix-Uebergaenge (Plan `MIX_TRANSITIONS_AUSBAU_PLAN.md`, Entwurf — noch nicht umgesetzt)
+
+| Phase | Inhalt | Status |
+| ----- | ------ | ------ |
+| 1 | BPM-/Tonart-Analyse additiv im bestehenden `TrackAnalyzer`-Durchgang (`track_analysis.bpm`/`camelot_key`), Migration v4->v5 inkl. `playlists.mix_preset` | Entwurf |
+| 2 | `MixPreset`-Enum (Fade/Rise/Blend/Wave/Melt/Slam) als Volume-Kurven mit Equal-Power-Invariante, `CrossfadeController` auf Strategie | Entwurf |
+| 3 | UI (FlowRep-Design): BPM/Key-Badge, Mix-Umschalter + Preset-Wahl pro Playlist, Batch-Analyse-Trigger | Entwurf |
+| 4 | Tests: Tempo-/Chroma-Akkumulatoren, Equal-Power-Eigenschaftstest je Preset, Durchsatz-Waechter, Migrationstest 4 -> 5 | Entwurf |
+| 5 | Optional: zweite DSP-Kette fuer echte EQ-/Filter-Uebergaenge (ADR-0013-pflichtig) | Nicht geplant, nur beschrieben |
+| 6 | Optional: Drop-Landung (`crossfadeTo`) mit waehlbarem Preset | Nicht geplant, nur beschrieben |
+
 ## Build
 
 Voraussetzungen:
